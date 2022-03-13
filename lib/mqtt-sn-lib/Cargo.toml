@@ -1,0 +1,35 @@
+[package]
+name = "mqtt-sn-lib"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rust-fsm = { path="../fsm" }
+getset = { path="../getset" }
+
+custom_debug = { path="../custom_debug" }
+modular-bitfield = { path="../modular-bitfield" }
+tokio = { version="1.0.0", features=["full", "tracing"] }
+tokio-util = { version="0.6.3", features=["full"] }
+tokio-stream = { version="0.1" }
+bytes = "1.0.0"
+futures = { version="0.3.0", features=["thread-pool"] }
+serde = { version="1.0", features=["derive"] }
+serde_derive = "1.0"
+serde_json = "1.0"
+bincode = { path="../bincode-trunk" }
+time = { path="../time-main" }
+simplelog = { path="../simplelog" }
+log = { version="0.4.*", features=["std"] }
+num-traits = { path="../num-traits" }
+num-derive = { path="../num-derive" }
+arrayref = "0.3.6"
+strum = "0.20"
+strum_macros = "0.20"
+num_enum = "0.5.1"
+sled = "0.34"
+getopts = "~0.2.14"
+socket2 = "0.3"
+clap = "2.33"
