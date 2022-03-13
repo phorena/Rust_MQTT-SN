@@ -1,0 +1,47 @@
+[package]
+name = "mqtt-sn"
+version = "0.1.0"
+authors = ["Lawrence Lu <lawrence@phorena.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# need to change to your path if necessary
+rust-fsm = { path="../../lib/fsm" }
+getset = { path="../../lib/getset" }
+mqtt-sn-lib = { path="../../lib/mqtt-sn-lib" }
+DTLS = {path = "../../lib/DTLS"}
+
+custom_debug = { path="../../lib/custom_debug" }
+modular-bitfield = { path="../../lib/modular-bitfield" }
+tokio = { version="1.0.0", features=["full", "tracing"] }
+tokio-util = { version="0.6.3", features=["full"] }
+tokio-stream = { version="0.1" }
+bytes = "1.0.0"
+futures = { version="0.3.0", features=["thread-pool"] }
+serde = { version="1.0", features=["derive"] }
+serde_derive = "1.0"
+serde_json = "1.0"
+bincode = { path="../../lib/bincode-trunk" }
+time = { path="../../lib/time-main" }
+simplelog = { path="../../lib/simplelog" }
+log = { version="0.4.*", features=["std"] }
+num-traits = { path="../../lib/num-traits" }
+num-derive = { path="../../lib/num-derive" }
+arrayref = "0.3.6"
+strum = "0.20"
+strum_macros = "0.20"
+num_enum = "0.5.1"
+sled = "0.34"
+getopts = "~0.2.14"
+socket2 = "0.3"
+clap = "2.33"
+
+#byte = "0.2.6"
+#heaparray = "0.5"
+# tracing = "0.1"
+# tracing-subscriber = { version = "0.2.7", default-features = false, features = ["fmt", "ansi", "env-filter", "chrono", "tracing-log"] }
+# once_cell = "1.5.2"
+# httparse = "1.0"
+# http = "0.2"
