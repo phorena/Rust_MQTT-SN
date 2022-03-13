@@ -1,0 +1,34 @@
+[package]
+name = "getset"
+description = """
+Getset, we're ready to go!
+
+A procedural macro for generating the most basic getters and setters on fields.
+"""
+version = "0.1.1"
+authors = ["Ana Hobden <ana@hoverbear.org>"]
+license = "MIT"
+edition = "2018"
+
+categories = ["development-tools::procedural-macro-helpers"]
+keywords = ["macro", "getter", "setter", "getters", "setters"]
+readme = "README.md"
+repository = "https://github.com/Hoverbear/getset"
+
+[badges]
+travis-ci = { repository = "Hoverbear/getset" }
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote = "1"
+syn = { version = "1", features = ["full", "fold", "extra-traits"] }
+proc-macro2 = { version = "1", default-features = false }
+proc-macro-error = "1.0"
+byte = "0.2.6"
+custom_debug = "0.5.0"
+modular-bitfield = "0.11"
+heaparray = "0.5"
+bytes = "1.0.0"
+arrayref = "0.3.6"

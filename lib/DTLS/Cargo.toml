@@ -1,0 +1,17 @@
+[package]
+name = "DTLS"
+version = "0.1.0"
+authors = ["aswinjayaji <aswinjayaji@cet.ac.in>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+mqtt-sn-lib = { path = "../mqtt-sn-lib" }
+webrtc-dtls = "0.3.1"
+webrtc-util = "0.3.1"
+tokio = { version = "1.0", features = ["full"] }
+anyhow = "1.0.41"
+log = { version = "0.4.*", features = ["std"] }
+bytes = "1.0.0"
+sled = "0.34"
