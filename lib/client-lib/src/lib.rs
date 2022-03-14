@@ -63,6 +63,8 @@ pub const MSG_TYPE_ENCAP_MSG: MsgTypeConst = 0xFE;
 // must include 256 entries.
 // For the 2x2 array [0..6][0..255] states,
 // instead of array  [0..6][0..29] states.
+//
+//
 
 pub const MSG_TYPE_MAX: usize = 256;
 
