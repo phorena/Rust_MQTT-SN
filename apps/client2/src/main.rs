@@ -17,7 +17,6 @@ use chrono::{Datelike, Local, Timelike};
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use trace_var::trace_var;
 
-
 // use DTLS::dtls_client::DtlsClient;
 use client_lib::{
     ClientLib::MqttSnClient,

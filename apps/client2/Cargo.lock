@@ -167,7 +167,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "thiserror",
- "time 0.3.0-alpha-2",
+ "time 0.3.7",
  "tokio",
  "tokio-stream",
  "tokio-util",
@@ -222,12 +222,6 @@ name = "const-utils"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "004dad2229d2902fbb09ff8e9c93a9424e36e3b094ff8231a5e184d1eb622856"
-
-[[package]]
-name = "const_fn"
-version = "0.4.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f92cfa0fd5690b3cf8c1ef2cabbd9b7ef22fa53cf5e1f92b05103f6d5d1cf6e7"
 
 [[package]]
 name = "containers-rs"
@@ -358,12 +352,6 @@ dependencies = [
  "quote 1.0.10",
  "syn 1.0.82",
 ]
-
-[[package]]
-name = "easy-ext"
-version = "0.2.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53aff6fdc1b181225acdcb5b14c47106726fd8e486707315b1b138baed68ee31"
 
 [[package]]
 name = "ferris"
@@ -694,7 +682,7 @@ dependencies = [
  "socket2",
  "strum",
  "strum_macros",
- "time 0.3.0-alpha-2",
+ "time 0.3.7",
  "tokio",
  "tokio-stream",
  "tokio-util",
@@ -851,6 +839,15 @@ dependencies = [
  "proc-macro2 1.0.32",
  "quote 1.0.10",
  "syn 1.0.82",
+]
+
+[[package]]
+name = "num_threads"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c539a50b93a303167eded6e8dff5220cd39447409fb659f4cd24b1f72fe4f133"
+dependencies = [
+ "libc",
 ]
 
 [[package]]
@@ -1156,16 +1153,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "standback"
-version = "0.3.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a66b810a718e8ba519476ec4df79e2f380f568b83106b812b8182090e4bfba8d"
-dependencies = [
- "easy-ext",
- "version_check",
-]
-
-[[package]]
 name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1280,11 +1267,12 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.0-alpha-2"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "004cbc98f30fa233c61a38bc77e96a9106e65c88f2d3bef182ae952027e5753d"
 dependencies = [
- "const_fn",
  "libc",
- "standback",
+ "num_threads",
 ]
 
 [[package]]
