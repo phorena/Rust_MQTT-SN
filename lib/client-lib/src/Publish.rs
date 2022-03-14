@@ -30,14 +30,14 @@ pub struct PublishRecv {
 #[derive(Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default)]
 #[getset(get, set)]
 pub struct Publish {
-    pub len: u8, // TODO remove pub
+    len: u8,
     #[debug(format = "0x{:x}")]
-    pub msg_type: u8, // TODO remove pub
+    msg_type: u8,
     #[debug(format = "0b{:08b}")]
-    pub flags: u8, // TODO remove pub when remove Functions.rs
-    pub topic_id: u16,
-    pub msg_id: u16,
-    pub data: String,
+    flags: u8,
+    topic_id: u16,
+    msg_id: u16,
+    data: String,
 }
 
 impl Publish {

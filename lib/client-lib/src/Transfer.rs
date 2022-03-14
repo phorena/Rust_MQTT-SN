@@ -2,7 +2,7 @@
 // For transfering data between methods
 use crate::MessageDb::{MessageDb, MessageDbKey, MessageDbValue};
 use crate::{
-    ConnectionDb::ConnectionDb, SubscriberDb::SubscriberDb, TopicDb::TopicDb,
+    SubscriberDb::SubscriberDb, TopicDb::TopicDb,
 };
 
 use bytes::BytesMut;
@@ -14,7 +14,7 @@ pub struct Transfer {
     // Use tuple(U,V) for because Vec takes one argument, Vec<T>
     pub egress_buffers: Vec<(SocketAddr, BytesMut)>,
     pub subscriber_db: SubscriberDb,
-    pub connection_db: ConnectionDb,
+    // pub connection_db: ConnectionDb,
     pub topic_db: TopicDb,
     pub message_db: MessageDb,
     pub input_bytes: Vec<u8>,

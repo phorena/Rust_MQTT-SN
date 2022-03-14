@@ -232,63 +232,6 @@ pub fn pub_ack(topic_id: u16, msg_id: u16) -> BytesMut {
     bytes_buf
 }
 
-// TODO optimization
-// if QoS is 1 or 2, return an additional bytesmut with
-// the dup flag==1
-pub fn publish(
-    topic_id: u16,
-    msg_id: u16,
-    data: &String,
-    qos_level: u8,
-    retain: u8,
-    topic_id_type: u8,
-) -> BytesMut {
-    let len = data.len() + 7;
-    let flags = flags_set(
-        DUP_FALSE,
-        qos_level,
-        retain,
-        WILL_FALSE,
-        CLEAN_SESSION_TRUE,
-        topic_id_type,
-    );
-    let mut bytes_buf = BytesMut::with_capacity(len);
-    let publish_bytes = Publish {
-        len: len as u8,
-        msg_type: MsgType::PUBLISH as u8,
-        flags,
-        topic_id,
-        msg_id,
-        data: data.to_string(),
-    };
-    // serialize the con_ack struct into byte(u8) array for the network.
-    dbg!(publish_bytes.clone());
-    publish_bytes.try_write(&mut bytes_buf);
-    bytes_buf
-}
-
-pub fn publish2(
-    topic_id: u16,
-    msg_id: u16,
-    data: String,
-    qos_level: i8,
-) -> BytesMut {
-    let flags = set_qos_bits(qos_level);
-    let len = data.len() + 7;
-    let publish = Publish {
-        len: len as u8,
-        msg_type: MsgType::PUBLISH as u8,
-        flags,
-        topic_id,
-        msg_id,
-        data,
-    };
-    let mut bytes_buf = BytesMut::with_capacity(len);
-    // serialize the con_ack struct into byte(u8) array for the network.
-    dbg!(publish.clone());
-    publish.try_write(&mut bytes_buf);
-    bytes_buf
-}
 
 pub fn subscribe(topic_name: String, msg_id: u16) -> BytesMut {
     let len = topic_name.len() + 5;
@@ -463,26 +406,3 @@ pub fn set_qos_bits(qos_level: i8) -> u8 {
     }
 }
 
-pub fn publish_socket(
-    socket: &UdpSocket,
-    topic_id: u16,
-    msg: String,
-) -> BytesMut {
-    let msg_len = msg.len() + 5;
-    let publish = Publish {
-        len: msg_len as u8,
-        msg_type: MsgType::PUBLISH as u8,
-        flags: 0b00000100,
-        topic_id: topic_id,
-        msg_id: 30,
-        data: msg.to_string(),
-    };
-    let mut bytes_buf = BytesMut::with_capacity(MTU);
-    // serialize the con_ack struct into byte(u8) array for the network.
-    dbg!(publish.clone());
-    publish.try_write(&mut bytes_buf);
-    dbg!(bytes_buf.clone());
-    // return false of error, and set egree_buffers to empty.
-    // let amt = socket.send(&bytes_buf[..]);
-    bytes_buf
-}
