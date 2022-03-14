@@ -91,9 +91,11 @@ pub fn connect_tx(client_id: String, duration: u16, client: &MqttSnClient) {
         dbg!(connect.clone());
         connect.try_write(&mut bytes_buf);
         dbg!(bytes_buf.clone());
+        // transmit to network
         client
             .transmit_tx
             .send((client.remote_addr, bytes_buf.to_owned()));
+        // schedule retransmit
         client.schedule_tx.send((
             client.remote_addr,
             MSG_TYPE_CONNACK,

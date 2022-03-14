@@ -30,11 +30,11 @@ pub struct PublishRecv {
 #[derive(Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default)]
 #[getset(get, set)]
 pub struct Publish {
-    pub len: u8,
+    pub len: u8, // TODO remove pub
     #[debug(format = "0x{:x}")]
-    pub msg_type: u8,
+    pub msg_type: u8, // TODO remove pub
     #[debug(format = "0b{:08b}")]
-    pub flags: u8,
+    pub flags: u8, // TODO remove pub when remove Functions.rs
     pub topic_id: u16,
     pub msg_id: u16,
     pub data: String,
@@ -99,7 +99,7 @@ pub fn publish_rx(
     buf: &[u8],
     size: usize,
     client: &MqttSnClient,
-) -> Result<PublishRecv, ExoError> {
+) -> Result<(), ExoError> {
     // TODO replace unwrap
     let (publish, read_fixed_len) = Publish::try_read(&buf, size).unwrap();
     dbg!(publish.clone());
@@ -180,6 +180,7 @@ pub fn publish_rx(
                 dbg!(&buf);
                 // PUBREL message doesn't have topic id.
                 // For the time wheel hash, default to 0.
+
                 client.schedule_tx.send((
                     client.remote_addr,
                     MSG_TYPE_PUBREL,
@@ -197,12 +198,8 @@ pub fn publish_rx(
         // if retain {
         //   send a message to save the message in the topic db
         // }
-        let result = PublishRecv {
-            topic_id: publish.topic_id,
-            msg_id: publish.msg_id,
-            data: publish.data,
-        };
-        Ok(result.to_owned())
+        client.subscribe_tx.send(publish);
+        Ok(())
     } else {
         return Err(ExoError::LenError(read_len, size));
     }

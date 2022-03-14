@@ -87,24 +87,30 @@ fn main() {
     let client = MqttSnClient::new(remote_addr);
     let client_connect = client.clone();
     let client_main = client.clone();
-    client.rx_loop(socket);
+    let client_sub = client.clone();
     let client_id = generate_client_id();
+    client.rx_loop(socket);
     client_connect.connect(client_id);
-    client_main.subscribe("hello".to_string(), 1, QOS_LEVEL_1, RETAIN_FALSE);
+    client_main.subscribe("hello".to_string(), 1, QOS_LEVEL_0, RETAIN_FALSE);
+    client_main.subscribe("hello2".to_string(), 2, QOS_LEVEL_0, RETAIN_FALSE);
     let mut i = 0;
+
+    // This thread reads the channel for all subscribed topics.
+    // The struct Publish is recv.
+    // TODO return error for subscribe and publish function calls.
+    let rx_thread2 = thread::spawn(move || loop {
+        dbg!(client_sub.subscribe_rx.recv());
+    });
+
     loop {
-        let msg = format!("hello {:?}", i);
+        let msg = format!("hi {:?}", i);
+        let msg2 = format!("hi {:?}", i+1000);
         client_main.publish(1, i, QOS_LEVEL_0, RETAIN_FALSE, msg.to_string());
+        client_main.publish(2, i, QOS_LEVEL_0, RETAIN_FALSE, msg2.to_string());
         i += 1;
         thread::sleep(Duration::from_secs(2));
     }
-
-    /*
-    loop {
-        println!("main");
-        thread::sleep(Duration::from_secs(60));
-    }
-    */
+    rx_thread2.join().expect("The sender thread has panicked");
 }
 
 fn init_logging() {

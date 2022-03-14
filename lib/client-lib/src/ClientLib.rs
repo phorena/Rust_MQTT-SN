@@ -1,5 +1,4 @@
 use std::net::UdpSocket;
-use std::sync::atomic::{AtomicU8, Ordering};
 use std::{hint, thread};
 use std::{net::SocketAddr, sync::Arc, sync::Mutex};
 
@@ -18,7 +17,7 @@ use crate::{
     ConnAck::connack_rx,
     Connect::connect_tx,
     PubAck::puback_rx,
-    Publish::{publish_rx, publish_tx},
+    Publish::{Publish, publish_rx, publish_tx},
     StateMachine::{StateMachine, STATE_DISCONNECT},
     SubAck::suback_rx,
     Subscribe::subscribe_tx,
@@ -99,10 +98,15 @@ pub struct MqttSnClient {
     pub transmit_tx: Sender<(SocketAddr, BytesMut)>,
     pub cancel_tx: Sender<(SocketAddr, u8, u16, u16)>,
     pub schedule_tx: Sender<(SocketAddr, u8, u16, u16, BytesMut)>,
+
+    pub subscribe_tx: Sender<Publish>,
+
     transmit_rx: Receiver<(SocketAddr, BytesMut)>,
     // cancel_rx: Receiver<(SocketAddr, u8, u16, u16)>,
     // schedule_rx: Receiver<(SocketAddr, u8, u16, u16, BytesMut)>,
     retrans_time_wheel: RetransTimeWheel,
+
+    pub subscribe_rx: Receiver<Publish>,
     state: Arc<Mutex<u8>>,
     state_machine: StateMachine,
 }
@@ -120,6 +124,10 @@ impl MqttSnClient {
         let (transmit_tx, transmit_rx): (
             Sender<(SocketAddr, BytesMut)>,
             Receiver<(SocketAddr, BytesMut)>,
+        ) = unbounded();
+        let (subscribe_tx, subscribe_rx): (
+            Sender<Publish>,
+            Receiver<Publish>,
         ) = unbounded();
         let retrans_time_wheel = RetransTimeWheel::new(
             100,
@@ -140,6 +148,8 @@ impl MqttSnClient {
             cancel_tx,
             transmit_tx,
             transmit_rx,
+            subscribe_tx,
+            subscribe_rx,
         }
     }
 
@@ -222,8 +232,9 @@ impl MqttSnClient {
         dbg!(*self.state.lock().unwrap());
     }
 
-    pub fn subscribe(&self, topic: String, msg_id: u16, qos: u8, retain: u8) {
+    pub fn subscribe(&self, topic: String, msg_id: u16, qos: u8, retain: u8) -> &Receiver<Publish> {
         let sub = subscribe_tx(topic, msg_id, qos, retain, &self);
+        &self.subscribe_rx
     }
     /// Publish a message
     /// 1. Format a message with Publish struct.
