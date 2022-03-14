@@ -137,9 +137,7 @@ impl MqttSnClient {
             state: Arc::new(Mutex::new(STATE_DISCONNECT)),
             state_machine: StateMachine::new(),
             schedule_tx,
-            // schedule_rx,
             cancel_tx,
-            // cancel_rx,
             transmit_tx,
             transmit_rx,
         }
