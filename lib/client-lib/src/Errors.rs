@@ -15,4 +15,3 @@ pub enum ExoError {
     #[error("Return Code Reserved: {0}")]
     Reserved(u8),
 }
-

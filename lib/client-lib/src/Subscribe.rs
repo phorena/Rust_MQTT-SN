@@ -4,48 +4,26 @@ use getset::{CopyGetters, Getters, MutGetters, Setters};
 use std::mem;
 use std::str;
 
-use crate::{ 
-    MSG_TYPE_CONNECT,
+use crate::{
+    flags::flags_set,
+    //     StateMachine,
+    flags::{
+        CleanSessionConst, DupConst, QoSConst, RetainConst, TopicIdTypeConst,
+        WillConst, CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE, DUP_FALSE,
+        DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
+        RETAIN_FALSE, RETAIN_TRUE, TOPIC_ID_TYPE_NORNAL,
+        TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
+        WILL_FALSE, WILL_TRUE,
+    },
+    ClientLib::MqttSnClient,
     MSG_TYPE_CONNACK,
-    MSG_TYPE_PUBLISH,
+    MSG_TYPE_CONNECT,
     MSG_TYPE_PUBACK,
-    MSG_TYPE_SUBSCRIBE,
+    MSG_TYPE_PUBLISH,
     MSG_TYPE_SUBACK,
 
-    flags:: {
-        DupConst,
-        DUP_FALSE,
-        DUP_TRUE,
-
-        QoSConst,
-        QOS_LEVEL_0,
-        QOS_LEVEL_1,
-        QOS_LEVEL_2,
-        QOS_LEVEL_3,
-
-        RetainConst,
-        RETAIN_FALSE,
-        RETAIN_TRUE,
-
-        WillConst,
-        WILL_FALSE,
-        WILL_TRUE,
-
-        CleanSessionConst,
-        CLEAN_SESSION_FALSE,
-        CLEAN_SESSION_TRUE,
-
-        TopicIdTypeConst,
-        TOPIC_ID_TYPE_NORNAL,
-        TOPIC_ID_TYPE_PRE_DEFINED,
-        TOPIC_ID_TYPE_SHORT,
-        TOPIC_ID_TYPE_RESERVED,
-    },
-    ClientLib:: {MqttSnClient, },
-    flags::flags_set,
-//     StateMachine,
+    MSG_TYPE_SUBSCRIBE,
 };
-
 
 #[derive(Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default)]
 #[getset(get, set)]
@@ -60,19 +38,16 @@ pub struct Subscribe {
 }
 
 impl Subscribe {
-    pub fn new(
-        topic_name: String,
-        msg_id: u16,
-        qos: u8,
-        retain: u8,
-        ) -> Self {
+    pub fn new(topic_name: String, msg_id: u16, qos: u8, retain: u8) -> Self {
         let len = (topic_name.len() + 5) as u8;
-        let flags = flags_set(DUP_FALSE,
-                              qos,
-                              retain,
-                              WILL_FALSE, // not used
-                              CLEAN_SESSION_FALSE, // not used 
-                              TOPIC_ID_TYPE_NORNAL); // default for now
+        let flags = flags_set(
+            DUP_FALSE,
+            qos,
+            retain,
+            WILL_FALSE,          // not used
+            CLEAN_SESSION_FALSE, // not used
+            TOPIC_ID_TYPE_NORNAL,
+        ); // default for now
         let subscribe = Subscribe {
             len,
             msg_type: MSG_TYPE_SUBSCRIBE,
@@ -106,18 +81,25 @@ impl Subscribe {
 }
 
 // TODO error checking and return
-pub fn subscribe_tx( topic: String, msg_id: u16,
-                     qos: u8, retain: u8,
-                     client: &MqttSnClient) {
-        let subscribe = Subscribe::new(topic, msg_id, qos, retain);
-        let mut bytes_buf = BytesMut::with_capacity(subscribe.len as usize);
-        subscribe.try_write(&mut bytes_buf);
-        client.transmit_tx.send((client.remote_addr, bytes_buf.to_owned()));
-        client.schedule_tx.send((client.remote_addr,
-                                   MSG_TYPE_SUBACK, 0, 0, bytes_buf));
-        // TODO return Result
+pub fn subscribe_tx(
+    topic: String,
+    msg_id: u16,
+    qos: u8,
+    retain: u8,
+    client: &MqttSnClient,
+) {
+    let subscribe = Subscribe::new(topic, msg_id, qos, retain);
+    let mut bytes_buf = BytesMut::with_capacity(subscribe.len as usize);
+    subscribe.try_write(&mut bytes_buf);
+    client
+        .transmit_tx
+        .send((client.remote_addr, bytes_buf.to_owned()));
+    client.schedule_tx.send((
+        client.remote_addr,
+        MSG_TYPE_SUBACK,
+        0,
+        0,
+        bytes_buf,
+    ));
+    // TODO return Result
 }
-
-
-
-

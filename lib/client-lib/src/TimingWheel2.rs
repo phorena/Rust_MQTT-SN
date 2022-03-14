@@ -1,25 +1,23 @@
 #![warn(rust_2018_idioms)]
 #[macro_use]
-
 use core::fmt::Debug;
+use bytes::{Bytes, BytesMut};
+use chrono::{Datelike, Local, Timelike};
 use core::hash::Hash;
+use crossbeam::channel::{unbounded, Receiver, Sender};
+use crossbeam_utils;
 use std::collections::HashMap;
 use std::net::UdpSocket;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::time::{Duration, SystemTime};
-use std::{net::SocketAddr, sync::Arc, sync::Mutex};
-use chrono::{Datelike, Local, Timelike};
 use std::{hint, thread};
-use crossbeam::channel::{unbounded, Receiver, Sender};
-use crossbeam_utils;
-use bytes::{Bytes, BytesMut};
+use std::{net::SocketAddr, sync::Arc, sync::Mutex};
 
 use trace_var::trace_var;
 
-use crate::{ MsgTypeConst, StateMachine };
 use crate::MSG_TYPE_MAX;
 use crate::MTU;
-
+use crate::{MsgTypeConst, StateMachine};
 
 // TODO move to utility lib
 
@@ -74,8 +72,6 @@ macro_rules! dbg {
     };
 }
 
-
-
 #[derive(Debug, Clone)]
 struct Slot<KEY: Debug + Clone> {
     pub entries: Arc<Mutex<Vec<(KEY, usize)>>>,
@@ -88,7 +84,6 @@ impl<KEY: Debug + Clone> Slot<KEY> {
         }
     }
 }
-
 
 // clients use 100 milli seconds
 // brokers use 10 milli seconds
@@ -112,7 +107,9 @@ pub struct TimingWheel2<KEY: Debug + Clone, VAL: Debug + Clone> {
     hash: Arc<Mutex<HashMap<KEY, VAL>>>,
 }
 
-impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone> TimingWheel2<KEY, VAL> {
+impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
+    TimingWheel2<KEY, VAL>
+{
     #[trace_var(max_slot, slot_vec, default_duration)]
     pub fn new(sleep_duration: usize, default_duration_ms: usize) -> Self {
         dbg!((sleep_duration, default_duration_ms));
@@ -368,15 +365,16 @@ pub struct RetransTimeWheel {
 }
 
 impl RetransTimeWheel {
-    pub fn new(sleep_duration: usize,
-               default_duration_ms: usize,
-               schedule_tx: Sender<(SocketAddr, u8, u16, u16, BytesMut)>,
-               schedule_rx: Receiver<(SocketAddr, u8, u16, u16, BytesMut)>,
-               cancel_tx: Sender<(SocketAddr, u8, u16, u16)>,
-               cancel_rx: Receiver<(SocketAddr, u8, u16, u16)>,
-               transmit_tx: Sender<(SocketAddr, BytesMut)>,
-               transmit_rx: Receiver<(SocketAddr, BytesMut)>,
-               ) -> Self {
+    pub fn new(
+        sleep_duration: usize,
+        default_duration_ms: usize,
+        schedule_tx: Sender<(SocketAddr, u8, u16, u16, BytesMut)>,
+        schedule_rx: Receiver<(SocketAddr, u8, u16, u16, BytesMut)>,
+        cancel_tx: Sender<(SocketAddr, u8, u16, u16)>,
+        cancel_rx: Receiver<(SocketAddr, u8, u16, u16)>,
+        transmit_tx: Sender<(SocketAddr, BytesMut)>,
+        transmit_rx: Receiver<(SocketAddr, BytesMut)>,
+    ) -> Self {
         let wheel = TimingWheel2::new(sleep_duration, default_duration_ms);
         RetransTimeWheel {
             schedule_tx,
@@ -414,7 +412,8 @@ impl RetransTimeWheel {
                         dbg!(retrans_hdr);
                         {
                             // XXX lock an entry in the array, instead of the wheel?
-                            let mut cancel_wheel_lock = cancel_wheel.lock().unwrap();
+                            let mut cancel_wheel_lock =
+                                cancel_wheel.lock().unwrap();
                             cancel_wheel_lock.cancel(retrans_hdr);
                         }
                     }
@@ -422,7 +421,10 @@ impl RetransTimeWheel {
                         // XXX thread panic, but the rest still run
                         // no more sender, nothing to recv
                         // unlikely, but need to verify
-                        println!("==============timing_wheel_rx_thread: {}", why);
+                        println!(
+                            "==============timing_wheel_rx_thread: {}",
+                            why
+                        );
                         panic!("panic");
                         // break;
                     }
@@ -449,14 +451,21 @@ impl RetransTimeWheel {
                         {
                             // XXX lock an entry in the array, instead of the wheel?
                             let mut rx_wheel_lock = rx_wheel.lock().unwrap();
-                            rx_wheel_lock.schedule(retrans_hdr, data, default_duration);
+                            rx_wheel_lock.schedule(
+                                retrans_hdr,
+                                data,
+                                default_duration,
+                            );
                         }
                     }
                     Err(why) => {
                         // XXX thread panic, but the rest still run
                         // no more sender, nothing to recv
                         // unlikely, but need to verify
-                        println!("==============timing_wheel_rx_thread: {}", why);
+                        println!(
+                            "==============timing_wheel_rx_thread: {}",
+                            why
+                        );
                         panic!("panic");
                         // break;
                     }

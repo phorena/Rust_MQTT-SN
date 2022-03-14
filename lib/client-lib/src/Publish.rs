@@ -4,55 +4,20 @@ use getset::{CopyGetters, Getters, MutGetters, Setters};
 use std::mem;
 use std::str;
 
-use crate::{ 
-    MSG_TYPE_CONNECT,
-    MSG_TYPE_CONNACK,
-    MSG_TYPE_PUBLISH,
-    MSG_TYPE_PUBACK,
-    MSG_TYPE_PUBREC,
-    MSG_TYPE_PUBREL,
-    MSG_TYPE_PUBCOMP,
-    MSG_TYPE_SUBSCRIBE,
-    MSG_TYPE_SUBACK,
-
-    MSG_LEN_PUBACK,
-    MSG_LEN_PUBREC,
-
-    RETURN_CODE_ACCEPTED,
-
-    flags:: {
-        DupConst,
-        DUP_FALSE,
-        DUP_TRUE,
-
-        QoSConst,
-        QOS_LEVEL_0,
-        QOS_LEVEL_1,
-        QOS_LEVEL_2,
-        QOS_LEVEL_3,
-
-        RetainConst,
-        RETAIN_FALSE,
-        RETAIN_TRUE,
-
-        WillConst,
-        WILL_FALSE,
-        WILL_TRUE,
-
-        CleanSessionConst,
-        CLEAN_SESSION_FALSE,
-        CLEAN_SESSION_TRUE,
-
-        TopicIdTypeConst,
-        TOPIC_ID_TYPE_NORNAL,
-        TOPIC_ID_TYPE_PRE_DEFINED,
-        TOPIC_ID_TYPE_SHORT,
-        TOPIC_ID_TYPE_RESERVED,
-
-    flags_set, flag_qos_level,
+use crate::{
+    flags::{
+        flag_qos_level, flags_set, CleanSessionConst, DupConst, QoSConst,
+        RetainConst, TopicIdTypeConst, WillConst, CLEAN_SESSION_FALSE,
+        CLEAN_SESSION_TRUE, DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1,
+        QOS_LEVEL_2, QOS_LEVEL_3, RETAIN_FALSE, RETAIN_TRUE,
+        TOPIC_ID_TYPE_NORNAL, TOPIC_ID_TYPE_PRE_DEFINED,
+        TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
     },
+    ClientLib::MqttSnClient,
     Errors::ExoError,
-    ClientLib:: {MqttSnClient,},
+    MSG_LEN_PUBACK, MSG_LEN_PUBREC, MSG_TYPE_CONNACK, MSG_TYPE_CONNECT,
+    MSG_TYPE_PUBACK, MSG_TYPE_PUBCOMP, MSG_TYPE_PUBLISH, MSG_TYPE_PUBREC,
+    MSG_TYPE_PUBREL, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE, RETURN_CODE_ACCEPTED,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -82,14 +47,16 @@ impl Publish {
         qos: u8,
         retain: u8,
         data: String,
-        ) -> Self {
+    ) -> Self {
         let len = (data.len() + 7) as u8;
-        let flags = flags_set(DUP_FALSE,
-                              qos,
-                              retain,
-                              WILL_FALSE, // not used
-                              CLEAN_SESSION_FALSE, // not used 
-                              TOPIC_ID_TYPE_NORNAL); // default for now
+        let flags = flags_set(
+            DUP_FALSE,
+            qos,
+            retain,
+            WILL_FALSE,          // not used
+            CLEAN_SESSION_FALSE, // not used
+            TOPIC_ID_TYPE_NORNAL,
+        ); // default for now
         let publish = Publish {
             len,
             msg_type: MSG_TYPE_PUBLISH,
@@ -100,7 +67,6 @@ impl Publish {
         };
         publish
     }
-
 
     fn constraint_len(_val: &u8) -> bool {
         //dbg!(_val);
@@ -133,7 +99,7 @@ pub fn publish_rx(
     buf: &[u8],
     size: usize,
     client: &MqttSnClient,
-    ) -> Result<PublishRecv, ExoError> {
+) -> Result<PublishRecv, ExoError> {
     // TODO replace unwrap
     let (publish, read_fixed_len) = Publish::try_read(&buf, size).unwrap();
     dbg!(publish.clone());
@@ -168,11 +134,12 @@ pub fn publish_rx(
                 let topic_id_byte_0 = publish.topic_id as u8;
                 let msg_id_byte_1 = (publish.msg_id >> 8) as u8;
                 let topic_id_byte_1 = (publish.topic_id >> 8) as u8;
-                // message format  
+                // message format
                 // PUBACK:[len(0), msg_type(1),
                 //         topic_id(2,3), msg_id(4,5),
                 //         return_code(6)]
-                let mut bytes = BytesMut::with_capacity(MSG_LEN_PUBACK as usize);
+                let mut bytes =
+                    BytesMut::with_capacity(MSG_LEN_PUBACK as usize);
                 let buf: &[u8] = &[
                     MSG_LEN_PUBACK,
                     MSG_TYPE_PUBACK,
@@ -199,22 +166,27 @@ pub fn publish_rx(
                 let msg_id_byte_1 = (publish.msg_id >> 8) as u8;
                 // PUBREC:[len(0),msg_type(1),
                 //         msg_id(2,3)]
-                let mut bytes = BytesMut::with_capacity(MSG_LEN_PUBACK as usize);
+                let mut bytes =
+                    BytesMut::with_capacity(MSG_LEN_PUBACK as usize);
                 let buf: &[u8] = &[
                     MSG_LEN_PUBREC,
                     MSG_TYPE_PUBREC,
                     msg_id_byte_1,
-                    msg_id_byte_0];
+                    msg_id_byte_0,
+                ];
                 // TODO change to channel
                 bytes.put(buf);
-                client.transmit_tx.send((client.remote_addr,
-                                           bytes.clone()));
+                client.transmit_tx.send((client.remote_addr, bytes.clone()));
                 dbg!(&buf);
                 // PUBREL message doesn't have topic id.
                 // For the time wheel hash, default to 0.
-                client.schedule_tx.send((client.remote_addr,
-                                           MSG_TYPE_PUBREL, 0,
-                                           publish.msg_id, bytes));
+                client.schedule_tx.send((
+                    client.remote_addr,
+                    MSG_TYPE_PUBREL,
+                    0,
+                    publish.msg_id,
+                    bytes,
+                ));
             }
             _ => {} // do nothing for QoS levels 0 & 3.
         }
@@ -241,24 +213,34 @@ pub fn publish_rx(
 /// 3. Send it to the channel.
 /// 4. Schedule retransmit for QoS Level 1 & 2.
 #[inline(always)]
-pub fn publish_tx(topic_id: u16, msg_id: u16,
-                  qos: u8, retain: u8, data: String,
-                  client: &MqttSnClient,
-                  ) -> Result<(), ExoError> {
-
+pub fn publish_tx(
+    topic_id: u16,
+    msg_id: u16,
+    qos: u8,
+    retain: u8,
+    data: String,
+    client: &MqttSnClient,
+) -> Result<(), ExoError> {
     let publish = Publish::new(topic_id, msg_id, qos, retain, data);
     let mut bytes_buf = BytesMut::with_capacity(publish.len as usize);
     publish.try_write(&mut bytes_buf);
-    client.transmit_tx.send((client.remote_addr, bytes_buf.to_owned()));
+    client
+        .transmit_tx
+        .send((client.remote_addr, bytes_buf.to_owned()));
     dbg!(&qos);
     match qos {
         // For level 1, schedule a message for retransmit,
         // cancel it if receive a PUBACK message.
         QOS_LEVEL_1 => {
             dbg!((&qos, QOS_LEVEL_1));
-            client.schedule_tx.send((client.remote_addr, MSG_TYPE_PUBACK,
-                              topic_id, msg_id, bytes_buf));
-        },
+            client.schedule_tx.send((
+                client.remote_addr,
+                MSG_TYPE_PUBACK,
+                topic_id,
+                msg_id,
+                bytes_buf,
+            ));
+        }
         QOS_LEVEL_2 => {
             // 4-way handshake for QoS level 2 message for the SENDER.
             // 1. Send a PUBLISH message.
@@ -269,21 +251,26 @@ pub fn publish_tx(topic_id: u16, msg_id: u16,
             //      schedule restransmit
             //      expect PUBCOMP
             //      cancel restransmit of PUBLISH
-            // 4. Receive PUBCOMP - in PubComp module     
+            // 4. Receive PUBCOMP - in PubComp module
             //      cancel retransmit of PUBREL
             // PUBREC message doesn't have topic id.
             // For the time wheel hash, default to 0.
             dbg!(&qos);
-            client.schedule_tx.send((client.remote_addr, MSG_TYPE_PUBREC,
-                              0, msg_id, bytes_buf));
-        },
+            client.schedule_tx.send((
+                client.remote_addr,
+                MSG_TYPE_PUBREC,
+                0,
+                msg_id,
+                bytes_buf,
+            ));
+        }
         // no restransmit for Level 0 & 3.
         QOS_LEVEL_0 => {
             ();
-        },
+        }
         QOS_LEVEL_3 => {
             ();
-        },
+        }
         _ => {
             // TODO return error
             ()

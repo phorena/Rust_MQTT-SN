@@ -8,13 +8,14 @@ use crate::Publish::Publish;
 use crate::SubAck::SubAck;
 use crate::Subscribe::Subscribe;
 
+use crate::flags::{
+    flag_qos_level, flags_set, CLEAN_SESSION_TRUE, DUP_FALSE, WILL_FALSE,
+};
 use crate::MainMachineClient::MainMachine;
 use crate::MsgType::MsgType;
 use crate::TimingWheel2::TimingWheel2;
 use crate::Transfer::Transfer;
 use crate::MTU;
-use crate::flags::{flags_set, flag_qos_level,
-                    DUP_FALSE, WILL_FALSE, CLEAN_SESSION_TRUE, };
 
 use bytes::BytesMut;
 use log::*;
@@ -445,7 +446,7 @@ pub fn verify_publish2(
     buf: &[u8],
     size: usize,
     socket: &UdpSocket,
-//     channel_tx: &Sender<(SocketAddr, Vec<u8>)>,
+    //     channel_tx: &Sender<(SocketAddr, Vec<u8>)>,
     remote_addr: &SocketAddr,
 ) -> Result<(u16, u16, String), ClientError> {
     // ) -> Result<(u16,u16, String, BytesMut), ClientError> {

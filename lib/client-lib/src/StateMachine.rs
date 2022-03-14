@@ -1,9 +1,8 @@
-
-use crate::{ MsgTypeConst,
-            MSG_TYPE_MAX, MSG_TYPE_CONNECT, MSG_TYPE_CONNACK,
-            MSG_TYPE_PUBLISH, MSG_TYPE_PUBACK, MSG_TYPE_SUBSCRIBE,
-            MSG_TYPE_SUBACK,};
 use crate::MTU;
+use crate::{
+    MsgTypeConst, MSG_TYPE_CONNACK, MSG_TYPE_CONNECT, MSG_TYPE_MAX,
+    MSG_TYPE_PUBACK, MSG_TYPE_PUBLISH, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE,
+};
 
 /// Use of const u8 instead of enum:
 /// 1. Portability
@@ -21,9 +20,6 @@ pub const STATE_SLEEP: StateTypeConst = 4;
 pub const STATE_AWAKE: StateTypeConst = 5;
 
 pub const STATE_MAX: usize = 6;
-
-
-
 
 #[derive(Debug, Clone)]
 pub struct StateMachine {

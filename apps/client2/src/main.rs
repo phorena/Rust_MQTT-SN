@@ -3,10 +3,10 @@
 // use std::sync::mpsc::{Sender, Receiver};
 // use std::sync::mpsc;
 use core::fmt::Debug;
+use std::net::SocketAddr;
 use std::net::UdpSocket;
 use std::time::{Duration, SystemTime};
 use std::{hint, thread};
-use std::{net::SocketAddr};
 
 use arr_macro::arr;
 use log::*;
@@ -19,42 +19,21 @@ use trace_var::trace_var;
 
 // use DTLS::dtls_client::DtlsClient;
 use client_lib::{
-    ClientLib::MqttSnClient,
     //    ConnectionDb::ConnectionDb,
     //    SubscriberDb::SubscriberDb,
     //    Advertise::Advertise,
     //    Transfer::Transfer,MTU,
     //    TopicDb::TopicDb,
     //    MessageDb::MessageDb,
-    flags:: {
-        DupConst,
-        DUP_FALSE,
-        DUP_TRUE,
-
-        QoSConst,
-        QOS_LEVEL_0,
-        QOS_LEVEL_1,
-        QOS_LEVEL_2,
-        QOS_LEVEL_3,
-
-        RetainConst,
-        RETAIN_FALSE,
-        RETAIN_TRUE,
-
-        WillConst,
-        WILL_FALSE,
-        WILL_TRUE,
-
-        CleanSessionConst,
-        CLEAN_SESSION_FALSE,
-        CLEAN_SESSION_TRUE,
-
-        TopicIdTypeConst,
-        TOPIC_ID_TYPE_NORNAL,
-        TOPIC_ID_TYPE_PRE_DEFINED,
-        TOPIC_ID_TYPE_SHORT,
-        TOPIC_ID_TYPE_RESERVED,
+    flags::{
+        CleanSessionConst, DupConst, QoSConst, RetainConst, TopicIdTypeConst,
+        WillConst, CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE, DUP_FALSE,
+        DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
+        RETAIN_FALSE, RETAIN_TRUE, TOPIC_ID_TYPE_NORNAL,
+        TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
+        WILL_FALSE, WILL_TRUE,
     },
+    ClientLib::MqttSnClient,
 };
 
 fn generate_client_id() -> String {
@@ -64,8 +43,6 @@ fn generate_client_id() -> String {
 static NTHREADS: i32 = 3;
 
 // TODO move to utility lib
-
-
 
 fn foo(i: u8) -> u8 {
     i + 1
@@ -103,7 +80,6 @@ fn mpmc() {
 }
 
 fn main() {
-
     init_logging();
     let remote_addr = "127.0.0.1:60000".parse::<SocketAddr>().unwrap();
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();

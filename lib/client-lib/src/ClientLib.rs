@@ -1,38 +1,32 @@
-use std::{hint, thread};
 use std::net::UdpSocket;
-use std::{net::SocketAddr, sync::Arc, sync::Mutex};
 use std::sync::atomic::{AtomicU8, Ordering};
+use std::{hint, thread};
+use std::{net::SocketAddr, sync::Arc, sync::Mutex};
 
-use core::fmt::Debug;
-use crate::TimingWheel2::{RetransTimeWheel, };
-use crossbeam::channel::{unbounded, Receiver, Sender};
-use crossbeam_utils;
+use crate::TimingWheel2::RetransTimeWheel;
 use bytes::{Bytes, BytesMut};
 use chrono::{Datelike, Local, Timelike};
+use core::fmt::Debug;
+use crossbeam::channel::{unbounded, Receiver, Sender};
+use crossbeam_utils;
 
 use log::*;
 use simplelog::*;
 
-use trace_var::trace_var;
-use crate::{ 
-    MSG_TYPE_CONNECT,
-    MSG_TYPE_CONNACK,
-    MSG_TYPE_PUBLISH,
-    MSG_TYPE_PUBACK,
-    MSG_TYPE_PUBREC,
-    MSG_TYPE_SUBSCRIBE,
-    MSG_TYPE_SUBACK,
-    TimingWheel2::{ RetransmitHeader, RetransmitData, },
-    StateMachine::{StateMachine, STATE_DISCONNECT} ,
-    Publish::{publish_rx, publish_tx, },
-    PubAck::{puback_rx, },
-    SubAck::{suback_rx, },
-    ConnAck::{connack_rx, },
-    Connect::{connect_tx,},
-    Subscribe::{subscribe_tx, },
+use crate::{
     flags,
+    ConnAck::connack_rx,
+    Connect::connect_tx,
+    PubAck::puback_rx,
+    Publish::{publish_rx, publish_tx},
+    StateMachine::{StateMachine, STATE_DISCONNECT},
+    SubAck::suback_rx,
+    Subscribe::subscribe_tx,
+    TimingWheel2::{RetransmitData, RetransmitHeader},
+    MSG_TYPE_CONNACK, MSG_TYPE_CONNECT, MSG_TYPE_PUBACK, MSG_TYPE_PUBLISH,
+    MSG_TYPE_PUBREC, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE,
 };
-
+use trace_var::trace_var;
 
 macro_rules! function {
     () => {{
@@ -100,7 +94,7 @@ macro_rules! dbg_buf {
 #[derive(Debug, Clone)]
 pub struct MqttSnClient {
     // socket: UdpSocket, // clone not implemented
-    // state: AtomicU8, // clone not implemented 
+    // state: AtomicU8, // clone not implemented
     pub remote_addr: SocketAddr,
     pub transmit_tx: Sender<(SocketAddr, BytesMut)>,
     pub cancel_tx: Sender<(SocketAddr, u8, u16, u16)>,
@@ -108,36 +102,35 @@ pub struct MqttSnClient {
     transmit_rx: Receiver<(SocketAddr, BytesMut)>,
     // cancel_rx: Receiver<(SocketAddr, u8, u16, u16)>,
     // schedule_rx: Receiver<(SocketAddr, u8, u16, u16, BytesMut)>,
-
     retrans_time_wheel: RetransTimeWheel,
     state: Arc<Mutex<u8>>,
     state_machine: StateMachine,
 }
 
 impl MqttSnClient {
-
-    pub fn new(remote_addr: SocketAddr) -> Self{
+    pub fn new(remote_addr: SocketAddr) -> Self {
         let (cancel_tx, cancel_rx): (
             Sender<(SocketAddr, u8, u16, u16)>,
             Receiver<(SocketAddr, u8, u16, u16)>,
-            ) = unbounded();
+        ) = unbounded();
         let (schedule_tx, schedule_rx): (
             Sender<(SocketAddr, u8, u16, u16, BytesMut)>,
             Receiver<(SocketAddr, u8, u16, u16, BytesMut)>,
-            ) = unbounded();
+        ) = unbounded();
         let (transmit_tx, transmit_rx): (
             Sender<(SocketAddr, BytesMut)>,
             Receiver<(SocketAddr, BytesMut)>,
-            ) = unbounded();
+        ) = unbounded();
         let retrans_time_wheel = RetransTimeWheel::new(
-            100, 300,
+            100,
+            300,
             schedule_tx.clone(),
             schedule_rx.clone(),
             cancel_tx.clone(),
             cancel_rx.clone(),
             transmit_tx.clone(),
             transmit_rx.clone(),
-            );
+        );
         MqttSnClient {
             remote_addr,
             retrans_time_wheel,
@@ -185,9 +178,10 @@ impl MqttSnClient {
                                 Ok(_) => {
                                     dbg!(*self.state.lock().unwrap());
                                     let cur_state = *self.state.lock().unwrap();
-                                    *self.state.lock().unwrap() =
-                                        self.state_machine.transition(
-                                        cur_state, MSG_TYPE_CONNACK).unwrap();
+                                    *self.state.lock().unwrap() = self
+                                        .state_machine
+                                        .transition(cur_state, MSG_TYPE_CONNACK)
+                                        .unwrap();
                                     dbg!(*self.state.lock().unwrap());
                                 }
                                 Err(why) => error!("ConnAck {:?}", why),
@@ -223,14 +217,14 @@ impl MqttSnClient {
         connect_tx(client_id, conn_duration, &self);
         dbg!(*self.state.lock().unwrap());
         let cur_state = *self.state.lock().unwrap();
-        *self.state.lock().unwrap() =  self.state_machine.transition(
-            cur_state, MSG_TYPE_CONNECT).unwrap();
+        *self.state.lock().unwrap() = self
+            .state_machine
+            .transition(cur_state, MSG_TYPE_CONNECT)
+            .unwrap();
         dbg!(*self.state.lock().unwrap());
     }
 
-    pub fn subscribe(&self,
-                     topic: String, msg_id: u16,
-                     qos: u8, retain: u8) {
+    pub fn subscribe(&self, topic: String, msg_id: u16, qos: u8, retain: u8) {
         let sub = subscribe_tx(topic, msg_id, qos, retain, &self);
     }
     /// Publish a message
@@ -238,9 +232,14 @@ impl MqttSnClient {
     /// 2. Serialize into a byte stream.
     /// 3. Send it to the channel.
     /// 4. Schedule retransmit for QoS Level 1 & 2.
-    pub fn publish(&self,
-                     topic_id: u16, msg_id: u16,
-                     qos: u8, retain: u8, data: String) {
+    pub fn publish(
+        &self,
+        topic_id: u16,
+        msg_id: u16,
+        qos: u8,
+        retain: u8,
+        data: String,
+    ) {
         publish_tx(topic_id, msg_id, qos, retain, data, &self);
     }
 }

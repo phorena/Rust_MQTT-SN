@@ -60,7 +60,7 @@ pub fn flags_set(
     will: WillConst,
     clean_session: CleanSessionConst,
     topic_id_type: TopicIdTypeConst,
-    ) -> u8 {
+) -> u8 {
     dup | qos | retain | will | clean_session | topic_id_type
 }
 #[inline(always)]

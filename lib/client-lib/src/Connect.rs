@@ -4,58 +4,33 @@ use getset::{CopyGetters, Getters, MutGetters, Setters};
 use std::mem;
 use std::str;
 
-use crate::{ 
-    MSG_TYPE_CONNECT,
-    MSG_TYPE_CONNACK,
-    MSG_TYPE_PUBLISH,
-    MSG_TYPE_PUBACK,
-    MSG_TYPE_PUBREC,
-    MSG_TYPE_PUBREL,
-    MSG_TYPE_PUBCOMP,
-    MSG_TYPE_SUBSCRIBE,
-    MSG_TYPE_SUBACK,
-
+use crate::{
+    flags::{
+        flag_qos_level, flags_set, CleanSessionConst, DupConst, QoSConst,
+        RetainConst, TopicIdTypeConst, WillConst, CLEAN_SESSION_FALSE,
+        CLEAN_SESSION_TRUE, DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1,
+        QOS_LEVEL_2, QOS_LEVEL_3, RETAIN_FALSE, RETAIN_TRUE,
+        TOPIC_ID_TYPE_NORNAL, TOPIC_ID_TYPE_PRE_DEFINED,
+        TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
+    },
+    ClientLib::MqttSnClient,
+    // flags::{flags_set, flag_qos_level, },
+    Errors::ExoError,
     MSG_LEN_PUBACK,
     MSG_LEN_PUBREC,
 
+    MSG_TYPE_CONNACK,
+    MSG_TYPE_CONNECT,
+    MSG_TYPE_PUBACK,
+    MSG_TYPE_PUBCOMP,
+    MSG_TYPE_PUBLISH,
+    MSG_TYPE_PUBREC,
+    MSG_TYPE_PUBREL,
+    MSG_TYPE_SUBACK,
+
+    MSG_TYPE_SUBSCRIBE,
     RETURN_CODE_ACCEPTED,
-
-    flags:: {
-        DupConst,
-        DUP_FALSE,
-        DUP_TRUE,
-
-        QoSConst,
-        QOS_LEVEL_0,
-        QOS_LEVEL_1,
-        QOS_LEVEL_2,
-        QOS_LEVEL_3,
-
-        RetainConst,
-        RETAIN_FALSE,
-        RETAIN_TRUE,
-
-        WillConst,
-        WILL_FALSE,
-        WILL_TRUE,
-
-        CleanSessionConst,
-        CLEAN_SESSION_FALSE,
-        CLEAN_SESSION_TRUE,
-
-        TopicIdTypeConst,
-        TOPIC_ID_TYPE_NORNAL,
-        TOPIC_ID_TYPE_PRE_DEFINED,
-        TOPIC_ID_TYPE_SHORT,
-        TOPIC_ID_TYPE_RESERVED,
-
-    flags_set, flag_qos_level,
-    },
-    // flags::{flags_set, flag_qos_level, },
-    Errors::ExoError,
-    ClientLib:: {MqttSnClient, },
 };
-
 
 #[derive(Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default)]
 #[getset(get, set)]
@@ -99,9 +74,7 @@ impl Connect {
 }
 
 // TODO error checking and return
-pub fn connect_tx(client_id: String,
-                  duration: u16,
-                  client: &MqttSnClient) {
+pub fn connect_tx(client_id: String, duration: u16, client: &MqttSnClient) {
     let len = client_id.len() + 6;
     if len < 250 {
         let connect = Connect {
@@ -118,11 +91,18 @@ pub fn connect_tx(client_id: String,
         dbg!(connect.clone());
         connect.try_write(&mut bytes_buf);
         dbg!(bytes_buf.clone());
-        client.transmit_tx.send((client.remote_addr, bytes_buf.to_owned()));
-        client.schedule_tx.send((client.remote_addr,
-                                   MSG_TYPE_CONNACK, 0, 0, bytes_buf));
+        client
+            .transmit_tx
+            .send((client.remote_addr, bytes_buf.to_owned()));
+        client.schedule_tx.send((
+            client.remote_addr,
+            MSG_TYPE_CONNACK,
+            0,
+            0,
+            bytes_buf,
+        ));
     } else {
-        // TODO long message modify try_write 
+        // TODO long message modify try_write
         ()
     }
 }
