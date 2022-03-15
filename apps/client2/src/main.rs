@@ -1,4 +1,5 @@
 #![warn(rust_2018_idioms)]
+#![allow(unused_imports)]
 #[macro_use]
 // use std::sync::mpsc::{Sender, Receiver};
 // use std::sync::mpsc;
@@ -16,6 +17,9 @@ use simplelog::*;
 use chrono::{Datelike, Local, Timelike};
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use trace_var::trace_var;
+
+use bytes::{BytesMut, BufMut};
+
 
 // use DTLS::dtls_client::DtlsClient;
 use client_lib::{
@@ -39,19 +43,6 @@ use client_lib::{
 fn generate_client_id() -> String {
     format!("exofense/{}", nanoid!())
 }
-
-static NTHREADS: i32 = 3;
-
-// TODO move to utility lib
-
-fn foo(i: u8) -> u8 {
-    i + 1
-}
-fn bar(i: u8) -> u8 {
-    i + 2
-}
-const MESSAGES: usize = 10;
-const THREADS: usize = 4;
 
 fn mpmc() {
     let (tx, rx) = unbounded();
@@ -80,6 +71,29 @@ fn mpmc() {
 }
 
 fn main() {
+
+
+let mut buf = BytesMut::with_capacity(64);
+let mut buf2 = BytesMut::with_capacity(64);
+
+buf.put(&b"llo"[..]);
+buf2.put(&b"llo"[..]);
+
+buf.put(&buf2[..]);
+dbg!(&buf);
+
+let mut a = buf.clone();
+a.put(&buf2[..]);
+dbg!(&buf);
+dbg!(&a);
+let b = buf.freeze();
+let c = b.clone();
+dbg!(&b);
+dbg!(&c);
+
+
+
+
     init_logging();
     let remote_addr = "127.0.0.1:60000".parse::<SocketAddr>().unwrap();
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
@@ -102,15 +116,16 @@ fn main() {
         dbg!(client_sub.subscribe_rx.recv());
     });
 
-    loop {
+    let publish_thread = thread::spawn(move || loop {
         let msg = format!("hi {:?}", i);
         let msg2 = format!("hi {:?}", i+1000);
-        client_main.publish(1, i, QOS_LEVEL_0, RETAIN_FALSE, msg.to_string());
+        client_main.publish(1, i, QOS_LEVEL_0, RETAIN_TRUE, msg.to_string());
         client_main.publish(2, i, QOS_LEVEL_0, RETAIN_FALSE, msg2.to_string());
         i += 1;
         thread::sleep(Duration::from_secs(2));
-    }
+    });
     rx_thread2.join().expect("The sender thread has panicked");
+    publish_thread.join().expect("The sender thread has panicked");
 }
 
 fn init_logging() {

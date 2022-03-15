@@ -13,7 +13,7 @@ use syn::{spanned::Spanned, DataStruct, DeriveInput, Meta};
 
 mod generate;
 use crate::generate::{GenMode, GenParams};
-use bytes::{BufMut, BytesMut};
+// use bytes::{BufMut, BytesMut};
 
 #[proc_macro_derive(Getters, attributes(get, with_prefix, getset))]
 #[proc_macro_error]

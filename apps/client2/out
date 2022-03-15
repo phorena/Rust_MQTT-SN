@@ -45,13 +45,7 @@ warning: unused imports: `BufMut`, `BytesMut`
   |
   = note: `#[warn(unused_imports)]` on by default
 
-warning: unused imports: `BufMut`, `BytesMut`
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/getset/src/lib.rs:16:13
-   |
-16 | use bytes::{BufMut, BytesMut};
-   |             ^^^^^^  ^^^^^^^^
-
-warning: `getset` (lib) generated 2 warnings
+warning: `getset` (lib) generated 1 warning
 [/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/fsm/rust_fsm_dsl/src/lib.rs:91] transfer_struct_name.clone() = Ident {
     ident: "Transfer",
     span: #0 bytes(12311..12319),
@@ -968,10 +962,7 @@ warning: module `TopicIdType` should have a snake case name
   |         ^^^^^^^^^^^ help: convert the identifier to snake case: `topic_id_type`
 
 warning: `mqtt-sn-lib` (lib) generated 148 warnings
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/fsm/rust_fsm_dsl/src/lib.rs:91] transfer_struct_name.clone() = Ident {
-    ident: "Transfer",
-    span: #0 bytes(38957..38965),
-}
+   Compiling client-lib v0.1.0 (/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib)
 warning: unused import: `hint`
  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:2:11
   |
@@ -1127,55 +1118,13 @@ warning: unused imports: `CLEAN_SESSION_FALSE`, `CLEAN_SESSION_TRUE`, `CleanSess
 32 |     RETURN_CODE_ACCEPTED,
    |     ^^^^^^^^^^^^^^^^^^^^
 
-warning: unused import: `Ordering`
- --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:1:35
-  |
-1 | use std::sync::atomic::{AtomicU8, Ordering};
-  |                                   ^^^^^^^^
-
-warning: unused imports: `io`, `net::SocketAddrV4`, `sync::Mutex`
- --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:2:11
-  |
-2 | use std::{io, net::SocketAddr, net::SocketAddrV4, sync::Arc, sync::Mutex};
-  |           ^^                   ^^^^^^^^^^^^^^^^^             ^^^^^^^^^^^
-
-warning: unused import: `flag_qos_level`
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:12:5
-   |
-12 |     flag_qos_level, flags_set, CLEAN_SESSION_TRUE, DUP_FALSE, WILL_FALSE,
-   |     ^^^^^^^^^^^^^^
-
-warning: unused imports: `Receiver`, `Sender`, `bounded`, `unbounded`
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:29:26
-   |
-29 | use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
-   |                          ^^^^^^^  ^^^^^^^^^  ^^^^^^^^  ^^^^^^
-
-warning: unused import: `crate::Connect::Connect`
- --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:2:5
-  |
-2 | use crate::Connect::Connect;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^
-
-warning: unused import: `MessageDb`
- --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:4:24
-  |
-4 | use crate::MessageDb::{MessageDb, MessageDbKey, MessageDbValue};
-  |                        ^^^^^^^^^
-
-warning: type `MQTT_SN` should have an upper camel case name
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:46:9
-   |
-46 |     pub MQTT_SN(DISCONNECTED)
-   |         ^^^^^^^ help: convert the identifier to upper camel case: `MqttSn`
-   |
-   = note: `#[warn(non_camel_case_types)]` on by default
-
 warning: variant `MSG_TYPE_ERR` should have an upper camel case name
   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MsgType.rs:43:5
    |
 43 |     MSG_TYPE_ERR = 0xFF,
    |     ^^^^^^^^^^^^ help: convert the identifier to upper camel case: `MsgTypeErr`
+   |
+   = note: `#[warn(non_camel_case_types)]` on by default
 
 warning: unused imports: `Receiver`, `Sender`, `bounded`, `unbounded`
  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/PubAck.rs:2:26
@@ -1245,29 +1194,6 @@ warning: unused import: `std::str`
 5 | use std::str;
   |     ^^^^^^^^
 
-warning: unused imports: `CLEAN_SESSION_TRUE`, `CleanSessionConst`, `DUP_TRUE`, `DupConst`, `MSG_TYPE_CONNACK`, `MSG_TYPE_CONNECT`, `MSG_TYPE_PUBCOMP`, `MSG_TYPE_SUBACK`, `MSG_TYPE_SUBSCRIBE`, `QoSConst`, `RETAIN_FALSE`, `RETAIN_TRUE`, `RetainConst`, `TOPIC_ID_TYPE_PRE_DEFINED`, `TOPIC_ID_TYPE_RESERVED`, `TOPIC_ID_TYPE_SHORT`, `TopicIdTypeConst`, `WILL_TRUE`, `WillConst`
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:9:36
-   |
-9  |         flag_qos_level, flags_set, CleanSessionConst, DupConst, QoSConst,
-   |                                    ^^^^^^^^^^^^^^^^^  ^^^^^^^^  ^^^^^^^^
-10 |         RetainConst, TopicIdTypeConst, WillConst, CLEAN_SESSION_FALSE,
-   |         ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^  ^^^^^^^^^
-11 |         CLEAN_SESSION_TRUE, DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1,
-   |         ^^^^^^^^^^^^^^^^^^             ^^^^^^^^
-12 |         QOS_LEVEL_2, QOS_LEVEL_3, RETAIN_FALSE, RETAIN_TRUE,
-   |                                   ^^^^^^^^^^^^  ^^^^^^^^^^^
-13 |         TOPIC_ID_TYPE_NORNAL, TOPIC_ID_TYPE_PRE_DEFINED,
-   |                               ^^^^^^^^^^^^^^^^^^^^^^^^^
-14 |         TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
-   |         ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^              ^^^^^^^^^
-...
-18 |     MSG_LEN_PUBACK, MSG_LEN_PUBREC, MSG_TYPE_CONNACK, MSG_TYPE_CONNECT,
-   |                                     ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^
-19 |     MSG_TYPE_PUBACK, MSG_TYPE_PUBCOMP, MSG_TYPE_PUBLISH, MSG_TYPE_PUBREC,
-   |                      ^^^^^^^^^^^^^^^^
-20 |     MSG_TYPE_PUBREL, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE, RETURN_CODE_ACCEPTED,
-   |                      ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
-
 warning: unused import: `crate::MTU`
  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/StateMachine.rs:1:5
   |
@@ -1336,31 +1262,6 @@ warning: unused imports: `io`, `net::SocketAddrV4`, `net::SocketAddr`, `sync::Ar
    |
 34 | use std::{io, net::SocketAddr, net::SocketAddrV4, sync::Arc, sync::Mutex};
    |           ^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^  ^^^^^^^^^^^
-
-warning: unused imports: `CLEAN_SESSION_TRUE`, `CleanSessionConst`, `DUP_TRUE`, `DupConst`, `MSG_TYPE_CONNACK`, `MSG_TYPE_CONNECT`, `MSG_TYPE_PUBACK`, `MSG_TYPE_PUBLISH`, `QOS_LEVEL_0`, `QOS_LEVEL_1`, `QOS_LEVEL_2`, `QOS_LEVEL_3`, `QoSConst`, `RETAIN_FALSE`, `RETAIN_TRUE`, `RetainConst`, `TOPIC_ID_TYPE_PRE_DEFINED`, `TOPIC_ID_TYPE_RESERVED`, `TOPIC_ID_TYPE_SHORT`, `TopicIdTypeConst`, `WILL_TRUE`, `WillConst`
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Subscribe.rs:11:9
-   |
-11 |         CleanSessionConst, DupConst, QoSConst, RetainConst, TopicIdTypeConst,
-   |         ^^^^^^^^^^^^^^^^^  ^^^^^^^^  ^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^
-12 |         WillConst, CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE, DUP_FALSE,
-   |         ^^^^^^^^^                       ^^^^^^^^^^^^^^^^^^
-13 |         DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
-   |         ^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^
-14 |         RETAIN_FALSE, RETAIN_TRUE, TOPIC_ID_TYPE_NORNAL,
-   |         ^^^^^^^^^^^^  ^^^^^^^^^^^
-15 |         TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
-16 |         WILL_FALSE, WILL_TRUE,
-   |                     ^^^^^^^^^
-...
-19 |     MSG_TYPE_CONNACK,
-   |     ^^^^^^^^^^^^^^^^
-20 |     MSG_TYPE_CONNECT,
-   |     ^^^^^^^^^^^^^^^^
-21 |     MSG_TYPE_PUBACK,
-   |     ^^^^^^^^^^^^^^^
-22 |     MSG_TYPE_PUBLISH,
-   |     ^^^^^^^^^^^^^^^^
 
 warning: warn(rust_2018_idioms) is ignored unless specified at crate level
  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/TimingWheel2.rs:1:9
@@ -1460,26 +1361,6 @@ warning: `#[macro_use]` only has an effect on `extern crate` and modules
 2 | #[macro_use]
   | ^^^^^^^^^^^^
 
-warning: unreachable pattern
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:406:9
-    |
-402 |         msg_type => match return_code(pub_ack.return_code) {
-    |         -------- matches any value
-...
-406 |         _ => Err(ClientError::WrongMessageType(
-    |         ^ unreachable pattern
-    |
-    = note: `#[warn(unreachable_patterns)]` on by default
-
-warning: unreachable pattern
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:438:9
-    |
-434 |         msg_type => match return_code(sub_ack.return_code) {
-    |         -------- matches any value
-...
-438 |         _ => Err(ClientError::WrongMessageType(
-    |         ^ unreachable pattern
-
 warning: unused variable: `sub`
    --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:236:13
     |
@@ -1487,264 +1368,6 @@ warning: unused variable: `sub`
     |             ^^^ help: if this is intentional, prefix it with an underscore: `_sub`
     |
     = note: `#[warn(unused_variables)]` on by default
-
-warning: unused variable: `state`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:173:17
-    |
-173 |             let state = new_machine.machine.state();
-    |                 ^^^^^ help: if this is intentional, prefix it with an underscore: `_state`
-
-warning: unused variable: `duration`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:309:36
-    |
-309 | pub fn connect2(client_id: String, duration: u16) -> BytesMut {
-    |                                    ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_duration`
-
-warning: unused variable: `socket`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:329:16
-    |
-329 | pub fn connect(socket: &UdpSocket, client_id: String) -> BytesMut {
-    |                ^^^^^^ help: if this is intentional, prefix it with an underscore: `_socket`
-
-warning: unused variable: `msg_type`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:366:9
-    |
-366 |     let msg_type = MsgType::CONNACK;
-    |         ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_msg_type`
-
-warning: unused variable: `read_len`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:369:20
-    |
-369 |     let (conn_ack, read_len) = ConnAck::try_read(buf, size).unwrap();
-    |                    ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_read_len`
-
-warning: unused variable: `msg_type`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:402:9
-    |
-402 |         msg_type => match return_code(pub_ack.return_code) {
-    |         ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_msg_type`
-
-warning: unused variable: `msg_type`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:434:9
-    |
-434 |         msg_type => match return_code(sub_ack.return_code) {
-    |         ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_msg_type`
-
-warning: unused variable: `socket`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:467:5
-    |
-467 |     socket: &UdpSocket,
-    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_socket`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:135:5
-    |
-135 |     input: MsgType,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
-
-warning: unused variable: `transfer`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:136:5
-    |
-136 |     transfer: &mut Transfer,
-    |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_transfer`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:146:5
-    |
-146 |     input: MsgType,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
-
-warning: unused variable: `transfer`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:147:5
-    |
-147 |     transfer: &mut Transfer,
-    |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_transfer`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:159:5
-    |
-159 |     input: MsgType,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
-
-warning: unused variable: `transfer`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:160:5
-    |
-160 |     transfer: &mut Transfer,
-    |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_transfer`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:172:5
-    |
-172 |     input: MsgType,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:196:5
-    |
-196 |     input: MsgType,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
-
-warning: unused variable: `transfer`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:197:5
-    |
-197 |     transfer: &mut Transfer,
-    |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_transfer`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:217:5
-    |
-217 |     input: MsgType,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
-
-warning: unused variable: `transfer`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:218:5
-    |
-218 |     transfer: &mut Transfer,
-    |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_transfer`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:239:5
-    |
-239 |     input: MsgType,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
-
-warning: unused variable: `transfer`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:240:5
-    |
-240 |     transfer: &mut Transfer,
-    |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_transfer`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:267:5
-    |
-267 |     input: MsgType,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:290:5
-    |
-290 |     input: MsgType,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
-
-warning: unused variable: `transfer`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:291:5
-    |
-291 |     transfer: &mut Transfer,
-    |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_transfer`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:327:5
-    |
-327 |     input: MsgType,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:348:5
-    |
-348 |     input: MsgType,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
-
-warning: unused variable: `transfer`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:349:5
-    |
-349 |     transfer: &mut Transfer,
-    |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_transfer`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:377:9
-    |
-377 |     let input = MsgType::CONNACK;
-    |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
-
-warning: unused variable: `transfer`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:371:5
-    |
-371 |     transfer: &mut Transfer,
-    |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_transfer`
-
-warning: unused variable: `publish`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:435:25
-    |
-435 |                     let publish = Publish {
-    |                         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_publish`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:421:5
-    |
-421 |     input: MsgType,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:470:5
-    |
-470 |     input: MsgType,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:509:5
-    |
-509 |     input: MsgType,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:545:5
-    |
-545 |     input: MsgType,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:586:5
-    |
-586 |     input: MsgType,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
-
-warning: unused variable: `transfer`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:587:5
-    |
-587 |     transfer: &mut Transfer,
-    |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_transfer`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:608:5
-    |
-608 |     input: MsgType,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
-
-warning: unused variable: `transfer`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:609:5
-    |
-609 |     transfer: &mut Transfer,
-    |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_transfer`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:647:5
-    |
-647 |     input: MsgType,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
-
-warning: unused variable: `transfer`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:648:5
-    |
-648 |     transfer: &mut Transfer,
-    |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_transfer`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:684:5
-    |
-684 |     input: MsgType,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
-
-warning: unused variable: `transfer`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:685:5
-    |
-685 |     transfer: &mut Transfer,
-    |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_transfer`
-
-warning: unused variable: `input`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:704:5
-    |
-704 |     input: MsgType,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
 
 warning: unused variable: `result`
   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MessageDb.rs:91:21
@@ -1826,12 +1449,6 @@ warning: associated function is never used: `constraint_return_code`
 71 |     fn constraint_return_code(_val: &u8) -> bool {
    |        ^^^^^^^^^^^^^^^^^^^^^^
 
-warning: field is never read: `name`
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ConnectionDb.rs:10:5
-   |
-10 |     name: String,
-   |     ^^^^^^^^^^^^
-
 warning: associated function is never used: `constraint_len`
   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Disconnect.rs:18:8
    |
@@ -1849,108 +1466,6 @@ warning: associated function is never used: `constraint_duration`
    |
 26 |     fn constraint_duration(_val: &u16) -> bool {
    |        ^^^^^^^^^^^^^^^^^^^
-
-warning: type alias is never used: `ReturnCodeConst`
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:32:1
-   |
-32 | type ReturnCodeConst = u8;
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-warning: constant is never used: `RETURN_CODE_ACCEPTED`
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:33:1
-   |
-33 | const RETURN_CODE_ACCEPTED: ReturnCodeConst = 0;
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-warning: constant is never used: `RETURN_CODE_CONGESTION`
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:34:1
-   |
-34 | const RETURN_CODE_CONGESTION: ReturnCodeConst = 1;
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-warning: constant is never used: `RETURN_CODE_INVALID_TOPIC_ID`
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:35:1
-   |
-35 | const RETURN_CODE_INVALID_TOPIC_ID: ReturnCodeConst = 2;
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-warning: constant is never used: `RETURN_CODE_NOT_SUPPORTED`
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:36:1
-   |
-36 | const RETURN_CODE_NOT_SUPPORTED: ReturnCodeConst = 3;
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-warning: field is never read: `bytes`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:125:5
-    |
-125 |     bytes: BytesMut,
-    |     ^^^^^^^^^^^^^^^
-
-warning: field is never read: `state`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:131:5
-    |
-131 |     state: Arc<AtomicU8>,
-    |     ^^^^^^^^^^^^^^^^^^^^
-
-warning: field is never read: `addr`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:132:5
-    |
-132 |     addr: SocketAddr,
-    |     ^^^^^^^^^^^^^^^^
-
-warning: field is never read: `broker`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:133:5
-    |
-133 |     broker: UdpSocket,
-    |     ^^^^^^^^^^^^^^^^^
-
-warning: field is never read: `timing_wheel`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:134:5
-    |
-134 |     timing_wheel: &'static TimingWheel2<RetransmitHeader, RetransmitData>,
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-warning: static is never used: `PUBREC_LEN`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:218:1
-    |
-218 | static PUBREC_LEN: u8 = 4;
-    | ^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-warning: function is never used: `verify_will_topic`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:144:4
-    |
-144 | fn verify_will_topic(
-    |    ^^^^^^^^^^^^^^^^^
-
-warning: function is never used: `verify_will_msg`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:157:4
-    |
-157 | fn verify_will_msg(
-    |    ^^^^^^^^^^^^^^^
-
-warning: function is never used: `verify_will_topic_update`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:170:4
-    |
-170 | fn verify_will_topic_update(
-    |    ^^^^^^^^^^^^^^^^^^^^^^^^
-
-warning: function is never used: `verify_will_msg_update`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:265:4
-    |
-265 | fn verify_will_msg_update(
-    |    ^^^^^^^^^^^^^^^^^^^^^^
-
-warning: function is never used: `verify_subscribe`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:507:4
-    |
-507 | fn verify_subscribe(
-    |    ^^^^^^^^^^^^^^^^
-
-warning: function is never used: `verify_unsubscribe`
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MainMachineClient.rs:543:4
-    |
-543 | fn verify_unsubscribe(
-    |    ^^^^^^^^^^^^^^^^^^
 
 warning: associated function is never used: `constraint_topic_id`
   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/MessageDb.rs:25:8
@@ -2043,39 +1558,39 @@ warning: associated function is never used: `constraint_msg_id`
    |        ^^^^^^^^^^^^^^^^^
 
 warning: associated function is never used: `constraint_len`
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:71:8
+  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:72:8
    |
-71 |     fn constraint_len(_val: &u8) -> bool {
+72 |     fn constraint_len(_val: &u8) -> bool {
    |        ^^^^^^^^^^^^^^
 
 warning: associated function is never used: `constraint_msg_type`
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:75:8
+  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:76:8
    |
-75 |     fn constraint_msg_type(_val: &u8) -> bool {
+76 |     fn constraint_msg_type(_val: &u8) -> bool {
    |        ^^^^^^^^^^^^^^^^^^^
 
 warning: associated function is never used: `constraint_flags`
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:79:8
+  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:80:8
    |
-79 |     fn constraint_flags(_val: &u8) -> bool {
+80 |     fn constraint_flags(_val: &u8) -> bool {
    |        ^^^^^^^^^^^^^^^^
 
 warning: associated function is never used: `constraint_topic_id`
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:83:8
+  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:84:8
    |
-83 |     fn constraint_topic_id(_val: &u16) -> bool {
+84 |     fn constraint_topic_id(_val: &u16) -> bool {
    |        ^^^^^^^^^^^^^^^^^^^
 
 warning: associated function is never used: `constraint_msg_id`
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:87:8
+  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:88:8
    |
-87 |     fn constraint_msg_id(_val: &u16) -> bool {
+88 |     fn constraint_msg_id(_val: &u16) -> bool {
    |        ^^^^^^^^^^^^^^^^^
 
 warning: associated function is never used: `constraint_data`
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:91:8
+  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:92:8
    |
-91 |     fn constraint_data(_val: &String) -> bool {
+92 |     fn constraint_data(_val: &String) -> bool {
    |        ^^^^^^^^^^^^^^^
 
 warning: associated function is never used: `constraint_len`
@@ -2203,6 +1718,12 @@ warning: associated function is never used: `constraint_topic_name`
    |
 77 |     fn constraint_topic_name(_val: &String) -> bool {
    |        ^^^^^^^^^^^^^^^^^^^^^
+
+warning: associated function is never used: `constraint_bb`
+  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Subscribe.rs:81:8
+   |
+81 |     fn constraint_bb(_val: &BytesMut) -> bool {
+   |        ^^^^^^^^^^^^^
 
 warning: static is never used: `TIME_WHEEL_DEFAULT_DURATION_MS`
   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/TimingWheel2.rs:98:1
@@ -2666,12 +2187,6 @@ warning: module `Connect` should have a snake case name
 7 | pub mod Connect;
   |         ^^^^^^^ help: convert the identifier to snake case (notice the capitalization): `connect`
 
-warning: module `ConnectionDb` should have a snake case name
- --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/lib.rs:8:9
-  |
-8 | pub mod ConnectionDb;
-  |         ^^^^^^^^^^^^ help: convert the identifier to snake case: `connection_db`
-
 warning: module `DebugFunctions` should have a snake case name
  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/lib.rs:9:9
   |
@@ -2689,18 +2204,6 @@ warning: module `Errors` should have a snake case name
    |
 11 | pub mod Errors;
    |         ^^^^^^ help: convert the identifier to snake case: `errors`
-
-warning: module `Functions` should have a snake case name
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/lib.rs:12:9
-   |
-12 | pub mod Functions;
-   |         ^^^^^^^^^ help: convert the identifier to snake case (notice the capitalization): `functions`
-
-warning: module `MainMachineClient` should have a snake case name
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/lib.rs:13:9
-   |
-13 | pub mod MainMachineClient;
-   |         ^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `main_machine_client`
 
 warning: module `MessageDb` should have a snake case name
   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/lib.rs:14:9
@@ -2957,34 +2460,6 @@ warning: unused `Result` that must be used
     = note: this `Result` may be an `Err` variant, which should be handled
 
 warning: unused `Result` that must be used
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:165:13
-    |
-165 | /             transfer.connection_db.update(
-166 | |                 transfer.peer,
-167 | |                 &old_machine,
-168 | |                 &new_machine,
-169 | |             );
-    | |______________^
-    |
-    = note: this `Result` may be an `Err` variant, which should be handled
-
-warning: unused `Result` that must be used
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:192:21
-    |
-192 |                     transfer.connection_db.create(transfer.peer, &new_machine);
-    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |
-    = note: this `Result` may be an `Err` variant, which should be handled
-
-warning: unused `Result` that must be used
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Functions.rs:206:21
-    |
-206 |                     transfer.connection_db.create(transfer.peer, &new_machine);
-    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |
-    = note: this `Result` may be an `Err` variant, which should be handled
-
-warning: unused `Result` that must be used
   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/PubAck.rs:80:9
    |
 80 | /         client.cancel_tx.send((
@@ -2998,77 +2473,77 @@ warning: unused `Result` that must be used
    = note: this `Result` may be an `Err` variant, which should be handled
 
 warning: unused `Result` that must be used
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:153:17
+   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:154:17
     |
-153 |                 client.transmit_tx.send((client.remote_addr, bytes));
+154 |                 client.transmit_tx.send((client.remote_addr, bytes));
     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     |
     = note: this `Result` may be an `Err` variant, which should be handled
 
 warning: unused `Result` that must be used
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:179:17
+   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:180:17
     |
-179 |                 client.transmit_tx.send((client.remote_addr, bytes.clone()));
+180 |                 client.transmit_tx.send((client.remote_addr, bytes.clone()));
     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     |
     = note: this `Result` may be an `Err` variant, which should be handled
 
 warning: unused `Result` that must be used
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:184:17
+   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:185:17
     |
-184 | /                 client.schedule_tx.send((
-185 | |                     client.remote_addr,
-186 | |                     MSG_TYPE_PUBREL,
-187 | |                     0,
-188 | |                     publish.msg_id,
-189 | |                     bytes,
-190 | |                 ));
+185 | /                 client.schedule_tx.send((
+186 | |                     client.remote_addr,
+187 | |                     MSG_TYPE_PUBREL,
+188 | |                     0,
+189 | |                     publish.msg_id,
+190 | |                     bytes,
+191 | |                 ));
     | |___________________^
     |
     = note: this `Result` may be an `Err` variant, which should be handled
 
 warning: unused `Result` that must be used
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:201:9
+   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:202:9
     |
-201 |         client.subscribe_tx.send(publish);
+202 |         client.subscribe_tx.send(publish);
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     |
     = note: this `Result` may be an `Err` variant, which should be handled
 
 warning: unused `Result` that must be used
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:224:5
+   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:225:5
     |
-224 | /     client
-225 | |         .transmit_tx
-226 | |         .send((client.remote_addr, bytes_buf.to_owned()));
+225 | /     client
+226 | |         .transmit_tx
+227 | |         .send((client.remote_addr, bytes_buf.to_owned()));
     | |__________________________________________________________^
     |
     = note: this `Result` may be an `Err` variant, which should be handled
 
 warning: unused `Result` that must be used
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:233:13
+   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:234:13
     |
-233 | /             client.schedule_tx.send((
-234 | |                 client.remote_addr,
-235 | |                 MSG_TYPE_PUBACK,
-236 | |                 topic_id,
-237 | |                 msg_id,
-238 | |                 bytes_buf,
-239 | |             ));
+234 | /             client.schedule_tx.send((
+235 | |                 client.remote_addr,
+236 | |                 MSG_TYPE_PUBACK,
+237 | |                 topic_id,
+238 | |                 msg_id,
+239 | |                 bytes_buf,
+240 | |             ));
     | |_______________^
     |
     = note: this `Result` may be an `Err` variant, which should be handled
 
 warning: unused `Result` that must be used
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:256:13
+   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:257:13
     |
-256 | /             client.schedule_tx.send((
-257 | |                 client.remote_addr,
-258 | |                 MSG_TYPE_PUBREC,
-259 | |                 0,
-260 | |                 msg_id,
-261 | |                 bytes_buf,
-262 | |             ));
+257 | /             client.schedule_tx.send((
+258 | |                 client.remote_addr,
+259 | |                 MSG_TYPE_PUBREC,
+260 | |                 0,
+261 | |                 msg_id,
+262 | |                 bytes_buf,
+263 | |             ));
     | |_______________^
     |
     = note: this `Result` may be an `Err` variant, which should be handled
@@ -3087,25 +2562,25 @@ warning: unused `Result` that must be used
    = note: this `Result` may be an `Err` variant, which should be handled
 
 warning: unused `Result` that must be used
-  --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Subscribe.rs:94:5
-   |
-94 | /     client
-95 | |         .transmit_tx
-96 | |         .send((client.remote_addr, bytes_buf.to_owned()));
-   | |__________________________________________________________^
-   |
-   = note: this `Result` may be an `Err` variant, which should be handled
+   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Subscribe.rs:99:5
+    |
+99  | /     client
+100 | |         .transmit_tx
+101 | |         .send((client.remote_addr, bytes_buf.to_owned()));
+    | |__________________________________________________________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
 
 warning: unused `Result` that must be used
-   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Subscribe.rs:97:5
+   --> /mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Subscribe.rs:102:5
     |
-97  | /     client.schedule_tx.send((
-98  | |         client.remote_addr,
-99  | |         MSG_TYPE_SUBACK,
-100 | |         0,
-101 | |         0,
-102 | |         bytes_buf,
-103 | |     ));
+102 | /     client.schedule_tx.send((
+103 | |         client.remote_addr,
+104 | |         MSG_TYPE_SUBACK,
+105 | |         0,
+106 | |         0,
+107 | |         bytes_buf,
+108 | |     ));
     | |_______^
     |
     = note: this `Result` may be an `Err` variant, which should be handled
@@ -3169,156 +2644,43 @@ warning: unused `Result` that must be used
     |
     = note: this `Result` may be an `Err` variant, which should be handled
 
-warning: `client-lib` (lib) generated 302 warnings
+warning: `client-lib` (lib) generated 225 warnings
    Compiling clientV2 v0.1.0 (/mnt/OneTB/repos/Rust_MQTT-SN-01/apps/client2)
-warning: unused import: `core::fmt::Debug`
- --> src/main.rs:5:5
-  |
-5 | use core::fmt::Debug;
-  |     ^^^^^^^^^^^^^^^^
-  |
-  = note: `#[warn(unused_imports)]` on by default
-
-warning: unused import: `SystemTime`
- --> src/main.rs:8:27
-  |
-8 | use std::time::{Duration, SystemTime};
-  |                           ^^^^^^^^^^
-
-warning: unused import: `hint`
- --> src/main.rs:9:11
-  |
-9 | use std::{hint, thread};
-  |           ^^^^
-
-warning: unused import: `arr_macro::arr`
-  --> src/main.rs:11:5
-   |
-11 | use arr_macro::arr;
-   |     ^^^^^^^^^^^^^^
-
-warning: unused imports: `Datelike`, `Local`, `Timelike`
-  --> src/main.rs:16:14
-   |
-16 | use chrono::{Datelike, Local, Timelike};
-   |              ^^^^^^^^  ^^^^^  ^^^^^^^^
-
-warning: unused imports: `Receiver`, `Sender`
-  --> src/main.rs:17:37
-   |
-17 | use crossbeam::channel::{unbounded, Receiver, Sender};
-   |                                     ^^^^^^^^  ^^^^^^
-
-warning: unused import: `trace_var::trace_var`
-  --> src/main.rs:18:5
-   |
-18 | use trace_var::trace_var;
-   |     ^^^^^^^^^^^^^^^^^^^^
-
-warning: unused imports: `CLEAN_SESSION_FALSE`, `CLEAN_SESSION_TRUE`, `CleanSessionConst`, `DUP_FALSE`, `DUP_TRUE`, `DupConst`, `QOS_LEVEL_1`, `QOS_LEVEL_2`, `QOS_LEVEL_3`, `QoSConst`, `RETAIN_TRUE`, `RetainConst`, `TOPIC_ID_TYPE_NORNAL`, `TOPIC_ID_TYPE_PRE_DEFINED`, `TOPIC_ID_TYPE_RESERVED`, `TOPIC_ID_TYPE_SHORT`, `TopicIdTypeConst`, `WILL_FALSE`, `WILL_TRUE`, `WillConst`
-  --> src/main.rs:29:9
-   |
-29 |         CleanSessionConst, DupConst, QoSConst, RetainConst, TopicIdTypeConst,
-   |         ^^^^^^^^^^^^^^^^^  ^^^^^^^^  ^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^
-30 |         WillConst, CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE, DUP_FALSE,
-   |         ^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^
-31 |         DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
-   |         ^^^^^^^^               ^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^
-32 |         RETAIN_FALSE, RETAIN_TRUE, TOPIC_ID_TYPE_NORNAL,
-   |                       ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
-33 |         TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
-34 |         WILL_FALSE, WILL_TRUE,
-   |         ^^^^^^^^^^  ^^^^^^^^^
-
 warning: `#[macro_use]` only has an effect on `extern crate` and modules
- --> src/main.rs:2:1
+ --> src/main.rs:3:1
   |
-2 | #[macro_use]
+3 | #[macro_use]
   | ^^^^^^^^^^^^
   |
   = note: `#[warn(unused_attributes)]` on by default
 
-warning: unreachable statement
-   --> src/main.rs:111:5
-    |
-102 | /     loop {
-103 | |         let msg = format!("hi {:?}", i);
-104 | |         let msg2 = format!("hi {:?}", i+1000);
-105 | |         client_main.publish(1, i, QOS_LEVEL_0, RETAIN_FALSE, msg.to_string());
-...   |
-108 | |         thread::sleep(Duration::from_secs(2));
-109 | |     }
-    | |_____- any code following this expression is unreachable
-110 |       // TODO loop to process ingress subscribed messages.
-111 |       rx_thread2.join().expect("The sender thread has panicked");
-    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
-    |
-    = note: `#[warn(unreachable_code)]` on by default
-
 warning: unused variable: `tx_thread`
-  --> src/main.rs:60:9
+  --> src/main.rs:51:9
    |
-60 |     let tx_thread = thread::spawn(move || {
+51 |     let tx_thread = thread::spawn(move || {
    |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_tx_thread`
    |
    = note: `#[warn(unused_variables)]` on by default
 
 warning: unused variable: `rx_thread`
-  --> src/main.rs:68:9
+  --> src/main.rs:59:9
    |
-68 |     let rx_thread = thread::spawn(move || loop {
+59 |     let rx_thread = thread::spawn(move || loop {
    |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_rx_thread`
 
 warning: unused variable: `rx_thread2`
-  --> src/main.rs:72:9
+  --> src/main.rs:63:9
    |
-72 |     let rx_thread2 = thread::spawn(move || loop {
+63 |     let rx_thread2 = thread::spawn(move || loop {
    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_rx_thread2`
-
-warning: unused variable: `rx_thread2`
-  --> src/main.rs:98:9
-   |
-98 |     let rx_thread2 = thread::spawn(move || loop {
-   |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_rx_thread2`
-
-warning: static is never used: `NTHREADS`
-  --> src/main.rs:43:1
-   |
-43 | static NTHREADS: i32 = 3;
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^
-   |
-   = note: `#[warn(dead_code)]` on by default
-
-warning: function is never used: `foo`
-  --> src/main.rs:47:4
-   |
-47 | fn foo(i: u8) -> u8 {
-   |    ^^^
-
-warning: function is never used: `bar`
-  --> src/main.rs:50:4
-   |
-50 | fn bar(i: u8) -> u8 {
-   |    ^^^
-
-warning: constant is never used: `MESSAGES`
-  --> src/main.rs:53:1
-   |
-53 | const MESSAGES: usize = 10;
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-warning: constant is never used: `THREADS`
-  --> src/main.rs:54:1
-   |
-54 | const THREADS: usize = 4;
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: function is never used: `mpmc`
-  --> src/main.rs:56:4
+  --> src/main.rs:47:4
    |
-56 | fn mpmc() {
+47 | fn mpmc() {
    |    ^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
 
 warning: crate `clientV2` should have a snake case name
   |
@@ -3326,9 +2688,9 @@ warning: crate `clientV2` should have a snake case name
   = help: convert the identifier to snake case: `client_v2`
 
 warning: unused `Result` that must be used
-  --> src/main.rs:69:9
+  --> src/main.rs:60:9
    |
-69 |         dbg!(rx.recv());
+60 |         dbg!(rx.recv());
    |         ^^^^^^^^^^^^^^^
    |
    = note: `#[warn(unused_must_use)]` on by default
@@ -3336,771 +2698,154 @@ warning: unused `Result` that must be used
    = note: this warning originates in the macro `dbg` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 warning: unused `Result` that must be used
-  --> src/main.rs:73:9
+  --> src/main.rs:64:9
    |
-73 |         dbg!(rx2.recv());
+64 |         dbg!(rx2.recv());
    |         ^^^^^^^^^^^^^^^^
    |
    = note: this `Result` may be an `Err` variant, which should be handled
    = note: this warning originates in the macro `dbg` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 warning: unused `Result` that must be used
-  --> src/main.rs:99:9
-   |
-99 |         dbg!(client_sub.subscribe_rx.recv());
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   |
-   = note: this `Result` may be an `Err` variant, which should be handled
-   = note: this warning originates in the macro `dbg` (in Nightly builds, run with -Z macro-backtrace for more info)
+   --> src/main.rs:116:9
+    |
+116 |         dbg!(client_sub.subscribe_rx.recv());
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+    = note: this warning originates in the macro `dbg` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-warning: `clientV2` (bin "clientV2") generated 24 warnings
-    Finished dev [unoptimized + debuginfo] target(s) in 1.56s
+warning: `clientV2` (bin "clientV2") generated 9 warnings
+    Finished dev [unoptimized + debuginfo] target(s) in 2.65s
      Running `target/debug/clientV2`
-03-14 14:48:57.531034224<new:115> (sleep_duration, default_duration_ms) = (
+[src/main.rs:83] &buf = b"llollo"
+[src/main.rs:87] &buf = b"llollo"
+[src/main.rs:88] &a = b"llollollo"
+[src/main.rs:91] &b = b"llollo"
+[src/main.rs:92] &c = b"llollo"
+03-14 23:03:25.126490659<new:115> (sleep_duration, default_duration_ms) = (
     100,
     300,
 )
-03-14 14:48:57.531127969[new:113] max_slot = 1280
-03-14 14:48:57.531169439[new:113] default_duration = 3
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:223] &client_id = "exofense/g7GV-qE68Q0l6Z6Cnsyq-"
+03-14 23:03:25.126560805[new:113] max_slot = 1280
+03-14 23:03:25.126592379[new:113] default_duration = 3
+[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:223] &client_id = "exofense/UfvNuzY4U0TjvOUomTf-i"
 [/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Connect.rs:91] connect.clone() = Connect {
     len: 36,
     msg_type: 0x4,
     flags: 0b00000100,
     protocol_id: 1,
     duration: 5,
-    client_id: "exofense/g7GV-qE68Q0l6Z6Cnsyq-",
+    client_id: "exofense/UfvNuzY4U0TjvOUomTf-i",
 }
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Connect.rs:93] bytes_buf.clone() = b"$\x04\x04\x01\0\x05exofense/g7GV-qE68Q0l6Z6Cnsyq-"
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-.0.0.1:60000,
-    b"$\x04\x04\x01\0\x05exofense/g7GV-qE68Q0l6Z6Cnsyq-",
+[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Connect.rs:93] bytes_buf.clone() = b"$\x04\x04\x01\0\x05exofense/UfvNuzY4U0TjvOUomTf-i"
+[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes)&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+ = (
+    127.0.0.1:60000,
+    b"$\x04\x04\x01\0\x05exofense/UfvNuzY4U0TjvOUomTf-i",
 )
 [/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:226] *self.state.lock().unwrap() = 1
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:232] *self.state.lock().unwrap() = 2
-03-14 14:48:57.532776334<{{closure}}:441> bytes.clone() = b"$\x04\x04\x01\0\x05exofense/g7GV-qE68Q0l6Z6Cnsyq-"
-03-14 14:48:57.533007079<{{closure}}:449> retrans_hdr = RetransmitHeader {
+03-14 23:03:25.127802108[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:232] *self.state.lock().unwrap() = 2
+<{{closure}}:441> bytes.clone() = b"$\x04\x04\x01\0\x05exofense/UfvNuzY4U0TjvOUomTf-i"
+[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Subscribe.rs:96] &subscribe = Subscribe {
+    len: 10,
+    msg_type: 0x12,
+    flags: 0b00000000,
+    msg_id: 1,
+    topic_name: "hello",
+    bb: b"hello",
+}
+03-14 23:03:25.127986905[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
+    127.0.0.1:60000,
+    b"\n\x12\0\0\x01hellohello",
+)
+[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Subscribe.rs:96] &subscribe = Subscribe {
+    len: 11,
+    msg_type: 0x12,
+    flags: 0b00000000,
+    msg_id: 2,
+    topic_name: "hello2",
+    bb: b"hello2",
+}
+<{{closure}}:449> retrans_hdr = RetransmitHeader {
     addr: 127.0.0.1:60000,
     msg_type: 5,
     topic_id: 0,
     msg_id: 0,
 }
-03-14 14:48:57.533091148<{{closure}}:450> default_duration = 3
-03-14 14:48:57.533129272[schedule:144] index = 4
-03-14 14:48:57.533164826[schedule:144] slot = Slot { entries: Mutex { data: [], poisoned: false, .. } }
-03-14 14:48:57.533223004[schedule:144] hash = {}
-03-14 14:48:57.533261093[schedule:144] vec = []
+[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
+    127.0.0.1:60000,
+    b"\x0b\x12\0\0\x02hello2hello2",
+)
+03-14 23:03:25.128292786<{{closure}}:450> default_duration = 3
+03-14 23:03:25.128437728[schedule:144] index = 4
+03-14 23:03:25.128469486[schedule:144] slot = Slot { entries: Mutex { data: [], poisoned: false, .. } }
+03-14 23:03:25.128520243[schedule:144] hash = {}
+03-14 23:03:25.128550320[schedule:144] vec = []
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+03-14 23:03:25.128599016<{{closure}}:441> bytes.clone() = b"\n\x12\0\0\x01hellohello"
+03-14 23:03:25.128652527<{{closure}}:449> retrans_hdr = RetransmitHeader {
+    addr: 127.0.0.1:60000,
+    msg_type: 19,
+    topic_id: 0,
+    msg_id: 0,
+}
+03-14 23:03:25.128714150<{{closure}}:450> default_duration = 3
+03-14 23:03:25.128743400[schedule:144] index = 4
 [/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ConnAck.rs:83] conn_ack.clone() = ConnAck {
     len: 3,
     msg_type: 0x5,
     return_code: 0,
 }
+03-14 23:03:25.128774048[schedule:144] slot = Slot { entries: Mutex { data: [(RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 5, topic_id: 0, msg_id: 0 }, 3)], poisoned: false, .. } }
 [/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:187] *self.state.lock().unwrap() = 2
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-:193] *self.state.lock().unwrap() = 0
-03-14 14:48:57.533918984<{{closure}}:412> retrans_hdr = RetransmitHeader&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
- {
+03-14 23:03:25.128884568[schedule:144] hash = {RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 5, topic_id: 0, msg_id: 0 }: RetransmitData { bytes: b"$\x04\x04\x01\0\x05exofense/UfvNuzY4U0TjvOUomTf-i" }}
+[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:193] *self.state.lock().unwrap() = 0
+03-14 23:03:25.129018235[schedule:144] vec = [(RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 5, topic_id: 0, msg_id: 0 }, 3)]
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+03-14 23:03:25.129112709<{{closure}}:441> bytes.clone() = b"\x0b\x12\0\0\x02hello2hello2"
+03-14 23:03:25.129167145<{{closure}}:449> retrans_hdr = RetransmitHeader {
+    addr: 127.0.0.1:60000,
+    msg_type: 19,
+    topic_id: 0,
+    msg_id: 0,
+}
+03-14 23:03:25.129226342&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+<{{closure}}:450> default_duration = 3
+03-14 23:03:25.12924894603-14 23:03:25.129260594[schedule:144] index = 4
+<{{closure}}:412> retrans_hdr = RetransmitHeader {
     addr: 127.0.0.1:60000,
     msg_type: 5,
     topic_id: 0,
     msg_id: 0,
 }
+03-14 23:03:25.129310767[schedule:144] slot = Slot { entries: Mutex { data: [(RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 5, topic_id: 0, msg_id: 0 }, 3), (RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 19, topic_id: 0, msg_id: 0 }, 3)], poisoned: false, .. } }
 [/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
     127.0.0.1:60000,
-    b"\n\x12\0\0\x01hello",
+    b"\x0b\x0c\x10\0\x01\0\0hi 0",
 )
-03-14 14:48:57.533968101[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:227] &qos = 0
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:227] &qos = 0
-03-14 14:48:57.534016205[cancel:205] hash = {RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 5, topic_id: 0, msg_id: 0 }: RetransmitData { bytes: b"$\x04\x04\x01\0\x05exofense/g7GV-qE68Q0l6Z6Cnsyq-" }}
-<{{closure}}:441> bytes.clone() = b"\n\x12\0\0\x01hello"
-03-14 14:48:57.534338134<{{closure}}:449> retrans_hdr = RetransmitHeader {
-    addr: 127.0.0.1:60000,
-    msg_type: 19,
-    topic_id: 0,
-    msg_id: 0,
-}
-03-14 14:48:57.534419371<{{closure}}:450> default_duration = 3
-03-14 14:48:57.534457357[schedule:144] index = 4
-03-14 14:48:57.534492482[schedule:144] slot = Slot { entries: Mutex { data: [(RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 5, topic_id: 0, msg_id: 0 }, 3)], poisoned: false, .. } }
-03-14 14:48:57.534592858[schedule:144] hash = {}
-03-14 14:48:57.534629992[schedule:144] vec = [(RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 5, topic_id: 0, msg_id: 0 }, 3)]
-&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-03-14 14:48:57.534717310<{{closure}}:441> bytes.clone() = b"\x0b\x12\0\0\x02hello2"
-03-14 14:48:57.534779475<{{closure}}:449> retrans_hdr = RetransmitHeader {
-    addr: 127.0.0.1:60000,
-    msg_type: 19,
-    topic_id: 0,
-    msg_id: 0,
-}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/SubAck.rs:82] sub_ack.clone() = SubAck {
-    len: 8,
-    msg_type: 0x13,
-    flags: 0b00101111,
-    topic_id: 1,
-    msg_id: 1,
-    return_code: 0,
-}
-03-14 14:&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-48:57.534859643<{{closure}}:450> default_duration = 3
-03-14 14:48:57.534944888[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
-)
-03-14 14:48:57.534969348[schedule:144] index = 4
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0b\x0c\0\0\x01\0\0hi 0",
-)
-<{{closure}}:412> retrans_hdr = RetransmitHeader {
-    addr: 127.0.0.1:60000,
-    msg_type: 19,
-    topic_id: 0,
-    msg_id: 1,
-}
-03-14 14:48:57.535087967[schedule:144] slot = Slot { entries: Mutex { data: [(RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 5, topic_id: 0, msg_id: 0 }, 3), (RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 19, topic_id: 0, msg_id: 0 }, 3)], poisoned: false, .. } }
+[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:228] &qos = 0
+03-14 23:03:25.129461109[schedule:144] hash = {RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 19, topic_id: 0, msg_id: 0 }: RetransmitData { bytes: b"\n\x12\0\0\x01hellohello" }, RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 5, topic_id: 0, msg_id: 0 }: RetransmitData { bytes: b"$\x04\x04\x01\0\x05exofense/UfvNuzY4U0TjvOUomTf-i" }}
 [/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
     127.0.0.1:60000,
     b"\x0e\x0c\0\0\x02\0\0hi 1000",
 )
-03-14 14:48:57.535382902[schedule:144] hash = {RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 19, topic_id: 0, msg_id: 0 }: RetransmitData { bytes: b"\n\x12\0\0\x01hello" }}
-03-14 14:48:57.535614336[schedule:144] vec = [(RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 5, topic_id: 0, msg_id: 0 }, 3), (RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 19, topic_id: 0, msg_id: 0 }, 3)]
-03-14 14:48:57.535761632[cancel:205] hash = {RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 19, topic_id: 0, msg_id: 0 }: RetransmitData { bytes: b"\x0b\x12\0\0\x02hello2" }}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/SubAck.rs:82] sub_ack.clone() = SubAck {
-    len: 8,
-    msg_type: 0x13,
-    flags: 0b00101111,
-    topic_id: 2,
-    msg_id: 2,
-    return_code: 0,
-}
-&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-03-14 14:48:57.535987179<{{closure}}:412> retrans_hdr = RetransmitHeader {
-    addr: 127.0.0.1:60000,
-    msg_type: 19,
-    topic_id: 0,
-    msg_id: 2,
-}
-03-14 14:48:57.536108216[cancel:205] hash = {RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 19, topic_id: 0, msg_id: 0 }: RetransmitData { bytes: b"\x0b\x12\0\0\x02hello2" }}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:105] publish.clone() = Publish {
-    len: 11,
-    msg_type: 0xc,
-    flags: 0b00000000,
-    topic_id: 1,
-    msg_id: 0,
-    data: "hi 0",
-}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:106] publish.clone().data = "hi 0"
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:109] (size, read_len) = (
-    11,
-    11,
-)
-[src/main.rs:99] client_sub.subscribe_rx.recv() = Ok(
-    Publish {
-        len: 11,
-        msg_type: 0xc,
-        flags: 0b00000000,
-        topic_id: 1,
-        msg_id: 0,
-        data: "hi 0",
-    },
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:105] publish.clone() = Publish {
-    len: 14,
-    msg_type: 0xc,
-    flags: 0b00000000,
-    topic_id: 2,
-    msg_id: 0,
-    data: "hi 1000",
-}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:106] publish.clone().data = "hi 1000"
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:109] (size, read_len) = (
-    14,
-    14,
-)
-[src/main.rs:99] client_sub.subscribe_rx.recv() = Ok(
-    Publish {
-        len: 14,
-        msg_type: 0xc,
-        flags: 0b00000000,
-        topic_id: 2,
-        msg_id: 0,
-        data: "hi 1000",
-    },
-)
-03-14 14:48:57.932929413<{{closure}}:488> (retrans_hdr.addr, data.bytes.clone()) = (
+[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:228] &qos = 0
+03-14 23:03:25.129698916[schedule:144] vec = [(RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 5, topic_id: 0, msg_id: 0 }, 3), (RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 19, topic_id: 0, msg_id: 0 }, 3)]
+03-14 23:03:25.132689445[cancel:205] hash = {RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 19, topic_id: 0, msg_id: 0 }: RetransmitData { bytes: b"\x0b\x12\0\0\x02hello2hello2" }, RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 5, topic_id: 0, msg_id: 0 }: RetransmitData { bytes: b"$\x04\x04\x01\0\x05exofense/UfvNuzY4U0TjvOUomTf-i" }}
+03-14 23:03:25.528011686<{{closure}}:488> (retrans_hdr.addr, data.bytes.clone()) = (
     127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
+    b"\x0b\x12\0\0\x02hello2hello2",
 )
-03-14 14:48:57.933266170<{{closure}}:488> (retrans_hdr.addr, data.bytes.clone()) = (
+03-14 23:03:25.528505163<{{closure}}:488> (retrans_hdr.addr, data.bytes.clone()) = (
     127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
+    b"\x0b\x12\0\0\x02hello2hello2",
 )
 [/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
     127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
+    b"\x0b\x12\0\0\x02hello2hello2",
 )
 [/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
     127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/SubAck.rs:82] sub_ack.clone() = SubAck {
-    len: 8,
-    msg_type: 0x13,
-    flags: 0b00101111,
-    topic_id: 2,
-    msg_id: 2,
-    return_code: 0,
-}
-&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-03-14 14:48:57.935887748<{{closure}}:412> retrans_hdr = RetransmitHeader {
-    addr: 127.0.0.1:60000,
-    msg_type: 19,
-    topic_id: 0,
-    msg_id: 2,
-}
-03-14 14:48:57.936132893[cancel:205] hash = {RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 19, topic_id: 0, msg_id: 0 }: RetransmitData { bytes: b"\x0b\x12\0\0\x02hello2" }}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/SubAck.rs:82] sub_ack.clone() = SubAck {
-    len: 8,
-    msg_type: 0x13,
-    flags: 0b00101111,
-    topic_id: 2,
-    msg_id: 2,
-    return_code: 0,
-}
-&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-03-14 14:48:57.937261503<{{closure}}:412> retrans_hdr = RetransmitHeader {
-    addr: 127.0.0.1:60000,
-    msg_type: 19,
-    topic_id: 0,
-    msg_id: 2,
-}
-03-14 14:48:57.937436374[cancel:205] hash = {RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 19, topic_id: 0, msg_id: 0 }: RetransmitData { bytes: b"\x0b\x12\0\0\x02hello2" }}
-03-14 14:48:58.534144700<{{closure}}:488> (retrans_hdr.addr, data.bytes.clone()) = (
-    127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
-)
-03-14 14:48:58.534411581<{{closure}}:488> (retrans_hdr.addr, data.bytes.clone()) = (
-    127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/SubAck.rs:82] sub_ack.clone() = SubAck {
-    len: 8,
-    msg_type: 0x13,
-    flags: 0b00101111,
-    topic_id: 2,
-    msg_id: 2,
-    return_code: 0,
-}
-&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-03-14 14:48:58.536625605<{{closure}}:412> retrans_hdr = RetransmitHeader {
-    addr: 127.0.0.1:60000,
-    msg_type: 19,
-    topic_id: 0,
-    msg_id: 2,
-}
-03-14 14:48:58.536831458[cancel:205] hash = {RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 19, topic_id: 0, msg_id: 0 }: RetransmitData { bytes: b"\x0b\x12\0\0\x02hello2" }}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/SubAck.rs:82] sub_ack.clone() = SubAck {
-    len: 8,
-    msg_type: 0x13,
-    flags: 0b00101111,
-    topic_id: 2,
-    msg_id: 2,
-    return_code: 0,
-}
-&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-03-14 14:48:58.537971061<{{closure}}:412> retrans_hdr = RetransmitHeader {
-    addr: 127.0.0.1:60000,
-    msg_type: 19,
-    topic_id: 0,
-    msg_id: 2,
-}
-03-14 14:48:58.538161474[cancel:205] hash = {RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 19, topic_id: 0, msg_id: 0 }: RetransmitData { bytes: b"\x0b\x12\0\0\x02hello2" }}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:227] &qos = 0
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:227] &qos = 0
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0b\x0c\0\0\x01\0\x01hi 1",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0e\x0c\0\0\x02\0\x01hi 1001",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:105] publish.clone() = Publish {
-    len: 11,
-    msg_type: 0xc,
-    flags: 0b00000000,
-    topic_id: 1,
-    msg_id: 1,
-    data: "hi 1",
-}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:106] publish.clone().data = "hi 1"
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:109] (size, read_len) = (
-    11,
-    11,
-)
-[src/main.rs:99] client_sub.subscribe_rx.recv() = Ok(
-    Publish {
-        len: 11,
-        msg_type: 0xc,
-        flags: 0b00000000,
-        topic_id: 1,
-        msg_id: 1,
-        data: "hi 1",
-    },
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:105] publish.clone() = Publish {
-    len: 14,
-    msg_type: 0xc,
-    flags: 0b00000000,
-    topic_id: 2,
-    msg_id: 1,
-    data: "hi 1001",
-}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:106] publish.clone().data = "hi 1001"
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:109] (size, read_len) = (
-    14,
-    14,
-)
-[src/main.rs:99] client_sub.subscribe_rx.recv() = Ok(
-    Publish {
-        len: 14,
-        msg_type: 0xc,
-        flags: 0b00000000,
-        topic_id: 2,
-        msg_id: 1,
-        data: "hi 1001",
-    },
-)
-03-14 14:48:59.735783685<{{closure}}:488> (retrans_hdr.addr, data.bytes.clone()) = (
-    127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
-)
-03-14 14:48:59.736085199<{{closure}}:488> (retrans_hdr.addr, data.bytes.clone()) = (
-    127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/SubAck.rs:82] sub_ack.clone() = SubAck {
-    len: 8,
-    msg_type: 0x13,
-    flags: 0b00101111,
-    topic_id: 2,
-    msg_id: 2,
-    return_code: 0,
-}
-&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-03-14 14:48:59.738750879<{{closure}}:412> retrans_hdr = RetransmitHeader {
-    addr: 127.0.0.1:60000,
-    msg_type: 19,
-    topic_id: 0,
-    msg_id: 2,
-}
-03-14 14:48:59.739019625[cancel:205] hash = {RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 19, topic_id: 0, msg_id: 0 }: RetransmitData { bytes: b"\x0b\x12\0\0\x02hello2" }}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/SubAck.rs:82] sub_ack.clone() = SubAck {
-    len: 8,
-    msg_type: 0x13,
-    flags: 0b00101111,
-    topic_id: 2,
-    msg_id: 2,
-    return_code: 0,
-}
-&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-03-14 14:48:59.740870150<{{closure}}:412> retrans_hdr = RetransmitHeader {
-    addr: 127.0.0.1:60000,
-    msg_type: 19,
-    topic_id: 0,
-    msg_id: 2,
-}
-03-14 14:48:59.741123637[cancel:205] hash = {RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 19, topic_id: 0, msg_id: 0 }: RetransmitData { bytes: b"\x0b\x12\0\0\x02hello2" }}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:227] &qos = 0
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:227] &qos = 0
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0b\x0c\0\0\x01\0\x02hi 2",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0e\x0c\0\0\x02\0\x02hi 1002",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:105] publish.clone() = Publish {
-    len: 11,
-    msg_type: 0xc,
-    flags: 0b00000000,
-    topic_id: 1,
-    msg_id: 2,
-    data: "hi 2",
-}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:106] publish.clone().data = "hi 2"
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:109] (size, read_len) = (
-    11,
-    11,
-)
-[src/main.rs:99] client_sub.subscribe_rx.recv() = Ok(
-    Publish {
-        len: 11,
-        msg_type: 0xc,
-        flags: 0b00000000,
-        topic_id: 1,
-        msg_id: 2,
-        data: "hi 2",
-    },
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:105] publish.clone() = Publish {
-    len: 14,
-    msg_type: 0xc,
-    flags: 0b00000000,
-    topic_id: 2,
-    msg_id: 2,
-    data: "hi 1002",
-}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:106] publish.clone().data = "hi 1002"
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:109] (size, read_len) = (
-    14,
-    14,
-)
-[src/main.rs:99] client_sub.subscribe_rx.recv() = Ok(
-    Publish {
-        len: 14,
-        msg_type: 0xc,
-        flags: 0b00000000,
-        topic_id: 2,
-        msg_id: 2,
-        data: "hi 1002",
-    },
-)
-03-14 14:49:02.138784275<{{closure}}:488> (retrans_hdr.addr, data.bytes.clone()) = (
-    127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
-)
-03-14 14:49:02.139107284<{{closure}}:488> (retrans_hdr.addr, data.bytes.clone()) = (
-    127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/SubAck.rs:82] sub_ack.clone() = SubAck {
-    len: 8,
-    msg_type: 0x13,
-    flags: 0b00101111,
-    topic_id: 2,
-    msg_id: 2,
-    return_code: 0,
-}
-&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-03-14 14:49:02.141614604<{{closure}}:412> retrans_hdr = RetransmitHeader {
-    addr: 127.0.0.1:60000,
-    msg_type: 19,
-    topic_id: 0,
-    msg_id: 2,
-}
-03-14 14:49:02.141870384[cancel:205] hash = {RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 19, topic_id: 0, msg_id: 0 }: RetransmitData { bytes: b"\x0b\x12\0\0\x02hello2" }}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/SubAck.rs:82] sub_ack.clone() = SubAck {
-    len: 8,
-    msg_type: 0x13,
-    flags: 0b00101111,
-    topic_id: 2,
-    msg_id: 2,
-    return_code: 0,
-}
-&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-03-14 14:49:02.147491664<{{closure}}:412> retrans_hdr = RetransmitHeader {
-    addr: 127.0.0.1:60000,
-    msg_type: 19,
-    topic_id: 0,
-    msg_id: 2,
-}
-03-14 14:49:02.147630786[cancel:205] hash = {RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 19, topic_id: 0, msg_id: 0 }: RetransmitData { bytes: b"\x0b\x12\0\0\x02hello2" }}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:227] &qos = 0
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:227] &qos = 0
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0b\x0c\0\0\x01\0\x03hi 3",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0e\x0c\0\0\x02\0\x03hi 1003",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:105] publish.clone() = Publish {
-    len: 11,
-    msg_type: 0xc,
-    flags: 0b00000000,
-    topic_id: 1,
-    msg_id: 3,
-    data: "hi 3",
-}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:106] publish.clone().data = "hi 3"
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:109] (size, read_len) = (
-    11,
-    11,
-)
-[src/main.rs:99] client_sub.subscribe_rx.recv() = Ok(
-    Publish {
-        len: 11,
-        msg_type: 0xc,
-        flags: 0b00000000,
-        topic_id: 1,
-        msg_id: 3,
-        data: "hi 3",
-    },
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:105] publish.clone() = Publish {
-    len: 14,
-    msg_type: 0xc,
-    flags: 0b00000000,
-    topic_id: 2,
-    msg_id: 3,
-    data: "hi 1003",
-}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:106] publish.clone().data = "hi 1003"
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:109] (size, read_len) = (
-    14,
-    14,
-)
-[src/main.rs:99] client_sub.subscribe_rx.recv() = Ok(
-    Publish {
-        len: 14,
-        msg_type: 0xc,
-        flags: 0b00000000,
-        topic_id: 2,
-        msg_id: 3,
-        data: "hi 1003",
-    },
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:227] &qos = 0
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:227] &qos = 0
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0b\x0c\0\0\x01\0\x04hi 4",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0e\x0c\0\0\x02\0\x04hi 1004",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:105] publish.clone() = Publish {
-    len: 11,
-    msg_type: 0xc,
-    flags: 0b00000000,
-    topic_id: 1,
-    msg_id: 4,
-    data: "hi 4",
-}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:106] publish.clone().data = "hi 4"
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:109] (size, read_len) = (
-    11,
-    11,
-)
-[src/main.rs:99] client_sub.subscribe_rx.recv() = Ok(
-    Publish {
-        len: 11,
-        msg_type: 0xc,
-        flags: 0b00000000,
-        topic_id: 1,
-        msg_id: 4,
-        data: "hi 4",
-    },
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:105] publish.clone() = Publish {
-    len: 14,
-    msg_type: 0xc,
-    flags: 0b00000000,
-    topic_id: 2,
-    msg_id: 4,
-    data: "hi 1004",
-}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:106] publish.clone().data = "hi 1004"
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:109] (size, read_len) = (
-    14,
-    14,
-)
-[src/main.rs:99] client_sub.subscribe_rx.recv() = Ok(
-    Publish {
-        len: 14,
-        msg_type: 0xc,
-        flags: 0b00000000,
-        topic_id: 2,
-        msg_id: 4,
-        data: "hi 1004",
-    },
-)
-03-14 14:49:06.943928744<{{closure}}:488> (retrans_hdr.addr, data.bytes.clone()) = (
-    127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
-)
-03-14 14:49:06.944217140<{{closure}}:488> (retrans_hdr.addr, data.bytes.clone()) = (
-    127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0b\x12\0\0\x02hello2",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/SubAck.rs:82] sub_ack.clone() = SubAck {
-    len: 8,
-    msg_type: 0x13,
-    flags: 0b00101111,
-    topic_id: 2,
-    msg_id: 2,
-    return_code: 0,
-}
-&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-03-14 14:49:06.946545756<{{closure}}:412> retrans_hdr = RetransmitHeader {
-    addr: 127.0.0.1:60000,
-    msg_type: 19,
-    topic_id: 0,
-    msg_id: 2,
-}
-03-14 14:49:06.946755988[cancel:205] hash = {RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 19, topic_id: 0, msg_id: 0 }: RetransmitData { bytes: b"\x0b\x12\0\0\x02hello2" }}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/SubAck.rs:82] sub_ack.clone() = SubAck {
-    len: 8,
-    msg_type: 0x13,
-    flags: 0b00101111,
-    topic_id: 2,
-    msg_id: 2,
-    return_code: 0,
-}
-&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-03-14 14:49:06.947914119<{{closure}}:412> retrans_hdr = RetransmitHeader {
-    addr: 127.0.0.1:60000,
-    msg_type: 19,
-    topic_id: 0,
-    msg_id: 2,
-}
-03-14 14:49:06.948117387[cancel:205] hash = {RetransmitHeader { addr: 127.0.0.1:60000, msg_type: 19, topic_id: 0, msg_id: 0 }: RetransmitData { bytes: b"\x0b\x12\0\0\x02hello2" }}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:227] &qos = 0
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:227] &qos = 0
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0b\x0c\0\0\x01\0\x05hi 5",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0e\x0c\0\0\x02\0\x05hi 1005",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:105] publish.clone() = Publish {
-    len: 11,
-    msg_type: 0xc,
-    flags: 0b00000000,
-    topic_id: 1,
-    msg_id: 5,
-    data: "hi 5",
-}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:106] publish.clone().data = "hi 5"
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:109] (size, read_len) = (
-    11,
-    11,
-)
-[src/main.rs:99] client_sub.subscribe_rx.recv() = Ok(
-    Publish {
-        len: 11,
-        msg_type: 0xc,
-        flags: 0b00000000,
-        topic_id: 1,
-        msg_id: 5,
-        data: "hi 5",
-    },
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:105] publish.clone() = Publish {
-    len: 14,
-    msg_type: 0xc,
-    flags: 0b00000000,
-    topic_id: 2,
-    msg_id: 5,
-    data: "hi 1005",
-}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:106] publish.clone().data = "hi 1005"
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:109] (size, read_len) = (
-    14,
-    14,
-)
-[src/main.rs:99] client_sub.subscribe_rx.recv() = Ok(
-    Publish {
-        len: 14,
-        msg_type: 0xc,
-        flags: 0b00000000,
-        topic_id: 2,
-        msg_id: 5,
-        data: "hi 1005",
-    },
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:227] &qos = 0
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:227] &qos = 0
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0b\x0c\0\0\x01\0\x06hi 6",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/ClientLib.rs:212] (addr, &bytes) = (
-    127.0.0.1:60000,
-    b"\x0e\x0c\0\0\x02\0\x06hi 1006",
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:105] publish.clone() = Publish {
-    len: 11,
-    msg_type: 0xc,
-    flags: 0b00000000,
-    topic_id: 1,
-    msg_id: 6,
-    data: "hi 6",
-}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:106] publish.clone().data = "hi 6"
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:109] (size, read_len) = (
-    11,
-    11,
-)
-[src/main.rs:99] client_sub.subscribe_rx.recv() = Ok(
-    Publish {
-        len: 11,
-        msg_type: 0xc,
-        flags: 0b00000000,
-        topic_id: 1,
-        msg_id: 6,
-        data: "hi 6",
-    },
-)
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:105] publish.clone() = Publish {
-    len: 14,
-    msg_type: 0xc,
-    flags: 0b00000000,
-    topic_id: 2,
-    msg_id: 6,
-    data: "hi 1006",
-}
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:106] publish.clone().data = "hi 1006"
-[/mnt/OneTB/repos/Rust_MQTT-SN-01/lib/client-lib/src/Publish.rs:109] (size, read_len) = (
-    14,
-    14,
-)
-[src/main.rs:99] client_sub.subscribe_rx.recv() = Ok(
-    Publish {
-        len: 14,
-        msg_type: 0xc,
-        flags: 0b00000000,
-        topic_id: 2,
-        msg_id: 6,
-        data: "hi 1006",
-    },
+    b"\x0b\x12\0\0\x02hello2hello2",
 )

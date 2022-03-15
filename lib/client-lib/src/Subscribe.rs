@@ -8,20 +8,16 @@ use crate::{
     flags::flags_set,
     //     StateMachine,
     flags::{
-        CleanSessionConst, DupConst, QoSConst, RetainConst, TopicIdTypeConst,
-        WillConst, CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE, DUP_FALSE,
-        DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
-        RETAIN_FALSE, RETAIN_TRUE, TOPIC_ID_TYPE_NORNAL,
-        TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
-        WILL_FALSE, WILL_TRUE,
+        // CleanSessionConst, DupConst, QoSConst, RetainConst, TopicIdTypeConst,
+        // WillConst, CLEAN_SESSION_TRUE,
+        // DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
+        // RETAIN_FALSE, RETAIN_TRUE,
+        // TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
+        // WILL_TRUE,
+        WILL_FALSE, CLEAN_SESSION_FALSE, DUP_FALSE,TOPIC_ID_TYPE_NORNAL,
     },
     ClientLib::MqttSnClient,
-    MSG_TYPE_CONNACK,
-    MSG_TYPE_CONNECT,
-    MSG_TYPE_PUBACK,
-    MSG_TYPE_PUBLISH,
     MSG_TYPE_SUBACK,
-
     MSG_TYPE_SUBSCRIBE,
 };
 
@@ -35,11 +31,14 @@ pub struct Subscribe {
     pub flags: u8,
     pub msg_id: u16,
     pub topic_name: String, // TODO use enum for topic_name or topic_id
+    pub bb: BytesMut,
 }
 
 impl Subscribe {
     pub fn new(topic_name: String, msg_id: u16, qos: u8, retain: u8) -> Self {
         let len = (topic_name.len() + 5) as u8;
+        let mut bb = BytesMut::new();
+        bb.put_slice(topic_name.as_bytes());
         let flags = flags_set(
             DUP_FALSE,
             qos,
@@ -54,6 +53,7 @@ impl Subscribe {
             flags,
             msg_id,
             topic_name, // TODO use enum for topic_name or topic_id
+            bb,
         };
         subscribe
     }
@@ -78,6 +78,10 @@ impl Subscribe {
         //dbg!(_val);
         true
     }
+    fn constraint_bb(_val: &BytesMut) -> bool {
+        //dbg!(_val);
+        true
+    }
 }
 
 // TODO error checking and return
@@ -89,6 +93,7 @@ pub fn subscribe_tx(
     client: &MqttSnClient,
 ) {
     let subscribe = Subscribe::new(topic, msg_id, qos, retain);
+    dbg!(&subscribe);
     let mut bytes_buf = BytesMut::with_capacity(subscribe.len as usize);
     subscribe.try_write(&mut bytes_buf);
     client

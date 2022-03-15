@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
@@ -6,9 +7,9 @@ use std::str;
 
 use crate::{
     flags::{
-        flag_qos_level, flags_set, CleanSessionConst, DupConst, QoSConst,
-        RetainConst, TopicIdTypeConst, WillConst, CLEAN_SESSION_FALSE,
-        CLEAN_SESSION_TRUE, DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1,
+        flag_qos_level, flags_set,
+        CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE,
+        DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1,
         QOS_LEVEL_2, QOS_LEVEL_3, RETAIN_FALSE, RETAIN_TRUE,
         TOPIC_ID_TYPE_NORNAL, TOPIC_ID_TYPE_PRE_DEFINED,
         TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,

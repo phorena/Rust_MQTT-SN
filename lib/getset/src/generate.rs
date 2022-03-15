@@ -274,6 +274,16 @@ pub fn read_functions(_name: &Ident, field: &Field, _params: &GenParams) -> Toke
                     };
                 };
             }
+            "BytesMut" => {
+                ret = quote! {
+                    let #field_name: BytesMut = {
+                        let mut bytes_mut = BytesMut::with_capacity(1024);
+                        bytes_mut.put_slice(&bytes[__offset__ .. size]);
+                        bytes_mut
+                    };
+                };
+            }
+            // XXX Bytes
             _ => {
                 ret = quote! {};
             }
@@ -297,7 +307,7 @@ pub fn read_fields(_name: &Ident, field: &Field, _params: &GenParams) -> TokenSt
         // dbg!(&p.path.segments[0].ident);
         // use this expression to get the type string for comparision
         match &p.path.segments[0].ident.to_string()[..] {
-            "String"|
+            "String"| "BytesMut"|
             "u8"|"u16"|"u32"|"u64"|"u128"|"i8"|"i16"|"i32"|"i64"|"i128" => {
                 // dbg!(field_name.clone());
                 ret = quote! {
@@ -340,6 +350,11 @@ pub fn write_functions(_name: &Ident, field: &Field, _params: &GenParams) -> Tok
                 ret = quote! {
                     // convert String to bytes
                     bytes_buf.put(self.#field_name.as_bytes());
+                };
+            }
+            "BytesMut" => {
+                ret = quote! {
+                    bytes_buf.put(&self.#field_name[..]);
                 };
             }
             _ => {
