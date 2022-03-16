@@ -31,7 +31,7 @@ pub struct Subscribe {
     pub flags: u8,
     pub msg_id: u16,
     pub topic_name: String, // TODO use enum for topic_name or topic_id
-    pub bb: BytesMut,
+//     pub bb: BytesMut,
 }
 
 impl Subscribe {
@@ -53,7 +53,7 @@ impl Subscribe {
             flags,
             msg_id,
             topic_name, // TODO use enum for topic_name or topic_id
-            bb,
+  //          bb,
         };
         subscribe
     }
@@ -78,10 +78,12 @@ impl Subscribe {
         //dbg!(_val);
         true
     }
+    /*
     fn constraint_bb(_val: &BytesMut) -> bool {
         //dbg!(_val);
         true
     }
+    */
 }
 
 // TODO error checking and return

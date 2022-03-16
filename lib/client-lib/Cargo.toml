@@ -14,7 +14,7 @@ modular-bitfield = { path="../modular-bitfield" }
 tokio = { version="1.0.0", features=["full", "tracing"] }
 tokio-util = { version="0.6.3", features=["full"] }
 tokio-stream = { version="0.1" }
-bytes = "1.0.0"
+bytes = "1.1.0"
 futures = { version="0.3.0", features=["thread-pool"] }
 serde = { version="1.0", features=["derive"] }
 serde_derive = "1.0"

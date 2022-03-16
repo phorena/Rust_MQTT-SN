@@ -153,10 +153,8 @@ impl MqttSnClient {
         }
     }
 
-    pub fn rx_loop(mut self, socket: UdpSocket) {
-        let self_time_wheel = self.clone();
+    fn rx_loop(mut self, socket: UdpSocket) {
         let self_transmit = self.clone();
-        self_time_wheel.retrans_time_wheel.run();
         // name for easy debug
         let socket_tx = socket.try_clone().expect("couldn't clone the socket");
         let builder = thread::Builder::new().name("recv_thread".into());
@@ -203,6 +201,14 @@ impl MqttSnClient {
                 }
             }
         });
+    }
+
+    // TODO return errors
+    pub fn connect(mut self, client_id: String, socket: UdpSocket) {
+        let self_time_wheel = self.clone();
+        let self_transmit = self.clone();
+        let socket_tx = socket.try_clone().expect("couldn't clone the socket");
+        self_time_wheel.retrans_time_wheel.run();
         let builder = thread::Builder::new().name("send_thread".into());
         // process input datagram from network
         let _send_thread = builder.spawn(move || loop {
@@ -217,9 +223,6 @@ impl MqttSnClient {
                 }
             }
         });
-    }
-
-    pub fn connect(self, client_id: String) {
         dbg!(&client_id);
         let conn_duration = 5;
         connect_tx(client_id, conn_duration, &self);
@@ -230,6 +233,36 @@ impl MqttSnClient {
             .transition(cur_state, MSG_TYPE_CONNECT)
             .unwrap();
         dbg!(*self.state.lock().unwrap());
+        'outer: loop {
+            let mut buf = [0; 1500];
+            match socket.recv_from(&mut buf) {
+                Ok((size, addr)) => {
+                    dbg!((size, addr, buf));
+                    self.remote_addr = addr;
+                    // TODO process 3 bytes length
+                    let msg_type = buf[1] as u8;
+                    if msg_type == MSG_TYPE_CONNACK {
+                        match connack_rx(&buf, size, &self) {
+                            Ok(_) => {
+                                dbg!(*self.state.lock().unwrap());
+                                let cur_state = *self.state.lock().unwrap();
+                                *self.state.lock().unwrap() = self
+                                    .state_machine
+                                    .transition(cur_state, MSG_TYPE_CONNACK)
+                                    .unwrap();
+                                dbg!(*self.state.lock().unwrap());
+                            }
+                            Err(why) => error!("ConnAck {:?}", why),
+                        }
+                        break 'outer;
+                    };
+                }
+                Err(why) => {
+                    error!("{}", why);
+                }
+            }
+        }
+        self.rx_loop(socket);
     }
 
     pub fn subscribe(&self, topic: String, msg_id: u16, qos: u8, retain: u8) -> &Receiver<Publish> {

@@ -72,28 +72,6 @@ fn mpmc() {
 
 fn main() {
 
-
-let mut buf = BytesMut::with_capacity(64);
-let mut buf2 = BytesMut::with_capacity(64);
-
-buf.put(&b"llo"[..]);
-buf2.put(&b"llo"[..]);
-
-buf.put(&buf2[..]);
-dbg!(&buf);
-
-let mut a = buf.clone();
-a.put(&buf2[..]);
-dbg!(&buf);
-dbg!(&a);
-let b = buf.freeze();
-let c = b.clone();
-dbg!(&b);
-dbg!(&c);
-
-
-
-
     init_logging();
     let remote_addr = "127.0.0.1:60000".parse::<SocketAddr>().unwrap();
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
@@ -103,8 +81,8 @@ dbg!(&c);
     let client_main = client.clone();
     let client_sub = client.clone();
     let client_id = generate_client_id();
-    client.rx_loop(socket);
-    client_connect.connect(client_id);
+    client_connect.connect(client_id, socket);
+    // client.rx_loop(socket);
     client_main.subscribe("hello".to_string(), 1, QOS_LEVEL_0, RETAIN_FALSE);
     client_main.subscribe("hello2".to_string(), 2, QOS_LEVEL_0, RETAIN_FALSE);
     let mut i = 0;

@@ -28,6 +28,24 @@ pub struct PublishRecv {
     pub data: String,
 }
 
+// TODO 3 bytes message length. use macros
+/*
+#[derive(Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default)]
+#[getset(get, set)]
+pub struct Publish3Bytes {
+    first_octet: u8, // Must be 0x1 for 3 bytes length.
+    len: u16,        // Next 2 bytes indicate the length, up 64K bytes.
+    #[debug(format = "0x{:x}")]
+    msg_type: u8,
+    #[debug(format = "0b{:08b}")]
+    flags: u8,
+    topic_id: u16,
+    msg_id: u16,
+    // data: String,
+    data: BytesMut,
+}
+*/
+
 #[derive(Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default)]
 #[getset(get, set)]
 pub struct Publish {
@@ -38,7 +56,8 @@ pub struct Publish {
     flags: u8,
     topic_id: u16,
     msg_id: u16,
-    data: String,
+    // data: String,
+    data: BytesMut,
 }
 
 impl Publish {
@@ -58,13 +77,15 @@ impl Publish {
             CLEAN_SESSION_FALSE, // not used
             TOPIC_ID_TYPE_NORNAL,
         ); // default for now
+        let mut bytes = BytesMut::new();
+        bytes.put_slice(data.as_bytes());
         let publish = Publish {
             len,
             msg_type: MSG_TYPE_PUBLISH,
             flags,
             topic_id,
             msg_id,
-            data,
+            data: bytes,
         };
         publish
     }
@@ -89,7 +110,7 @@ impl Publish {
         //dbg!(_val);
         true
     }
-    fn constraint_data(_val: &String) -> bool {
+    fn constraint_data(_val: &BytesMut) -> bool {
         //dbg!(_val);
         true
     }
