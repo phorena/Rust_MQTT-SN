@@ -203,6 +203,13 @@ impl MqttSnClient {
         });
     }
 
+    /// Connect to a remote broker
+    /// 1. send connect message
+    /// 2. schedule retransmit
+    /// 3. wait for CONNACK
+    ///    3.1. receive CONNACK message
+    ///    3.2. change state
+    /// 4. run the rx_loop to process rx messages
     // TODO return errors
     pub fn connect(mut self, client_id: String, socket: UdpSocket) {
         let self_time_wheel = self.clone();
