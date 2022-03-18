@@ -254,23 +254,23 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
             // exponetial backup is inside the expire (lib)
             // the caller doesn't have to do it
             let duration = top.1 * 2;
-            let hash_hdr = top.0;
+            let retrans_hdr = top.0;
             if duration < self.max_slot {
                 // reschedule, don't remove hash entry
-                match hash.get(&hash_hdr) {
+                match hash.get(&retrans_hdr) {
                     Some(result) => {
-                        // dbg!((hash_hdr.clone(), result.clone()));
+                        // dbg!((retrans_hdr.clone(), result.clone()));
                         // insert entry into next slot
                         let next_slot_index =
                             (self.cur_counter + duration) % self.max_slot;
                         // gather results
-                        result_vec.push((hash_hdr.clone(), result.to_owned()));
+                        result_vec.push((retrans_hdr.clone(), result.to_owned()));
                         let next_slot = &self.slot_vec[next_slot_index];
 
                         let mut next_slot_lock =
                             next_slot.entries.lock().unwrap();
-                        // dbg!(hash_hdr.clone());
-                        next_slot_lock.push((hash_hdr, duration));
+                        // dbg!(retrans_hdr.clone());
+                        next_slot_lock.push((retrans_hdr, duration));
                         // TODO send it back inside the loop,
                         // eliminate return loop need the to use
                         // RetransmitHeader to access the address
@@ -281,11 +281,20 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
                 }
             } else {
                 // timeout duration is over the limit, remove hash entry
-                match hash.remove(&hash_hdr) {
+                // XXX Because generic is used, we can't access the internal of
+                // the KEY and VAL.
+                // TODO need to detect connect() timeout.
+                match hash.remove(&retrans_hdr) {
                     Some(result) => {
-                        // dbg!((hash_hdr.clone(), result.clone()));
+                        dbg!((retrans_hdr.clone(), result.clone()));
+                        /*
+                        if retrans_hdr.msg_type == MSG_TYPE_CONNACK {
+                            panic!("connect(): timeout; destination: {:?}",
+                                retrans_hdr.addr);
+                        }
+                        */
                         // gather results
-                        result_vec.push((hash_hdr.clone(), result.to_owned()));
+                        // result_vec.push((retrans_hdr.clone(), result.to_owned()));
                     }
                     // It's empty, the hash value is canceled
                     _ => (),
@@ -402,7 +411,7 @@ impl RetransTimeWheel {
                 match cancel_rx.recv() {
                     // XXX
                     Ok((addr, msg_type, topic_id, msg_id)) => {
-                        println!("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
+                        println!("-----------------------------");
                         let retrans_hdr = RetransmitHeader {
                             addr,
                             msg_type,
@@ -486,7 +495,6 @@ impl RetransTimeWheel {
                         // dbg!(ack.clone());
                         let (retrans_hdr, data) = ack;
                         dbg!((retrans_hdr.addr, data.bytes.clone()));
-                        // TODO use mpsc
                         transmit_tx.send((retrans_hdr.addr, data.bytes));
                     }
                     // let len = socket_tx3.send_to(b"hello", remote_addr);

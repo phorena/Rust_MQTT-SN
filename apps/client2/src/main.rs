@@ -82,7 +82,6 @@ fn main() {
     let client_sub = client.clone();
     let client_id = generate_client_id();
     client_connect.connect(client_id, socket);
-    // client.rx_loop(socket);
     client_main.subscribe("hello".to_string(), 1, QOS_LEVEL_0, RETAIN_FALSE);
     client_main.subscribe("hello2".to_string(), 2, QOS_LEVEL_0, RETAIN_FALSE);
     let mut i = 0;
