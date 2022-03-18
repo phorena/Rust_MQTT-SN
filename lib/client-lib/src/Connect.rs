@@ -6,6 +6,7 @@ use std::str;
 
 use crate::{
     flags::{
+        flag_is_will, flag_is_clean_session,
         flag_qos_level, flags_set, CleanSessionConst, DupConst, QoSConst,
         RetainConst, TopicIdTypeConst, WillConst, CLEAN_SESSION_FALSE,
         CLEAN_SESSION_TRUE, DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1,
@@ -106,5 +107,36 @@ pub fn connect_tx(client_id: String, duration: u16, client: &MqttSnClient) {
     } else {
         // TODO long message modify try_write
         ()
+    }
+}
+
+#[inline(always)]
+pub fn connect_rx(
+    buf: &[u8],
+    size: usize,
+    client: &MqttSnClient,
+) -> Result<(), ExoError> {
+    // TODO replace unwrap
+    let (connect, read_fixed_len) = Connect::try_read(&buf, size).unwrap();
+    dbg!(connect.clone());
+    let read_len = read_fixed_len + connect.client_id.len();
+
+    // TODO check QoS, https://www.hivemq.com/blog/mqtt-essentials-
+    // part-6-mqtt-quality-of-service-levels/
+    if read_len == size {
+        if flag_is_will(connect.flags) {
+            // set will 
+        }
+        if flag_is_clean_session(connect.flags) {
+            // clean session
+        }
+        // protocol_id
+        // duration
+        // client_id
+        // send connack
+
+        Ok(())
+    } else {
+        return Err(ExoError::LenError(read_len, size));
     }
 }
