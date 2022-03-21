@@ -82,7 +82,9 @@ pub fn connack_rx(
     let (conn_ack, read_len) = ConnAck::try_read(&buf, size).unwrap();
     dbg!(conn_ack.clone());
     if read_len == MSG_LEN_CONNACK as usize {
-        client.cancel_tx.send((client.remote_addr, conn_ack.msg_type, 0, 0));
+        client
+            .cancel_tx
+            .send((client.remote_addr, conn_ack.msg_type, 0, 0));
         Ok(())
     } else {
         Err(ExoError::LenError(read_len, MSG_LEN_SUBACK as usize))
@@ -100,6 +102,9 @@ pub fn connack_tx(client: &MqttSnClient, return_code: u8) {
     dbg!(connack.clone());
     connack.try_write(&mut bytes_buf);
     dbg!(bytes_buf.clone());
+    dbg!(client.remote_addr);
     // transmit to network
-    client.transmit_tx.send((client.remote_addr, bytes_buf.to_owned()));
+    client
+        .transmit_tx
+        .send((client.remote_addr, bytes_buf.to_owned()));
 }

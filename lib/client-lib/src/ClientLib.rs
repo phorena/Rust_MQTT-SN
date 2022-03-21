@@ -14,13 +14,14 @@ use simplelog::*;
 
 use crate::{
     flags,
+    Channels::Channels,
     ConnAck::connack_rx,
-    Connect::connect_tx,
+    Connect::{connect_rx, connect_tx},
     PubAck::puback_rx,
-    Publish::{Publish, publish_rx, publish_tx},
+    Publish::{publish_rx, publish_tx, Publish},
     StateMachine::{StateMachine, STATE_DISCONNECT},
     SubAck::suback_rx,
-    Subscribe::subscribe_tx,
+    Subscribe::{subscribe_rx, subscribe_tx},
     TimingWheel2::{RetransmitData, RetransmitHeader},
     MSG_TYPE_CONNACK, MSG_TYPE_CONNECT, MSG_TYPE_PUBACK, MSG_TYPE_PUBLISH,
     MSG_TYPE_PUBREC, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE,
@@ -99,14 +100,14 @@ pub struct MqttSnClient {
     pub cancel_tx: Sender<(SocketAddr, u8, u16, u16)>,
     pub schedule_tx: Sender<(SocketAddr, u8, u16, u16, BytesMut)>,
 
-    pub subscribe_tx: Sender<Publish>,
+    pub sub_channel_tx: Sender<Publish>,
 
     transmit_rx: Receiver<(SocketAddr, BytesMut)>,
     // cancel_rx: Receiver<(SocketAddr, u8, u16, u16)>,
     // schedule_rx: Receiver<(SocketAddr, u8, u16, u16, BytesMut)>,
     retrans_time_wheel: RetransTimeWheel,
 
-    pub subscribe_rx: Receiver<Publish>,
+    pub sub_channel_rx: Receiver<Publish>,
     state: Arc<Mutex<u8>>,
     state_machine: StateMachine,
 }
@@ -125,7 +126,7 @@ impl MqttSnClient {
             Sender<(SocketAddr, BytesMut)>,
             Receiver<(SocketAddr, BytesMut)>,
         ) = unbounded();
-        let (subscribe_tx, subscribe_rx): (
+        let (sub_channel_tx, sub_channel_rx): (
             Sender<Publish>,
             Receiver<Publish>,
         ) = unbounded();
@@ -148,8 +149,8 @@ impl MqttSnClient {
             cancel_tx,
             transmit_tx,
             transmit_rx,
-            subscribe_tx,
-            subscribe_rx,
+            sub_channel_tx,
+            sub_channel_rx,
         }
     }
 
@@ -179,6 +180,10 @@ impl MqttSnClient {
                             suback_rx(&buf, size, &self);
                             continue;
                         };
+                        if msg_type == MSG_TYPE_SUBSCRIBE {
+                            subscribe_rx(&buf, size, &self);
+                            continue;
+                        };
                         if msg_type == MSG_TYPE_CONNACK {
                             match connack_rx(&buf, size, &self) {
                                 Ok(_) => {
@@ -198,6 +203,70 @@ impl MqttSnClient {
                     Err(why) => {
                         error!("{}", why);
                     }
+                }
+            }
+        });
+    }
+
+    pub fn broker_rx_loop(mut self, socket: UdpSocket) {
+        let self_transmit = self.clone();
+        // name for easy debug
+        let socket_tx = socket.try_clone().expect("couldn't clone the socket");
+        let builder = thread::Builder::new().name("recv_thread".into());
+        // process input datagram from network
+        let _recv_thread = builder.spawn(move || {
+            let mut buf = [0; 1500];
+            loop {
+                match socket.recv_from(&mut buf) {
+                    Ok((size, addr)) => {
+                        self.remote_addr = addr;
+                        // TODO process 3 bytes length
+                        let msg_type = buf[1] as u8;
+                        if msg_type == MSG_TYPE_PUBLISH {
+                            publish_rx(&buf, size, &self);
+                            continue;
+                        };
+                        if msg_type == MSG_TYPE_PUBACK {
+                            puback_rx(&buf, size, &self);
+                            continue;
+                        };
+                        if msg_type == MSG_TYPE_SUBACK {
+                            suback_rx(&buf, size, &self);
+                            continue;
+                        };
+                        if msg_type == MSG_TYPE_CONNECT {
+                            connect_rx(&buf, size, &self);
+                            continue;
+                        };
+                        if msg_type == MSG_TYPE_CONNACK {
+                            match connack_rx(&buf, size, &self) {
+                                Ok(_) => {
+                                    // Broker shouldn't receive ConnAck
+                                    // because it doesn't send Connect for now.
+                                    error!("Broker ConnAck {:?}", addr);
+                                }
+                                Err(why) => error!("ConnAck {:?}", why),
+                            }
+                            continue;
+                        };
+                    }
+                    Err(why) => {
+                        error!("{}", why);
+                    }
+                }
+            }
+        });
+        let builder = thread::Builder::new().name("transmit_rx_thread".into());
+        // process input datagram from network
+        let _transmit_rx_thread = builder.spawn(move || loop {
+            match self_transmit.transmit_rx.recv() {
+                Ok((addr, bytes)) => {
+                    // TODO DTLS
+                    dbg!((addr, &bytes));
+                    socket_tx.send_to(&bytes[..], addr);
+                }
+                Err(why) => {
+                    println!("channel_rx_thread: {}", why);
                 }
             }
         });
@@ -272,9 +341,15 @@ impl MqttSnClient {
         self.rx_loop(socket);
     }
 
-    pub fn subscribe(&self, topic: String, msg_id: u16, qos: u8, retain: u8) -> &Receiver<Publish> {
+    pub fn subscribe(
+        &self,
+        topic: String,
+        msg_id: u16,
+        qos: u8,
+        retain: u8,
+    ) -> &Receiver<Publish> {
         let sub = subscribe_tx(topic, msg_id, qos, retain, &self);
-        &self.subscribe_rx
+        &self.sub_channel_rx
     }
     /// Publish a message
     /// 1. Format a message with Publish struct.

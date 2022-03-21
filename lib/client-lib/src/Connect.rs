@@ -6,15 +6,16 @@ use std::str;
 
 use crate::{
     flags::{
-        flag_is_will, flag_is_clean_session,
-        flag_qos_level, flags_set, CleanSessionConst, DupConst, QoSConst,
-        RetainConst, TopicIdTypeConst, WillConst, CLEAN_SESSION_FALSE,
-        CLEAN_SESSION_TRUE, DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1,
-        QOS_LEVEL_2, QOS_LEVEL_3, RETAIN_FALSE, RETAIN_TRUE,
-        TOPIC_ID_TYPE_NORNAL, TOPIC_ID_TYPE_PRE_DEFINED,
-        TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
+        flag_is_clean_session, flag_is_will, flag_qos_level, flags_set,
+        CleanSessionConst, DupConst, QoSConst, RetainConst, TopicIdTypeConst,
+        WillConst, CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE, DUP_FALSE,
+        DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
+        RETAIN_FALSE, RETAIN_TRUE, TOPIC_ID_TYPE_NORNAL,
+        TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
+        WILL_FALSE, WILL_TRUE,
     },
     ClientLib::MqttSnClient,
+    ConnAck::connack_tx,
     // flags::{flags_set, flag_qos_level, },
     Errors::ExoError,
     MSG_LEN_PUBACK,
@@ -121,11 +122,9 @@ pub fn connect_rx(
     dbg!(connect.clone());
     let read_len = read_fixed_len + connect.client_id.len();
 
-    // TODO check QoS, https://www.hivemq.com/blog/mqtt-essentials-
-    // part-6-mqtt-quality-of-service-levels/
     if read_len == size {
         if flag_is_will(connect.flags) {
-            // set will 
+            // set will
         }
         if flag_is_clean_session(connect.flags) {
             // clean session
@@ -134,6 +133,8 @@ pub fn connect_rx(
         // duration
         // client_id
         // send connack
+
+        connack_tx(client, 0);
 
         Ok(())
     } else {

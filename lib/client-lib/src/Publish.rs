@@ -7,12 +7,11 @@ use std::str;
 
 use crate::{
     flags::{
-        flag_qos_level, flags_set,
-        CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE,
-        DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1,
-        QOS_LEVEL_2, QOS_LEVEL_3, RETAIN_FALSE, RETAIN_TRUE,
-        TOPIC_ID_TYPE_NORNAL, TOPIC_ID_TYPE_PRE_DEFINED,
-        TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
+        flag_qos_level, flags_set, CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE,
+        DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2,
+        QOS_LEVEL_3, RETAIN_FALSE, RETAIN_TRUE, TOPIC_ID_TYPE_NORNAL,
+        TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
+        WILL_FALSE, WILL_TRUE,
     },
     ClientLib::MqttSnClient,
     Errors::ExoError,
@@ -220,7 +219,7 @@ pub fn publish_rx(
         // if retain {
         //   send a message to save the message in the topic db
         // }
-        client.subscribe_tx.send(publish);
+        client.sub_channel_tx.send(publish);
         Ok(())
     } else {
         return Err(ExoError::LenError(read_len, size));

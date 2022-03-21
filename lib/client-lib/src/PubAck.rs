@@ -89,3 +89,5 @@ pub fn puback_rx(
         Err(ExoError::LenError(read_len, MSG_LEN_PUBACK as usize))
     }
 }
+
+// NOTE: puback_tx is inlined hard coded for performance.

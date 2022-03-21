@@ -264,7 +264,8 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
                         let next_slot_index =
                             (self.cur_counter + duration) % self.max_slot;
                         // gather results
-                        result_vec.push((retrans_hdr.clone(), result.to_owned()));
+                        result_vec
+                            .push((retrans_hdr.clone(), result.to_owned()));
                         let next_slot = &self.slot_vec[next_slot_index];
 
                         let mut next_slot_lock =

@@ -5,18 +5,24 @@ use std::mem;
 use std::str;
 
 use crate::{
-    flags::flags_set,
     //     StateMachine,
     flags::{
+        flag_qos_level,
+        flags_set,
+        CLEAN_SESSION_FALSE,
+        DUP_FALSE,
+        TOPIC_ID_TYPE_NORNAL,
         // CleanSessionConst, DupConst, QoSConst, RetainConst, TopicIdTypeConst,
         // WillConst, CLEAN_SESSION_TRUE,
         // DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
         // RETAIN_FALSE, RETAIN_TRUE,
         // TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
         // WILL_TRUE,
-        WILL_FALSE, CLEAN_SESSION_FALSE, DUP_FALSE,TOPIC_ID_TYPE_NORNAL,
+        WILL_FALSE,
     },
     ClientLib::MqttSnClient,
+    Errors::ExoError,
+    SubAck::suback_tx,
     MSG_TYPE_SUBACK,
     MSG_TYPE_SUBSCRIBE,
 };
@@ -31,7 +37,7 @@ pub struct Subscribe {
     pub flags: u8,
     pub msg_id: u16,
     pub topic_name: String, // TODO use enum for topic_name or topic_id
-//     pub bb: BytesMut,
+                            //     pub bb: BytesMut,
 }
 
 impl Subscribe {
@@ -53,7 +59,7 @@ impl Subscribe {
             flags,
             msg_id,
             topic_name, // TODO use enum for topic_name or topic_id
-  //          bb,
+                        //          bb,
         };
         subscribe
     }
@@ -109,4 +115,37 @@ pub fn subscribe_tx(
         bytes_buf,
     ));
     // TODO return Result
+}
+
+#[inline(always)]
+pub fn subscribe_rx(
+    buf: &[u8],
+    size: usize,
+    client: &MqttSnClient,
+) -> Result<(), ExoError> {
+    // TODO replace unwrap
+    let (subscribe, read_fixed_len) = Subscribe::try_read(&buf, size).unwrap();
+    dbg!(subscribe.clone());
+    dbg!(subscribe.clone().topic_name);
+    let read_len = read_fixed_len + subscribe.topic_name.len();
+
+    dbg!((size, read_len));
+
+    // TODO check QoS, https://www.hivemq.com/blog/mqtt-essentials-
+    // part-6-mqtt-quality-of-service-levels/
+    if read_len == size {
+        match flag_qos_level(subscribe.flags) {
+            // TODO topic_id & return_code need values
+            QOS_LEVEL_1 => {
+                suback_tx(client, subscribe.flags, 888, subscribe.msg_id, 99);
+            }
+            QOS_LEVEL_2 => {
+                suback_tx(client, subscribe.flags, 888, subscribe.msg_id, 99);
+            }
+            _ => {} // do nothing for QoS levels 0 & 3.
+        }
+        Ok(())
+    } else {
+        return Err(ExoError::LenError(read_len, size));
+    }
 }

@@ -40,6 +40,8 @@ pub mod WillTopicResp;
 pub mod WillTopicUpd;
 pub mod client_struct;
 pub mod flags;
+// pub mod BrokerLib;
+pub mod Channels;
 
 pub const MTU: usize = 1500;
 
