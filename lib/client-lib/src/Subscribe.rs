@@ -22,7 +22,7 @@ use crate::{
     },
     ClientLib::MqttSnClient,
     Errors::ExoError,
-    SubAck::suback_tx,
+    SubAck::SubAck,
     MSG_TYPE_SUBACK,
     MSG_TYPE_SUBSCRIBE,
 };
@@ -90,62 +90,75 @@ impl Subscribe {
         true
     }
     */
-}
 
-// TODO error checking and return
-pub fn subscribe_tx(
-    topic: String,
-    msg_id: u16,
-    qos: u8,
-    retain: u8,
-    client: &MqttSnClient,
-) {
-    let subscribe = Subscribe::new(topic, msg_id, qos, retain);
-    dbg!(&subscribe);
-    let mut bytes_buf = BytesMut::with_capacity(subscribe.len as usize);
-    subscribe.try_write(&mut bytes_buf);
-    client
-        .transmit_tx
-        .send((client.remote_addr, bytes_buf.to_owned()));
-    client.schedule_tx.send((
-        client.remote_addr,
-        MSG_TYPE_SUBACK,
-        0,
-        0,
-        bytes_buf,
-    ));
-    // TODO return Result
-}
+    // TODO error checking and return
+    pub fn tx(
+        topic: String,
+        msg_id: u16,
+        qos: u8,
+        retain: u8,
+        client: &MqttSnClient,
+    ) {
+        let subscribe = Subscribe::new(topic, msg_id, qos, retain);
+        dbg!(&subscribe);
+        let mut bytes_buf = BytesMut::with_capacity(subscribe.len as usize);
+        subscribe.try_write(&mut bytes_buf);
+        client
+            .transmit_tx
+            .send((client.remote_addr, bytes_buf.to_owned()));
+        client.schedule_tx.send((
+            client.remote_addr,
+            MSG_TYPE_SUBACK,
+            0,
+            0,
+            bytes_buf,
+        ));
+        // TODO return Result
+    }
 
-#[inline(always)]
-pub fn subscribe_rx(
-    buf: &[u8],
-    size: usize,
-    client: &MqttSnClient,
-) -> Result<(), ExoError> {
-    // TODO replace unwrap
-    let (subscribe, read_fixed_len) = Subscribe::try_read(&buf, size).unwrap();
-    dbg!(subscribe.clone());
-    dbg!(subscribe.clone().topic_name);
-    let read_len = read_fixed_len + subscribe.topic_name.len();
+    #[inline(always)]
+    pub fn rx(
+        buf: &[u8],
+        size: usize,
+        client: &MqttSnClient,
+    ) -> Result<(), ExoError> {
+        // TODO replace unwrap
+        let (subscribe, read_fixed_len) =
+            Subscribe::try_read(&buf, size).unwrap();
+        dbg!(subscribe.clone());
+        dbg!(subscribe.clone().topic_name);
+        let read_len = read_fixed_len + subscribe.topic_name.len();
 
-    dbg!((size, read_len));
+        dbg!((size, read_len));
 
-    // TODO check QoS, https://www.hivemq.com/blog/mqtt-essentials-
-    // part-6-mqtt-quality-of-service-levels/
-    if read_len == size {
-        match flag_qos_level(subscribe.flags) {
-            // TODO topic_id & return_code need values
-            QOS_LEVEL_1 => {
-                suback_tx(client, subscribe.flags, 888, subscribe.msg_id, 99);
+        // TODO check QoS, https://www.hivemq.com/blog/mqtt-essentials-
+        // part-6-mqtt-quality-of-service-levels/
+        if read_len == size {
+            match flag_qos_level(subscribe.flags) {
+                // TODO topic_id & return_code need values
+                QOS_LEVEL_1 => {
+                    SubAck::tx(
+                        client,
+                        subscribe.flags,
+                        888,
+                        subscribe.msg_id,
+                        99,
+                    );
+                }
+                QOS_LEVEL_2 => {
+                    SubAck::tx(
+                        client,
+                        subscribe.flags,
+                        888,
+                        subscribe.msg_id,
+                        99,
+                    );
+                }
+                _ => {} // do nothing for QoS levels 0 & 3.
             }
-            QOS_LEVEL_2 => {
-                suback_tx(client, subscribe.flags, 888, subscribe.msg_id, 99);
-            }
-            _ => {} // do nothing for QoS levels 0 & 3.
+            Ok(())
+        } else {
+            return Err(ExoError::LenError(read_len, size));
         }
-        Ok(())
-    } else {
-        return Err(ExoError::LenError(read_len, size));
     }
 }

@@ -1,8 +1,6 @@
 use crate::{
-    Publish::{publish_rx, publish_tx, Publish},
+    Publish::Publish,
     StateMachine::{StateMachine, STATE_DISCONNECT},
-    SubAck::suback_rx,
-    Subscribe::subscribe_tx,
     TimingWheel2::{RetransmitData, RetransmitHeader},
     MSG_TYPE_CONNACK, MSG_TYPE_CONNECT, MSG_TYPE_PUBACK, MSG_TYPE_PUBLISH,
     MSG_TYPE_PUBREC, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE,

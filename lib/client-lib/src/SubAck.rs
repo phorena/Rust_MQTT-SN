@@ -71,58 +71,58 @@ impl SubAck {
         //dbg!(_val);
         true
     }
-}
 
-pub fn suback_rx(
-    buf: &[u8],
-    size: usize,
-    client: &MqttSnClient,
-) -> Result<u16, ExoError> {
-    let (sub_ack, read_len) = SubAck::try_read(&buf, size).unwrap();
-    dbg!(sub_ack.clone());
+    pub fn rx(
+        buf: &[u8],
+        size: usize,
+        client: &MqttSnClient,
+    ) -> Result<u16, ExoError> {
+        let (sub_ack, read_len) = SubAck::try_read(&buf, size).unwrap();
+        dbg!(sub_ack.clone());
 
-    if read_len == MSG_LEN_SUBACK as usize {
-        // XXX Cancel the retransmision scheduled.
-        //     No topic_id passing to send for now.
-        //     because the subscribe message might not contain it.
-        //     The retransmision was scheduled with 0.
-        client.cancel_tx.send((
-            client.remote_addr,
-            sub_ack.msg_type,
-            0,
-            sub_ack.msg_id,
-        ));
-        // TODO check QoS in flags
-        // TODO check flags
-        Ok(sub_ack.topic_id)
-    } else {
-        Err(ExoError::LenError(read_len, MSG_LEN_SUBACK as usize))
+        if read_len == MSG_LEN_SUBACK as usize {
+            // XXX Cancel the retransmision scheduled.
+            //     No topic_id passing to send for now.
+            //     because the subscribe message might not contain it.
+            //     The retransmision was scheduled with 0.
+            client.cancel_tx.send((
+                client.remote_addr,
+                sub_ack.msg_type,
+                0,
+                sub_ack.msg_id,
+            ));
+            // TODO check QoS in flags
+            // TODO check flags
+            Ok(sub_ack.topic_id)
+        } else {
+            Err(ExoError::LenError(read_len, MSG_LEN_SUBACK as usize))
+        }
     }
-}
 
-// TODO error checking and return
-pub fn suback_tx(
-    client: &MqttSnClient,
-    flags: u8,
-    topic_id: u16,
-    msg_id: u16,
-    return_code: u8,
-) {
-    let sub_ack = SubAck {
-        len: MSG_LEN_SUBACK,
-        msg_type: MSG_TYPE_SUBACK,
-        flags,
-        topic_id,
-        msg_id,
-        return_code,
-    };
-    let mut bytes_buf = BytesMut::with_capacity(MSG_LEN_SUBACK as usize);
-    dbg!(sub_ack.clone());
-    sub_ack.try_write(&mut bytes_buf);
-    dbg!(bytes_buf.clone());
-    dbg!(client.remote_addr);
-    // transmit to network
-    client
-        .transmit_tx
-        .send((client.remote_addr, bytes_buf.to_owned()));
+    // TODO error checking and return
+    pub fn tx(
+        client: &MqttSnClient,
+        flags: u8,
+        topic_id: u16,
+        msg_id: u16,
+        return_code: u8,
+    ) {
+        let sub_ack = SubAck {
+            len: MSG_LEN_SUBACK,
+            msg_type: MSG_TYPE_SUBACK,
+            flags,
+            topic_id,
+            msg_id,
+            return_code,
+        };
+        let mut bytes_buf = BytesMut::with_capacity(MSG_LEN_SUBACK as usize);
+        dbg!(sub_ack.clone());
+        sub_ack.try_write(&mut bytes_buf);
+        dbg!(bytes_buf.clone());
+        dbg!(client.remote_addr);
+        // transmit to network
+        client
+            .transmit_tx
+            .send((client.remote_addr, bytes_buf.to_owned()));
+    }
 }

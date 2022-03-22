@@ -15,13 +15,13 @@ use simplelog::*;
 use crate::{
     flags,
     Channels::Channels,
-    ConnAck::connack_rx,
-    Connect::{connect_rx, connect_tx},
+    ConnAck::ConnAck,
+    Connect::Connect,
     PubAck::puback_rx,
-    Publish::{publish_rx, publish_tx, Publish},
+    Publish::Publish,
     StateMachine::{StateMachine, STATE_DISCONNECT},
-    SubAck::suback_rx,
-    Subscribe::{subscribe_rx, subscribe_tx},
+    SubAck::SubAck,
+    Subscribe::Subscribe,
     TimingWheel2::{RetransmitData, RetransmitHeader},
     MSG_TYPE_CONNACK, MSG_TYPE_CONNECT, MSG_TYPE_PUBACK, MSG_TYPE_PUBLISH,
     MSG_TYPE_PUBREC, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE,
@@ -169,7 +169,7 @@ impl MqttSnClient {
                         // TODO process 3 bytes length
                         let msg_type = buf[1] as u8;
                         if msg_type == MSG_TYPE_PUBLISH {
-                            publish_rx(&buf, size, &self);
+                            Publish::rx(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_PUBACK {
@@ -177,15 +177,15 @@ impl MqttSnClient {
                             continue;
                         };
                         if msg_type == MSG_TYPE_SUBACK {
-                            suback_rx(&buf, size, &self);
+                            SubAck::rx(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_SUBSCRIBE {
-                            subscribe_rx(&buf, size, &self);
+                            Subscribe::rx(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_CONNACK {
-                            match connack_rx(&buf, size, &self) {
+                            match ConnAck::rx(&buf, size, &self) {
                                 Ok(_) => {
                                     dbg!(*self.state.lock().unwrap());
                                     let cur_state = *self.state.lock().unwrap();
@@ -223,7 +223,7 @@ impl MqttSnClient {
                         // TODO process 3 bytes length
                         let msg_type = buf[1] as u8;
                         if msg_type == MSG_TYPE_PUBLISH {
-                            publish_rx(&buf, size, &self);
+                            Publish::rx(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_PUBACK {
@@ -231,15 +231,15 @@ impl MqttSnClient {
                             continue;
                         };
                         if msg_type == MSG_TYPE_SUBACK {
-                            suback_rx(&buf, size, &self);
+                            SubAck::rx(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_CONNECT {
-                            connect_rx(&buf, size, &self);
+                            Connect::rx(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_CONNACK {
-                            match connack_rx(&buf, size, &self) {
+                            match ConnAck::rx(&buf, size, &self) {
                                 Ok(_) => {
                                     // Broker shouldn't receive ConnAck
                                     // because it doesn't send Connect for now.
@@ -291,7 +291,7 @@ impl MqttSnClient {
             match self_transmit.transmit_rx.recv() {
                 Ok((addr, bytes)) => {
                     // TODO DTLS
-                    dbg!((addr, &bytes));
+                    dbg!(("#####", addr, &bytes));
                     socket_tx.send_to(&bytes[..], addr);
                 }
                 Err(why) => {
@@ -301,7 +301,7 @@ impl MqttSnClient {
         });
         dbg!(&client_id);
         let conn_duration = 5;
-        connect_tx(client_id, conn_duration, &self);
+        Connect::tx(client_id, conn_duration, &self);
         dbg!(*self.state.lock().unwrap());
         let cur_state = *self.state.lock().unwrap();
         *self.state.lock().unwrap() = self
@@ -318,7 +318,7 @@ impl MqttSnClient {
                     // TODO process 3 bytes length
                     let msg_type = buf[1] as u8;
                     if msg_type == MSG_TYPE_CONNACK {
-                        match connack_rx(&buf, size, &self) {
+                        match ConnAck::rx(&buf, size, &self) {
                             Ok(_) => {
                                 dbg!(*self.state.lock().unwrap());
                                 let cur_state = *self.state.lock().unwrap();
@@ -348,7 +348,7 @@ impl MqttSnClient {
         qos: u8,
         retain: u8,
     ) -> &Receiver<Publish> {
-        let sub = subscribe_tx(topic, msg_id, qos, retain, &self);
+        let sub = Subscribe::tx(topic, msg_id, qos, retain, &self);
         &self.sub_channel_rx
     }
     /// Publish a message
@@ -364,6 +364,6 @@ impl MqttSnClient {
         retain: u8,
         data: String,
     ) {
-        publish_tx(topic_id, msg_id, qos, retain, data, &self);
+        Publish::tx(topic_id, msg_id, qos, retain, data, &self);
     }
 }
