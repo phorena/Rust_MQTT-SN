@@ -16,6 +16,7 @@ pub mod MsgType;
 pub mod PingReq;
 pub mod PingResp;
 pub mod PubAck;
+pub mod PubRec;
 pub mod PubRel;
 pub mod Publish;
 pub mod RegAck;
@@ -75,6 +76,8 @@ pub const StateEnumLen: usize = 5;
 pub type MsgLenConst = u8;
 pub const MSG_LEN_PUBACK: MsgLenConst = 7;
 pub const MSG_LEN_PUBREC: MsgLenConst = 4;
+pub const MSG_LEN_PUBREL: MsgLenConst = 4;
+pub const MSG_LEN_PUBCOMP: MsgLenConst = 4;
 pub const MSG_LEN_SUBACK: MsgLenConst = 8;
 pub const MSG_LEN_CONNACK: MsgLenConst = 3;
 

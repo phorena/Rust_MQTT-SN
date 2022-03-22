@@ -96,6 +96,7 @@ pub struct MqttSnClient {
     // socket: UdpSocket, // clone not implemented
     // state: AtomicU8, // clone not implemented
     pub remote_addr: SocketAddr,
+
     pub transmit_tx: Sender<(SocketAddr, BytesMut)>,
     pub cancel_tx: Sender<(SocketAddr, u8, u16, u16)>,
     pub schedule_tx: Sender<(SocketAddr, u8, u16, u16, BytesMut)>,
