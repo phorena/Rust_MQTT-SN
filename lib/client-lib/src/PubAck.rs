@@ -66,10 +66,9 @@ impl PubAck {
         //dbg!(_val);
         true
     }
-}
 
 #[inline(always)]
-pub fn puback_rx(
+pub fn rx(
     buf: &[u8],
     size: usize,
     client: &MqttSnClient,
@@ -90,4 +89,5 @@ pub fn puback_rx(
     }
 }
 
+}
 // NOTE: puback_tx is inlined hard coded for performance.

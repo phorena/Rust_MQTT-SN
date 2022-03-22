@@ -17,7 +17,7 @@ use crate::{
     Channels::Channels,
     ConnAck::ConnAck,
     Connect::Connect,
-    PubAck::puback_rx,
+    PubAck::PubAck,
     Publish::Publish,
     StateMachine::{StateMachine, STATE_DISCONNECT},
     SubAck::SubAck,
@@ -173,7 +173,7 @@ impl MqttSnClient {
                             continue;
                         };
                         if msg_type == MSG_TYPE_PUBACK {
-                            puback_rx(&buf, size, &self);
+                            PubAck::rx(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_SUBACK {
@@ -227,7 +227,7 @@ impl MqttSnClient {
                             continue;
                         };
                         if msg_type == MSG_TYPE_PUBACK {
-                            puback_rx(&buf, size, &self);
+                            PubAck::rx(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_SUBACK {
