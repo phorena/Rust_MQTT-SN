@@ -101,14 +101,16 @@ pub struct MqttSnClient {
     pub cancel_tx: Sender<(SocketAddr, u8, u16, u16)>,
     pub schedule_tx: Sender<(SocketAddr, u8, u16, u16, BytesMut)>,
 
-    pub sub_channel_tx: Sender<Publish>,
+    // Channel for subscriber to receive messgaes from the broker
+    // publish messages.
+    pub subscribe_tx: Sender<Publish>,
 
     transmit_rx: Receiver<(SocketAddr, BytesMut)>,
     // cancel_rx: Receiver<(SocketAddr, u8, u16, u16)>,
     // schedule_rx: Receiver<(SocketAddr, u8, u16, u16, BytesMut)>,
     retrans_time_wheel: RetransTimeWheel,
 
-    pub sub_channel_rx: Receiver<Publish>,
+    pub subscribe_rx: Receiver<Publish>,
     state: Arc<Mutex<u8>>,
     state_machine: StateMachine,
 }
@@ -127,7 +129,7 @@ impl MqttSnClient {
             Sender<(SocketAddr, BytesMut)>,
             Receiver<(SocketAddr, BytesMut)>,
         ) = unbounded();
-        let (sub_channel_tx, sub_channel_rx): (
+        let (subscribe_tx, subscribe_rx): (
             Sender<Publish>,
             Receiver<Publish>,
         ) = unbounded();
@@ -150,8 +152,8 @@ impl MqttSnClient {
             cancel_tx,
             transmit_tx,
             transmit_rx,
-            sub_channel_tx,
-            sub_channel_rx,
+            subscribe_tx,
+            subscribe_rx,
         }
     }
 
@@ -350,7 +352,7 @@ impl MqttSnClient {
         retain: u8,
     ) -> &Receiver<Publish> {
         let sub = Subscribe::tx(topic, msg_id, qos, retain, &self);
-        &self.sub_channel_rx
+        &self.subscribe_rx
     }
     /// Publish a message
     /// 1. Format a message with Publish struct.

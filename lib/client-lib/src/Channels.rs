@@ -1,13 +1,10 @@
 use crate::{
     Publish::Publish,
-    StateMachine::{StateMachine, STATE_DISCONNECT},
     TimingWheel2::{RetransmitData, RetransmitHeader},
-    MSG_TYPE_CONNACK, MSG_TYPE_CONNECT, MSG_TYPE_PUBACK, MSG_TYPE_PUBLISH,
-    MSG_TYPE_PUBREC, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE,
 };
-use bytes::{Bytes, BytesMut};
+use bytes::{BytesMut};
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use std::{net::SocketAddr, sync::Arc, sync::Mutex};
+use std::{net::SocketAddr, };
 
 pub struct TransChannelData {
     addr: SocketAddr,
@@ -21,13 +18,18 @@ pub struct ScheduleChannelData {
 
 #[derive(Debug, Clone)]
 pub struct Channels {
+    // For transmiting data to the remote address.
     pub transmit_tx: Sender<TransChannelData>,
-    pub cancel_tx: Sender<RetransmitHeader>,
-    pub schedule_tx: Sender<ScheduleChannelData>,
-    pub subscribe_tx: Sender<Publish>,
     pub transmit_rx: Receiver<TransChannelData>,
+    // For cancel a scheduled retransmission on the timing wheel.
+    pub cancel_tx: Sender<RetransmitHeader>,
     pub cancel_rx: Receiver<RetransmitHeader>,
+    // For schedule a retransmission.
+    pub schedule_tx: Sender<ScheduleChannelData>,
     pub schedule_rx: Receiver<ScheduleChannelData>,
+    // For receiving publish messages from subscribed messages.
+    // Mostly for the client.
+    pub subscribe_tx: Sender<Publish>,
     pub subscribe_rx: Receiver<Publish>,
 }
 

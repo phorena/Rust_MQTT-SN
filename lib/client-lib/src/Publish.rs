@@ -168,7 +168,7 @@ impl Publish {
             // if retain {
             //   send a message to save the message in the topic db
             // }
-            client.sub_channel_tx.send(publish);
+            client.subscribe_tx.send(publish);
             Ok(())
         } else {
             return Err(ExoError::LenError(read_len, size));
