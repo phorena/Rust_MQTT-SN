@@ -3,14 +3,11 @@ use std::{hint, thread};
 use std::{net::SocketAddr, sync::Arc, sync::Mutex};
 
 use crate::TimingWheel2::RetransTimeWheel;
-use bytes::{Bytes, BytesMut};
-use chrono::{Datelike, Local, Timelike};
+use bytes::{BytesMut};
 use core::fmt::Debug;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use crossbeam_utils;
 
 use log::*;
-use simplelog::*;
 
 use crate::{
     flags,
@@ -101,7 +98,7 @@ pub struct MqttSnClient {
     pub cancel_tx: Sender<(SocketAddr, u8, u16, u16)>,
     pub schedule_tx: Sender<(SocketAddr, u8, u16, u16, BytesMut)>,
 
-    // Channel for subscriber to receive messgaes from the broker
+    // Channel for subscriber to receive messages from the broker
     // publish messages.
     pub subscribe_tx: Sender<Publish>,
 

@@ -1,6 +1,6 @@
 use crate::{
     Publish::Publish,
-    TimingWheel2::{RetransmitData, RetransmitHeader},
+    TimingWheel2::{RetransmitHeader},
 };
 use bytes::{BytesMut};
 use crossbeam::channel::{unbounded, Receiver, Sender};
