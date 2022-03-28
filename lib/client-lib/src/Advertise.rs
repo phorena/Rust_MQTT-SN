@@ -38,7 +38,7 @@ impl Advertise {
     pub fn tx(gw_id: u8, duration: u16, client: &MqttSnClient) {
         
         let advertise = Advertise {
-            len:5, 
+            len: 5, 
             msg_type: 0x00, 
             gw_id: 1,
             duration,            
