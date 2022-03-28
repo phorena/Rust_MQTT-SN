@@ -135,8 +135,12 @@ impl Publish {
         if read_len == size {
             match flag_qos_level(publish.flags) {
                 QOS_LEVEL_1 => {
-                    PubAck::tx(publish.topic_id, publish.msg_id,
-                        RETURN_CODE_ACCEPTED, client);
+                    PubAck::tx(
+                        publish.topic_id,
+                        publish.msg_id,
+                        RETURN_CODE_ACCEPTED,
+                        client,
+                    );
                 }
                 QOS_LEVEL_2 => {
                     // 4-way handshake for QoS level 2 message for the RECEIVER.

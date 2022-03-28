@@ -74,10 +74,7 @@ impl PubRel {
         }
     }
     #[inline(always)]
-    pub fn tx(
-        msg_id: u16,
-        client: &MqttSnClient,
-    ) {
+    pub fn tx(msg_id: u16, client: &MqttSnClient) {
         // faster implementation
         // TODO verify big-endian or little-endian for u16 numbers
         // XXX order of statements performance

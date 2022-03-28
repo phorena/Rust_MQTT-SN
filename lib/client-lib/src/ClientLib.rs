@@ -3,7 +3,7 @@ use std::{hint, thread};
 use std::{net::SocketAddr, sync::Arc, sync::Mutex};
 
 use crate::TimingWheel2::RetransTimeWheel;
-use bytes::{BytesMut};
+use bytes::BytesMut;
 use core::fmt::Debug;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 
@@ -126,10 +126,8 @@ impl MqttSnClient {
             Sender<(SocketAddr, BytesMut)>,
             Receiver<(SocketAddr, BytesMut)>,
         ) = unbounded();
-        let (subscribe_tx, subscribe_rx): (
-            Sender<Publish>,
-            Receiver<Publish>,
-        ) = unbounded();
+        let (subscribe_tx, subscribe_rx): (Sender<Publish>, Receiver<Publish>) =
+            unbounded();
         let retrans_time_wheel = RetransTimeWheel::new(
             100,
             300,
