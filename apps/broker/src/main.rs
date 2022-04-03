@@ -21,23 +21,8 @@ use trace_var::trace_var;
 use bytes::{BufMut, BytesMut};
 
 // use DTLS::dtls_client::DtlsClient;
-use client_lib::{
-    //    ConnectionDb::ConnectionDb,
-    //    SubscriberDb::SubscriberDb,
-    //    Advertise::Advertise,
-    //    Transfer::Transfer,MTU,
-    //    TopicDb::TopicDb,
-    //    MessageDb::MessageDb,
-    flags::{
-        CleanSessionConst, DupConst, QoSConst, RetainConst, TopicIdTypeConst,
-        WillConst, CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE, DUP_FALSE,
-        DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
-        RETAIN_FALSE, RETAIN_TRUE, TOPIC_ID_TYPE_NORNAL,
-        TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
-        WILL_FALSE, WILL_TRUE,
-    },
-    ClientLib::MqttSnClient,
-};
+use client_lib::*;
+use ClientLib::MqttSnClient;
 
 fn generate_client_id() -> String {
     format!("exofense/{}", nanoid!())
