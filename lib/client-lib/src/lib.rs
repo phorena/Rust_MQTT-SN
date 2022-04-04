@@ -60,6 +60,7 @@ pub const MSG_TYPE_PUBREL: MsgTypeConst = 0x10;
 // TODO fill in the rest
 pub const MSG_TYPE_WILLMSGRESP: MsgTypeConst = 0x1D; // 29
 pub const MSG_TYPE_WILLTOPICREQ: MsgTypeConst = 0x06;
+pub const MSG_TYPE_WILLTOPICRESP: MsgTypeConst = 0x1B;
 // 0x1E-0xFD reserved
 pub const MSG_TYPE_ENCAP_MSG: MsgTypeConst = 0xFE;
 // XXX not an optimal choice because, array of MsgTypeConst
@@ -81,6 +82,7 @@ pub const MSG_LEN_PUBCOMP: MsgLenConst = 4;
 pub const MSG_LEN_SUBACK: MsgLenConst = 8;
 pub const MSG_LEN_CONNACK: MsgLenConst = 3;
 pub const MSG_LEN_WILLTOPICREQ: MsgLenConst = 2;
+pub const MSG_LEN_WILLTOPICRESP: MsgLenConst = 3;
 
 type ReturnCodeConst = u8;
 const RETURN_CODE_ACCEPTED: ReturnCodeConst = 0;
