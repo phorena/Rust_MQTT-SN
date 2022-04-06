@@ -5,6 +5,9 @@ use getset::{CopyGetters, Getters, MutGetters, Setters};
 use std::mem;
 use std::str;
 
+extern crate trace_caller;
+use trace_caller::trace;
+
 use crate::{
     flags::{
         flag_qos_level, flags_set, CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE,
@@ -180,6 +183,7 @@ impl Publish {
     /// 3. Send it to the channel.
     /// 4. Schedule retransmit for QoS Level 1 & 2.
     #[inline(always)]
+    #[trace]
     pub fn tx(
         topic_id: u16,
         msg_id: u16,
