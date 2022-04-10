@@ -11,6 +11,7 @@ pub mod Disconnect;
 pub mod Errors;
 // pub mod Functions;
 // pub mod MainMachineClient;
+pub mod Filter;
 pub mod MessageDb;
 pub mod MsgType;
 pub mod PingReq;

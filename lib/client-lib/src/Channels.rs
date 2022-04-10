@@ -1,10 +1,7 @@
-use crate::{
-    Publish::Publish,
-    TimingWheel2::{RetransmitHeader},
-};
-use bytes::{BytesMut};
+use crate::{Publish::Publish, TimingWheel2::RetransmitHeader};
+use bytes::BytesMut;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use std::{net::SocketAddr, };
+use std::net::SocketAddr;
 
 pub struct TransChannelData {
     addr: SocketAddr,
