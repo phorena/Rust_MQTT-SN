@@ -86,6 +86,7 @@ impl Filter {
         }
     }
     // TODO return better error
+    /// Insert a new filter/subscription from a connection.
     pub fn insert(&mut self, filter: &str, socket_addr: SocketAddr) -> bool {
         if valid_filter(filter) {
             if has_wildcards(filter) {
@@ -107,15 +108,13 @@ impl Filter {
         }
         false
     }
+
     pub fn match_topic_concrete(
         &mut self,
         topic: &str,
     ) -> Option<HashSet<SocketAddr>> {
-        // Publish topic shouldn't have wildcards.
-        if !has_wildcards(topic) {
-            if let Some(socket_set) = self.concrete_filters.get(topic) {
-                return Some(socket_set.lock().unwrap().clone());
-            }
+        if let Some(socket_set) = self.concrete_filters.get(topic) {
+            return Some(socket_set.lock().unwrap().clone());
         }
         None
     }
@@ -124,20 +123,25 @@ impl Filter {
         &mut self,
         topic: &str,
     ) -> Option<HashSet<SocketAddr>> {
-        // Publish topic shouldn't have wildcards.
-        if !has_wildcards(topic) {
-            if let Some(socket_set) = self.wildcard_topics.get(topic) {
-                return Some(socket_set.lock().unwrap().clone());
-            } else {
-                for (filter, socket_set) in &self.wildcard_filters {
-                    dbg!((filter, socket_set));
-                    if match_topic(topic, filter) {
-                        dbg!((filter, socket_set));
-                        self.wildcard_topics
-                            .insert(topic.to_string(), socket_set.clone());
-                    }
+        // Topic is in the wildcard_topics map.
+        if let Some(socket_set) = self.wildcard_topics.get(topic) {
+            return Some(socket_set.lock().unwrap().clone());
+        } else {
+            // Publish topic shouldn't have wildcards.
+            if has_wildcards(topic) {
+                return None;
+            }
+            // Match the topic against all wildcard filters.
+            // Insert the topic into wildcard_topics if matched.
+            for (filter, socket_set) in &self.wildcard_filters {
+                // dbg!((filter, socket_set));
+                if match_topic(topic, filter) {
+                    // dbg!((filter, socket_set));
+                    self.wildcard_topics
+                        .insert(topic.to_string(), socket_set.clone());
                 }
             }
+            // Return the topic's wildcard_topics set.
             if let Some(socket_set) = self.wildcard_topics.get(topic) {
                 return Some(socket_set.lock().unwrap().clone());
             }
@@ -145,15 +149,15 @@ impl Filter {
         None
     }
 
+    // Doesn't work correctly.
     pub fn match_topic(&mut self, topic: &str) -> Option<HashSet<SocketAddr>> {
         // Publish topic shouldn't have wildcards.
         if has_wildcards(topic) {
             return None;
         }
 
-        let mut new_set:HashSet<SocketAddr> = HashSet::new();
+        let mut new_set: HashSet<SocketAddr> = HashSet::new();
         if let Some(socket_set) = self.wildcard_topics.get(topic) {
-
             // return Some(socket_set.lock().unwrap().clone());
             let wildcard_set = socket_set.lock().unwrap().clone();
             new_set.extend(&wildcard_set);
@@ -195,7 +199,8 @@ mod test {
         let mut r = filter.match_topic("aa/bb").unwrap();
         dbg!(&r);
 
-        // test for r is a pointer to the same set
+        // Test for r is a pointer to the same set as the filter's set.
+        // Answer is no. r is a copy of the set, not pointer to the set.
         let socket = "127.0.0.3:0".parse::<SocketAddr>().unwrap();
         r.insert(socket);
         dbg!(&filter);
@@ -206,11 +211,11 @@ mod test {
         filter.insert("aa/#", socket);
         let socket = "127.0.2.1:0".parse::<SocketAddr>().unwrap();
         filter.insert("bb/#", socket);
-        let mut r = filter.match_topic_concrete("aa/bb");
+        let r = filter.match_topic_concrete("aa/bb");
         dbg!(&r);
-        let mut r = filter.match_topic_wildcard("aa/dd");
+        let r = filter.match_topic_wildcard("aa/dd");
         dbg!(&r);
-        let mut r = filter.match_topic_wildcard("zz/dd");
+        let r = filter.match_topic_wildcard("zz/dd");
         dbg!(&r);
         dbg!(&filter);
     }
