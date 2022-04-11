@@ -5,6 +5,7 @@ pub mod Advertise;
 pub mod ClientLib;
 pub mod ConnAck;
 pub mod Connect;
+pub mod Connection;
 // pub mod ConnectionDb;
 pub mod DebugFunctions;
 pub mod Disconnect;

@@ -1,4 +1,8 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex};
+
+use crate::Connection::Connection;
+use std::net::SocketAddr;
 
 /// Checks if a topic or topic filter has wildcards
 pub fn has_wildcards(filter: &str) -> bool {
@@ -10,7 +14,6 @@ pub fn has_wildcards(filter: &str) -> bool {
 // subscribe to multiple topics at once.
 pub fn valid_filter(filter: &str) -> bool {
     if !filter.is_empty() {
-        dbg!(filter.len());
         if has_wildcards(filter) {
             // Verify multi level wildcards.
             if filter.find('#') == Some(filter.len() - 1)
@@ -69,54 +72,150 @@ pub fn match_topic(topic: &str, filter: &str) -> bool {
 
 #[derive(Debug, Clone)]
 pub struct Filter {
-    wildcard_topics: HashSet<String>, // concrete topic match wildcard_filters.
-    wildcard_filters: Vec<(String, u8)>,
-    concrete_filters: HashMap<String, u8>,
+    wildcard_topics: HashMap<String, Arc<Mutex<HashSet<SocketAddr>>>>, // concrete topic match wildcard_filters.
+    wildcard_filters: HashMap<String, Arc<Mutex<HashSet<SocketAddr>>>>,
+    concrete_filters: HashMap<String, Arc<Mutex<HashSet<SocketAddr>>>>,
 }
 
 impl Filter {
     pub fn new() -> Self {
         Filter {
-            wildcard_topics: HashSet::new(),
-            wildcard_filters: Vec::new(),
+            wildcard_topics: HashMap::new(),
+            wildcard_filters: HashMap::new(),
             concrete_filters: HashMap::new(),
         }
     }
     // TODO return better error
-    pub fn add(&mut self, filter: &str) -> bool {
+    pub fn insert(&mut self, filter: &str, socket_addr: SocketAddr) -> bool {
         if valid_filter(filter) {
             if has_wildcards(filter) {
-                self.wildcard_filters.push((filter.to_string(), 0));
+                let conn_set = self
+                    .wildcard_filters
+                    .entry(filter.to_string())
+                    .or_insert(Arc::new(Mutex::new(HashSet::new())));
+                let mut conn_set = conn_set.lock().unwrap();
+                conn_set.insert(socket_addr);
             } else {
-                self.concrete_filters.insert(filter.to_string(), 0);
+                let conn_set = self
+                    .concrete_filters
+                    .entry(filter.to_string())
+                    .or_insert(Arc::new(Mutex::new(HashSet::new())));
+                let mut conn_set = conn_set.lock().unwrap();
+                conn_set.insert(socket_addr);
             }
             return true;
         }
         false
+    }
+    pub fn match_topic_concrete(
+        &mut self,
+        topic: &str,
+    ) -> Option<HashSet<SocketAddr>> {
+        // Publish topic shouldn't have wildcards.
+        if !has_wildcards(topic) {
+            if let Some(socket_set) = self.concrete_filters.get(topic) {
+                return Some(socket_set.lock().unwrap().clone());
+            }
+        }
+        None
     }
 
-    pub fn match_topic(&mut self, topic: &str) -> bool {
+    pub fn match_topic_wildcard(
+        &mut self,
+        topic: &str,
+    ) -> Option<HashSet<SocketAddr>> {
         // Publish topic shouldn't have wildcards.
-        if has_wildcards(topic) {
-            return false;
-        }
-        if self.wildcard_topics.contains(topic) {
-            return true;
-        }
-        if let Some(_n) = self.concrete_filters.get(topic) {
-            return true;
-        }
-        for (filter, _n) in self.wildcard_filters.iter() {
-            if match_topic(topic, filter) {
-                self.wildcard_topics.insert(topic.to_owned());
-                return true;
+        if !has_wildcards(topic) {
+            if let Some(socket_set) = self.wildcard_topics.get(topic) {
+                return Some(socket_set.lock().unwrap().clone());
+            } else {
+                for (filter, socket_set) in &self.wildcard_filters {
+                    dbg!((filter, socket_set));
+                    if match_topic(topic, filter) {
+                        dbg!((filter, socket_set));
+                        self.wildcard_topics
+                            .insert(topic.to_string(), socket_set.clone());
+                    }
+                }
+            }
+            if let Some(socket_set) = self.wildcard_topics.get(topic) {
+                return Some(socket_set.lock().unwrap().clone());
             }
         }
-        false
+        None
+    }
+
+    pub fn match_topic(&mut self, topic: &str) -> Option<HashSet<SocketAddr>> {
+        // Publish topic shouldn't have wildcards.
+        if has_wildcards(topic) {
+            return None;
+        }
+
+        let mut new_set:HashSet<SocketAddr> = HashSet::new();
+        if let Some(socket_set) = self.wildcard_topics.get(topic) {
+
+            // return Some(socket_set.lock().unwrap().clone());
+            let wildcard_set = socket_set.lock().unwrap().clone();
+            new_set.extend(&wildcard_set);
+        } else {
+            for (filter, socket_set) in &self.wildcard_filters {
+                dbg!((filter, socket_set));
+                if match_topic(topic, filter) {
+                    dbg!((filter, socket_set));
+                    self.wildcard_topics
+                        .insert(topic.to_string(), socket_set.clone());
+                }
+            }
+        }
+        if let Some(socket_set) = self.concrete_filters.get(topic) {
+            // return Some(socket_set.lock().unwrap().clone());
+            let concrete_set = socket_set.lock().unwrap().clone();
+            new_set.extend(&concrete_set);
+        }
+        if !new_set.is_empty() {
+            return Some(new_set);
+        }
+        None
     }
 }
+
 #[cfg(test)]
 mod test {
+    use std::net::SocketAddr;
+    #[test]
+    fn test_insert() {
+        let mut filter = super::Filter::new();
+
+        let socket = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
+        filter.insert("aa/bb", socket);
+        let socket = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
+        filter.insert("aa/cc", socket);
+        let socket = "127.0.0.2:0".parse::<SocketAddr>().unwrap();
+        filter.insert("aa/bb", socket);
+        let mut r = filter.match_topic("aa/bb").unwrap();
+        dbg!(&r);
+
+        // test for r is a pointer to the same set
+        let socket = "127.0.0.3:0".parse::<SocketAddr>().unwrap();
+        r.insert(socket);
+        dbg!(&filter);
+
+        let socket = "127.0.2.1:0".parse::<SocketAddr>().unwrap();
+        filter.insert("aa/#", socket);
+        let socket = "127.0.3.1:0".parse::<SocketAddr>().unwrap();
+        filter.insert("aa/#", socket);
+        let socket = "127.0.2.1:0".parse::<SocketAddr>().unwrap();
+        filter.insert("bb/#", socket);
+        let mut r = filter.match_topic_concrete("aa/bb");
+        dbg!(&r);
+        let mut r = filter.match_topic_wildcard("aa/dd");
+        dbg!(&r);
+        let mut r = filter.match_topic_wildcard("zz/dd");
+        dbg!(&r);
+        dbg!(&filter);
+    }
+
+    /*
     #[test]
     fn filer_add() {
         let mut filter = super::Filter::new();
@@ -227,4 +326,5 @@ mod test {
         assert!(super::match_topic(filter1, filter2));
         assert!(!super::match_topic(filter2, filter1));
     }
+    */
 }
