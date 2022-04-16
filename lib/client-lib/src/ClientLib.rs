@@ -3,7 +3,7 @@ use std::{hint, thread};
 use std::{net::SocketAddr, sync::Arc, sync::Mutex};
 
 use crate::TimingWheel2::RetransTimeWheel;
-use bytes::{BytesMut};
+use bytes::BytesMut;
 use core::fmt::Debug;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 
@@ -14,6 +14,7 @@ use crate::{
     Channels::Channels,
     ConnAck::ConnAck,
     Connect::Connect,
+    Connection::{ConnHashMap},
     PubAck::PubAck,
     Publish::Publish,
     StateMachine::{StateMachine, STATE_DISCONNECT},
@@ -110,9 +111,12 @@ pub struct MqttSnClient {
     pub subscribe_rx: Receiver<Publish>,
     state: Arc<Mutex<u8>>,
     state_machine: StateMachine,
+    pub conn_hashmap: ConnHashMap,
 }
 
 impl MqttSnClient {
+    // TODO change Client to Broker
+    // TODO change remote_addr to local_addr
     pub fn new(remote_addr: SocketAddr) -> Self {
         let (cancel_tx, cancel_rx): (
             Sender<(SocketAddr, u8, u16, u16)>,
@@ -126,10 +130,8 @@ impl MqttSnClient {
             Sender<(SocketAddr, BytesMut)>,
             Receiver<(SocketAddr, BytesMut)>,
         ) = unbounded();
-        let (subscribe_tx, subscribe_rx): (
-            Sender<Publish>,
-            Receiver<Publish>,
-        ) = unbounded();
+        let (subscribe_tx, subscribe_rx): (Sender<Publish>, Receiver<Publish>) =
+            unbounded();
         let retrans_time_wheel = RetransTimeWheel::new(
             100,
             300,
@@ -151,6 +153,7 @@ impl MqttSnClient {
             transmit_rx,
             subscribe_tx,
             subscribe_rx,
+            conn_hashmap: ConnHashMap::new(1111, remote_addr),
         }
     }
 
@@ -235,7 +238,7 @@ impl MqttSnClient {
                             continue;
                         };
                         if msg_type == MSG_TYPE_CONNECT {
-                            Connect::rx(&buf, size, &self);
+                            Connect::rx(&buf, size, &mut self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_CONNACK {
