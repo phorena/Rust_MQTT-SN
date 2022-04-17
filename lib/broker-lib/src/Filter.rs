@@ -55,7 +55,7 @@ pub fn match_topic(topic: &str, filter: &str) -> bool {
         }
 
         // filter still has remaining elements
-        // filter = a/b/c/# should match topic = a/b/c
+        // filter = a/b/c/# should match topci = a/b/c
         // filter = a/b/c/d should not match topic = a/b/c
         let top = topics.next();
         match top {
@@ -191,11 +191,21 @@ impl Filter {
         None
     }
 }
-#[repr(C)]
-pub union MyUnion {
-    sock_addr: SocketAddr,
-    bytes: [u8; 6],
+
+
+lazy_static! {
+    pub static ref GLOBAL_FILTERS: Mutex<Filter> =
+        Mutex::new(Filter::new());
 }
+
+pub fn global_filters_insert(filter: &str, id: ConnId) -> Result<(), String> {
+    let mut filters = GLOBAL_FILTERS.lock().unwrap();
+    if !filters.insert(filter, id) {
+        return Err(format!("Filter {} already exists", filter));
+    }
+    Ok(())
+}
+
 
 #[cfg(test)]
 mod test {
