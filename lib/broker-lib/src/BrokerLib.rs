@@ -1,5 +1,5 @@
 use std::net::UdpSocket;
-use std::{hint, thread};
+use std::thread;
 use std::{net::SocketAddr, sync::Arc, sync::Mutex};
 
 use crate::TimingWheel2::RetransTimeWheel;
@@ -14,17 +14,22 @@ use crate::{
     Channels::Channels,
     ConnAck::ConnAck,
     Connect::Connect,
-    Connection::{ConnHashMap},
+    // Connection::ConnHashMap,
     PubAck::PubAck,
     Publish::Publish,
     StateMachine::{StateMachine, STATE_DISCONNECT},
     SubAck::SubAck,
     Subscribe::Subscribe,
     TimingWheel2::{RetransmitData, RetransmitHeader},
-    MSG_TYPE_CONNACK, MSG_TYPE_CONNECT, MSG_TYPE_PUBACK, MSG_TYPE_PUBLISH,
-    MSG_TYPE_PUBREC, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE,
+    MSG_TYPE_CONNACK,
+    MSG_TYPE_CONNECT,
+    MSG_TYPE_PUBACK,
+    MSG_TYPE_PUBLISH,
+    MSG_TYPE_PUBREC,
+    MSG_TYPE_SUBACK,
+    MSG_TYPE_SUBSCRIBE,
 };
-use trace_var::trace_var;
+// use trace_var::trace_var;
 
 macro_rules! function {
     () => {{
@@ -89,11 +94,23 @@ macro_rules! dbg_buf {
     };
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum MessageTypeEnum {
+    Connect(Connect),
+    ConnAct(ConnAck),
+    Subscribe(Subscribe),
+    SubAck(SubAck),
+    Publish(Publish),
+    PubAck(PubAck),
+}
+
 #[derive(Debug, Clone)]
 pub struct MqttSnClient {
     // socket: UdpSocket, // clone not implemented
     // state: AtomicU8, // clone not implemented
     pub remote_addr: SocketAddr,
+    //    pub local_addr: SocketAddr,
+    pub context: u16,
 
     pub transmit_tx: Sender<(SocketAddr, BytesMut)>,
     pub cancel_tx: Sender<(SocketAddr, u8, u16, u16)>,
@@ -111,7 +128,7 @@ pub struct MqttSnClient {
     pub subscribe_rx: Receiver<Publish>,
     state: Arc<Mutex<u8>>,
     state_machine: StateMachine,
-    pub conn_hashmap: ConnHashMap,
+    // pub conn_hashmap: ConnHashMap,
 }
 
 impl MqttSnClient {
@@ -144,6 +161,7 @@ impl MqttSnClient {
         );
         MqttSnClient {
             remote_addr,
+            context: 0,
             retrans_time_wheel,
             state: Arc::new(Mutex::new(STATE_DISCONNECT)),
             state_machine: StateMachine::new(),
@@ -153,7 +171,7 @@ impl MqttSnClient {
             transmit_rx,
             subscribe_tx,
             subscribe_rx,
-            conn_hashmap: ConnHashMap::new(1111, remote_addr),
+            // conn_hashmap: ConnHashMap::new(),
         }
     }
 
@@ -239,6 +257,10 @@ impl MqttSnClient {
                         };
                         if msg_type == MSG_TYPE_CONNECT {
                             Connect::rx(&buf, size, &mut self);
+                            continue;
+                        };
+                        if msg_type == MSG_TYPE_SUBSCRIBE {
+                            Subscribe::rx(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_CONNACK {

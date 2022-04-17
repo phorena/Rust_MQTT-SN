@@ -16,7 +16,7 @@ use crate::{
         TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
         WILL_FALSE, WILL_TRUE,
     },
-    ClientLib::MqttSnClient,
+    BrokerLib::MqttSnClient,
     Errors::ExoError,
     PubAck::PubAck,
     PubRec::PubRec,
@@ -50,7 +50,9 @@ pub struct Publish3Bytes {
 }
 */
 
-#[derive(Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default)]
+#[derive(
+    Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default, PartialEq,
+)]
 #[getset(get, set)]
 pub struct Publish {
     len: u8,

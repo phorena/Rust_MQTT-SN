@@ -6,24 +6,30 @@ use std::str;
 
 use crate::{
     flags::{
-        flag_is_clean_session, flag_is_will, flag_qos_level, flags_set,
+        flag_is_clean_session,
+        flag_is_will,
+        /*
+        flag_qos_level, flags_set,
         CleanSessionConst, DupConst, QoSConst, RetainConst, TopicIdTypeConst,
         WillConst, CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE, DUP_FALSE,
         DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
         RETAIN_FALSE, RETAIN_TRUE, TOPIC_ID_TYPE_NORNAL,
         TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
         WILL_FALSE, WILL_TRUE,
+        */
     },
-    ClientLib::MqttSnClient,
+    BrokerLib::MqttSnClient,
     ConnAck::ConnAck,
-    Connection::Connection,
+    Connection::{connection_hashmap_insert, Connection},
     // flags::{flags_set, flag_qos_level, },
+    MSG_TYPE_CONNACK,
+    MSG_TYPE_CONNECT,
+    RETURN_CODE_ACCEPTED,
+    /*
     Errors::ExoError,
     MSG_LEN_PUBACK,
     MSG_LEN_PUBREC,
 
-    MSG_TYPE_CONNACK,
-    MSG_TYPE_CONNECT,
     MSG_TYPE_PUBACK,
     MSG_TYPE_PUBCOMP,
     MSG_TYPE_PUBLISH,
@@ -33,9 +39,12 @@ use crate::{
 
     MSG_TYPE_SUBSCRIBE,
     RETURN_CODE_ACCEPTED,
+    */
 };
 
-#[derive(Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default)]
+#[derive(
+    Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default, PartialEq,
+)]
 #[getset(get, set)]
 pub struct Connect {
     pub len: u8,
@@ -135,12 +144,13 @@ impl Connect {
             // client_id
             // send connack
 
-            ConnAck::tx(client, 0);
-
             // add connection to connection hashmaps.
             let connection =
                 Connection::new(client.remote_addr, connect.duration)?;
-            let conn_id = client.conn_hashmap.insert(connection)?;
+            let _result = connection_hashmap_insert(connection)?;
+            dbg!(_result);
+            // Send connack to client after connection is established.
+            ConnAck::tx(client, RETURN_CODE_ACCEPTED);
             Ok(())
         } else {
             // return Err(ExoError::LenError(read_len, size));

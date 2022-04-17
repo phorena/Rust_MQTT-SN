@@ -13,7 +13,7 @@ use crate::{
         TOPIC_ID_TYPE_NORNAL, TOPIC_ID_TYPE_PRE_DEFINED,
         TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
     },
-    ClientLib::MqttSnClient,
+    BrokerLib::MqttSnClient,
     Errors::ExoError,
     // flags::{flags_set, flag_qos_level, },
     StateMachine,
@@ -31,7 +31,9 @@ use crate::{
     MSG_TYPE_SUBSCRIBE,
     RETURN_CODE_ACCEPTED,
 };
-#[derive(Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default)]
+#[derive(
+    Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default, PartialEq,
+)]
 #[getset(get, set)]
 pub struct PubRec {
     pub len: u8,

@@ -21,13 +21,10 @@ use trace_var::trace_var;
 use bytes::{BufMut, BytesMut};
 
 // use DTLS::dtls_client::DtlsClient;
-use client_lib::*;
-use ClientLib::MqttSnClient;
+use broker_lib::*;
+use BrokerLib::MqttSnClient;
 
-fn generate_client_id() -> String {
-    format!("exofense/{}", nanoid!())
-}
-
+/*
 fn mpmc() {
     let (tx, rx) = unbounded();
     let rx2 = rx.clone();
@@ -47,12 +44,11 @@ fn mpmc() {
     let rx_thread2 = thread::spawn(move || loop {
         dbg!(rx2.recv());
     });
-    /*
     rx_thread2.join().expect("The sender thread has panicked");
     rx_thread.join().expect("The sender thread has panicked");
     tx_thread.join().expect("The sender thread has panicked");
-    */
 }
+    */
 
 fn main() {
     init_logging();
@@ -61,11 +57,8 @@ fn main() {
 
     let client = MqttSnClient::new(remote_addr);
     let client_loop = client.clone();
-    let client_main = client.clone();
     let client_sub = client.clone();
-    let client_id = generate_client_id();
     client_loop.broker_rx_loop(socket);
-    let mut i = 0;
 
     // This thread reads the channel for all subscribed topics.
     // The struct Publish is recv.
