@@ -46,4 +46,5 @@ trace_caller = { version = "0.2.0", path = "../trace_caller" }
 uuid = { version = "0.8", features = ["serde", "v1", "v4"] }
 rand = "0.8.5"
 lazy_static = "1.4.0"
+hashbrown = "0.12.0"
 

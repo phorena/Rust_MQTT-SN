@@ -1,7 +1,7 @@
 use crate::Filter::Filter;
 // use log::*;
 // use rand::Rng;
-use std::collections::HashMap;
+use hashbrown::HashMap;
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -70,6 +70,11 @@ pub fn generate_conn_id(
     Ok(uuid)
 }
 
+/// A connection is CURRENT network connection a client connects to the server.
+/// The filter is used to delete its global filters when the client disconnects 
+/// or unsubscribes.
+/// In the future, the client might be able to connect to multiple servers and
+/// move to a different network connection. 
 #[derive(Debug, Clone)]
 pub struct Connection {
     socket_addr: SocketAddr,
@@ -96,110 +101,97 @@ impl Connection {
 }
 
 lazy_static! {
-    /// Store ConnectionID with SocketAddr indexing
-    /// because SocketAddr can change when the client reconnects.
-    static ref SOCKET_ADDR_HASHMAP: Mutex<HashMap<SocketAddr, ConnId>> =
+    static ref CONN_HASHMAP: Mutex<HashMap<SocketAddr, Connection>> =
         Mutex::new(HashMap::new());
-    /// Store Connection with ConnId indexing.
-    static ref ID_HASHMAP: Mutex<HashMap<ConnId, Connection>> =
+
+    // TODO: for connection migration, when the client has a new socket_addr,
+    //       use the ConnId to locate the connection.
+    static ref CONN_ID_HASHMAP: Mutex<HashMap<ConnId, SocketAddr>> =
         Mutex::new(HashMap::new());
 }
 
-// Insert a new connection into the hashmaps.
-pub fn connection_hashmap_insert(conn: Connection) -> Result<(), String> {
+pub fn connection_insert(conn: Connection) -> Result<(), String> {
+    let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
     let socket_addr = conn.socket_addr;
-    let mut socket_addr_hashmap = SOCKET_ADDR_HASHMAP.lock().unwrap();
-    let mut id_hashmap = ID_HASHMAP.lock().unwrap();
-    if !socket_addr_hashmap.contains_key(&socket_addr) {
-        // TODO change context 999 to a global value
-        let id = generate_conn_id(socket_addr, 999)?;
-        id_hashmap.insert(id, conn);
-        socket_addr_hashmap.insert(socket_addr, id);
-        return Ok(());
-    } else {
-        return Err(format!(
-            "{}: socket_addr: {} already exists",
+    let _result = match conn_hashmap.try_insert(socket_addr, conn) {
+        Ok(_) => return Ok(()),
+        Err(e) => return Err(format!(
+            "{}: socket_addr: {} already exists.",
+            function!(),
+            e.entry.key()
+        )),
+    };
+}
+
+/// Insert a new filter to the connection.
+/// 1. Find the connection by socket_addr.
+/// 2. Insert the filter to the connection.
+pub fn connection_filter_insert(filter: &str, socket_addr: SocketAddr) -> Result<(), String> {
+    let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
+    match conn_hashmap.get_mut(&socket_addr) {
+        Some(conn) => {
+            conn.filter.insert(filter, socket_addr)?;
+            dbg!(conn_hashmap);
+            return Ok(());
+        },
+        _ => return Err(format!(
+            "{}: socket_addr: {} doesn't exist.",
             function!(),
             socket_addr
-        ));
-    }
-}
-
-/// Insert a filter into the connection hashmap.
-pub fn connection_filter_insert(
-    socket_addr: SocketAddr,
-    filter: String,
-) -> Result<ConnId, String> {
-    let socket_addr_hashmap = SOCKET_ADDR_HASHMAP.lock().unwrap();
-    let mut id_hashmap = ID_HASHMAP.lock().unwrap();
-    let id = socket_addr_hashmap.get(&socket_addr).unwrap();
-    dbg!(id);
-    let conn = id_hashmap.get_mut(&id).unwrap();
-    dbg!(conn.clone());
-    dbg!(filter.clone());
-    conn.filter.insert(&filter[..], *id);
-    dbg!(conn);
-    Ok(*id)
+        )),
+    };
 }
 
 #[cfg(test)]
 mod test {
     #[test]
     fn test_conn_hashmap() {
-        use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-        use std::thread;
+        use std::net::{SocketAddr};
 
+        // insert first connection
         let socket = "127.0.0.1:1200".parse::<SocketAddr>().unwrap();
         let connection = super::Connection::new(socket, 0).unwrap();
-        let result = super::connection_hashmap_insert(connection).unwrap();
-        dbg!(result);
+        let result = super::connection_insert(connection);
+        assert!(result.is_ok());
+
+        // insert duplicate, should fail.
         let socket = "127.0.0.1:1200".parse::<SocketAddr>().unwrap();
         let connection = super::Connection::new(socket, 0).unwrap();
-        let result = super::connection_hashmap_insert(connection);
+        let result = super::connection_insert(connection);
         assert!(!result.is_ok());
         dbg!(result);
+        
+        // insert different socket_addr, should succeed.
         let socket = "127.0.0.2:1200".parse::<SocketAddr>().unwrap();
         let connection = super::Connection::new(socket, 0).unwrap();
-        let result = super::connection_hashmap_insert(connection).unwrap();
-        dbg!(result);
-        dbg!(super::ID_HASHMAP.lock().unwrap());
-        dbg!(super::SOCKET_ADDR_HASHMAP.lock().unwrap());
-        let socket = "127.0.0.1:1200".parse::<SocketAddr>().unwrap();
-        let id = super::SOCKET_ADDR_HASHMAP
-            .lock()
-            .unwrap()
-            .get(&socket)
-            .unwrap()
-            .to_owned();
-        let socket = "127.0.0.5:1200".parse::<SocketAddr>().unwrap();
-        let connection = super::Connection::new(socket, 0).unwrap();
-        *super::ID_HASHMAP.lock().unwrap().get_mut(&id).unwrap() = connection;
-        dbg!(super::ID_HASHMAP.lock().unwrap());
-
-        let handle = thread::spawn(move || {
-            let socket = "127.0.0.7:1200".parse::<SocketAddr>().unwrap();
-            let connection = super::Connection::new(socket, 0).unwrap();
-            let result = super::connection_hashmap_insert(connection).unwrap();
-            dbg!(result);
-        });
-        handle.join().unwrap();
-        dbg!(super::ID_HASHMAP.lock().unwrap());
-        /*
-        let random_bytes = rand::thread_rng().gen::<[u8; 6]>();
-        println!("{:?}", random_bytes);
-        use std::net::{IpAddr, Ipv6Addr, SocketAddr};
-        let socket = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
-        // let mut conn_hashmap = super::ConnHashMap::new(11, socket);
-        let socket = "127.0.0.1:1200".parse::<SocketAddr>().unwrap();
-        let connection = super::Connection::new(socket, 0).unwrap();
-        // let result = conn_hashmap.insert(connection);
+        let result = super::connection_insert(connection);
         assert!(result.is_ok());
-        dbg!(result);
-        let connection = super::Connection::new(socket, 0).unwrap();
-        let result = conn_hashmap.insert(connection);
+        dbg!(super::CONN_HASHMAP.lock().unwrap());
+
+        // insert concrete topic to existing socket_addr/connection, should succeed.
+        let socket = "127.0.0.2:1200".parse::<SocketAddr>().unwrap();
+        let result = super::connection_filter_insert("test", socket);
+        assert!(result.is_ok());
+        dbg!(super::CONN_HASHMAP.lock().unwrap());
+
+        // insert filter to non-existing socket_addr, should fail.
+        let socket_new = "127.0.0.99:1200".parse::<SocketAddr>().unwrap();
+        let result = super::connection_filter_insert("test", socket_new);
         assert!(!result.is_ok());
         dbg!(result);
-        */
+
+        // insert duplicate filter to existing socket_addr, should fail.
+        let socket = "127.0.0.2:1200".parse::<SocketAddr>().unwrap();
+        let result = super::connection_filter_insert("test", socket);
+        assert!(!result.is_ok());
+        dbg!(result);
+
+        // insert wildcard filter to existing socket_addr/connection, should succeed.
+        let socket = "127.0.0.2:1200".parse::<SocketAddr>().unwrap();
+        let result = super::connection_filter_insert("test/#", socket);
+        assert!(result.is_ok());
+        dbg!(super::CONN_HASHMAP.lock().unwrap());
+
     }
     #[test]
     fn test_generate_uuid() {
@@ -229,28 +221,3 @@ mod test {
         dbg!(id);
     }
 }
-/*
-running 1 test
-[src/Connection.rs:176] id = Err(
-    "ipv6: ::ffff:0.0.0.1, segments: [0, 0, 0, 0, 0, 65535, 0, 1] not supported",
-)
-[src/Connection.rs:181] id = Ok(
-    98e73c4e-bbae-11ec-8000-7f00000104b0,
-)
-[src/Connection.rs:186] id = Ok(
-    98e73d83-bbae-11ec-8001-7f00000104b0,
-)
-[src/Connection.rs:191] id = Ok(
-    98e73e70-bbae-11ec-8000-7f00000204b0,
-)
-test Connection::test::test_generate_uuid ... ok
-
-[src/Connection.rs:181] id = Ok(
-    d8d577b2-bbae-11ec-8000-7f00000104b0,
-)
-[src/Connection.rs:186] id = Ok(
-    d8d57930-bbae-11ec-8001-7f00000104b0,
-)
-[src/Connection.rs:191] id = Ok(
-    d8d57a14-bbae-11ec-8000-7f00000204b0,
-*/
