@@ -3,20 +3,18 @@ use std::{hint, thread};
 use std::{net::SocketAddr, sync::Arc, sync::Mutex};
 
 use crate::TimingWheel2::RetransTimeWheel;
-use bytes::{Bytes, BytesMut};
-use chrono::{Datelike, Local, Timelike};
+use bytes::BytesMut;
 use core::fmt::Debug;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use crossbeam_utils;
 
 use log::*;
-use simplelog::*;
 
 use crate::{
     flags,
     Channels::Channels,
     ConnAck::ConnAck,
     Connect::Connect,
+    Connection::{ConnHashMap},
     PubAck::PubAck,
     Publish::Publish,
     StateMachine::{StateMachine, STATE_DISCONNECT},
@@ -96,23 +94,29 @@ pub struct MqttSnClient {
     // socket: UdpSocket, // clone not implemented
     // state: AtomicU8, // clone not implemented
     pub remote_addr: SocketAddr,
+
     pub transmit_tx: Sender<(SocketAddr, BytesMut)>,
     pub cancel_tx: Sender<(SocketAddr, u8, u16, u16)>,
     pub schedule_tx: Sender<(SocketAddr, u8, u16, u16, BytesMut)>,
 
-    pub sub_channel_tx: Sender<Publish>,
+    // Channel for subscriber to receive messages from the broker
+    // publish messages.
+    pub subscribe_tx: Sender<Publish>,
 
     transmit_rx: Receiver<(SocketAddr, BytesMut)>,
     // cancel_rx: Receiver<(SocketAddr, u8, u16, u16)>,
     // schedule_rx: Receiver<(SocketAddr, u8, u16, u16, BytesMut)>,
     retrans_time_wheel: RetransTimeWheel,
 
-    pub sub_channel_rx: Receiver<Publish>,
+    pub subscribe_rx: Receiver<Publish>,
     state: Arc<Mutex<u8>>,
     state_machine: StateMachine,
+    pub conn_hashmap: ConnHashMap,
 }
 
 impl MqttSnClient {
+    // TODO change Client to Broker
+    // TODO change remote_addr to local_addr
     pub fn new(remote_addr: SocketAddr) -> Self {
         let (cancel_tx, cancel_rx): (
             Sender<(SocketAddr, u8, u16, u16)>,
@@ -126,10 +130,8 @@ impl MqttSnClient {
             Sender<(SocketAddr, BytesMut)>,
             Receiver<(SocketAddr, BytesMut)>,
         ) = unbounded();
-        let (sub_channel_tx, sub_channel_rx): (
-            Sender<Publish>,
-            Receiver<Publish>,
-        ) = unbounded();
+        let (subscribe_tx, subscribe_rx): (Sender<Publish>, Receiver<Publish>) =
+            unbounded();
         let retrans_time_wheel = RetransTimeWheel::new(
             100,
             300,
@@ -149,8 +151,9 @@ impl MqttSnClient {
             cancel_tx,
             transmit_tx,
             transmit_rx,
-            sub_channel_tx,
-            sub_channel_rx,
+            subscribe_tx,
+            subscribe_rx,
+            conn_hashmap: ConnHashMap::new(1111, remote_addr),
         }
     }
 
@@ -235,7 +238,7 @@ impl MqttSnClient {
                             continue;
                         };
                         if msg_type == MSG_TYPE_CONNECT {
-                            Connect::rx(&buf, size, &self);
+                            Connect::rx(&buf, size, &mut self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_CONNACK {
@@ -349,7 +352,7 @@ impl MqttSnClient {
         retain: u8,
     ) -> &Receiver<Publish> {
         let sub = Subscribe::tx(topic, msg_id, qos, retain, &self);
-        &self.sub_channel_rx
+        &self.subscribe_rx
     }
     /// Publish a message
     /// 1. Format a message with Publish struct.

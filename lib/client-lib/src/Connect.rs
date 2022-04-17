@@ -16,6 +16,7 @@ use crate::{
     },
     ClientLib::MqttSnClient,
     ConnAck::ConnAck,
+    Connection::Connection,
     // flags::{flags_set, flag_qos_level, },
     Errors::ExoError,
     MSG_LEN_PUBACK,
@@ -115,8 +116,8 @@ impl Connect {
     pub fn rx(
         buf: &[u8],
         size: usize,
-        client: &MqttSnClient,
-    ) -> Result<(), ExoError> {
+        client: &mut MqttSnClient,
+    ) -> Result<(), String> {
         // TODO replace unwrap
         let (connect, read_fixed_len) = Connect::try_read(&buf, size).unwrap();
         dbg!(connect.clone());
@@ -136,9 +137,14 @@ impl Connect {
 
             ConnAck::tx(client, 0);
 
+            // add connection to connection hashmaps.
+            let connection =
+                Connection::new(client.remote_addr, connect.duration)?;
+            let conn_id = client.conn_hashmap.insert(connection)?;
             Ok(())
         } else {
-            return Err(ExoError::LenError(read_len, size));
+            // return Err(ExoError::LenError(read_len, size));
+            return Err("connect rx len error".to_string());
         }
     }
 }

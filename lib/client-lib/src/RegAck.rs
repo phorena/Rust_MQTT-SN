@@ -3,6 +3,9 @@ use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
 use std::mem;
 
+use crate::{
+    ClientLib::MqttSnClient, Errors::ExoError, MSG_LEN_REGACK, MSG_TYPE_REGACK,
+};
 #[derive(Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default)]
 #[getset(get, set)]
 pub struct RegAck {
@@ -34,5 +37,50 @@ impl RegAck {
     fn constraint_return_code(_val: &u8) -> bool {
         //dbg!(_val);
         true
+    }
+
+    #[inline(always)]
+    pub fn rx(
+        buf: &[u8],
+        size: usize,
+        client: &MqttSnClient,
+    ) -> Result<(u16, u16, u8), ExoError> {
+        let (reg_ack, read_len) = RegAck::try_read(&buf, size).unwrap();
+        dbg!(reg_ack.clone());
+
+        if read_len == MSG_LEN_REGACK as usize {
+            client.cancel_tx.send((
+                client.remote_addr,
+                reg_ack.msg_type,
+                reg_ack.topic_id,
+                reg_ack.msg_id,
+            ));
+
+            Ok((reg_ack.topic_id, reg_ack.msg_id, reg_ack.return_code))
+        } else {
+            Err(ExoError::LenError(read_len, MSG_LEN_REGACK as usize))
+        }
+    }
+
+    #[inline(always)]
+    pub fn tx(
+        topic_id: u16,
+        msg_id: u16,
+        return_code: u8,
+        client: &MqttSnClient,
+    ) {
+        let reg_ack = RegAck {
+            len: MSG_LEN_REGACK,
+            msg_type: MSG_TYPE_REGACK,
+            topic_id,
+            msg_id,
+            return_code,
+        };
+        dbg!(reg_ack.clone());
+        let mut bytes = BytesMut::with_capacity(MSG_LEN_REGACK as usize);
+        reg_ack.try_write(&mut bytes);
+        dbg!(bytes.clone());
+        dbg!(client.remote_addr);
+        client.transmit_tx.send((client.remote_addr, bytes));
     }
 }
