@@ -4,6 +4,9 @@ use getset::{CopyGetters, Getters, MutGetters, Setters};
 use std::mem;
 use std::str;
 
+extern crate trace_caller;
+use trace_caller::trace;
+
 use crate::{
     //     StateMachine,
     flags::{
@@ -92,6 +95,7 @@ impl Subscribe {
     */
 
     // TODO error checking and return
+    #[trace]
     pub fn tx(
         topic: String,
         msg_id: u16,
@@ -117,6 +121,7 @@ impl Subscribe {
     }
 
     #[inline(always)]
+    #[trace]
     pub fn rx(
         buf: &[u8],
         size: usize,

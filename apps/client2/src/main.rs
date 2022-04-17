@@ -88,7 +88,7 @@ fn main() {
     // The struct Publish is recv.
     // TODO return error for subscribe and publish function calls.
     let rx_thread2 = thread::spawn(move || loop {
-        dbg!(client_sub.sub_channel_rx.recv());
+        dbg!(client_sub.subscribe_rx.recv());
     });
 
     let publish_thread = thread::spawn(move || loop {

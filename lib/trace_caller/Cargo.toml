@@ -1,0 +1,19 @@
+[package]
+name = "trace_caller"
+version = "0.2.0"
+authors = ["Ayush Kumar Mishra <ayushmishra2005@gmail.com>"]
+edition = "2018"
+
+description = "Trace the location of caller of a function."
+repository = "https://github.com/ayushmishra2005/trace_caller"
+readme = "README.md"
+keywords = ["trace_caller", "caller", "track", "track_location", "track-source"]
+categories = ["development-tools::debugging", "development-tools", "development-tools::testing"]
+license = "MIT"
+
+[dependencies]
+trace_caller_macro = { version = "0.1.0", path = "./trace_caller_macro" }
+backtrace = "0.3.45"
+
+[workspace]
+members = ["trace_caller_macro"]

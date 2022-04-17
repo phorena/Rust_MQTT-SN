@@ -5,6 +5,9 @@ use getset::{CopyGetters, Getters, MutGetters, Setters};
 use std::mem;
 use std::str;
 
+extern crate trace_caller;
+use trace_caller::trace;
+
 use crate::{
     flags::{
         flag_qos_level, flags_set, CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE,
@@ -15,6 +18,8 @@ use crate::{
     },
     ClientLib::MqttSnClient,
     Errors::ExoError,
+    PubAck::PubAck,
+    PubRec::PubRec,
     MSG_LEN_PUBACK, MSG_LEN_PUBREC, MSG_TYPE_CONNACK, MSG_TYPE_CONNECT,
     MSG_TYPE_PUBACK, MSG_TYPE_PUBCOMP, MSG_TYPE_PUBLISH, MSG_TYPE_PUBREC,
     MSG_TYPE_PUBREL, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE, RETURN_CODE_ACCEPTED,
@@ -133,45 +138,12 @@ impl Publish {
         if read_len == size {
             match flag_qos_level(publish.flags) {
                 QOS_LEVEL_1 => {
-                    /* slow implementation
-                       let mut bytes_buf = BytesMut::with_capacity(7);
-                       let puback_bytes = PubAck {
-                       len: 7,
-                       msg_type: MsgType::PUBACK as u8,
-                       topic_id: publish.topic_id,
-                       msg_id: publish.msg_id,
-                       return_code: RETURN_CODE_ACCEPTED
-                       };
-                       puback_bytes.try_write(&mut bytes_buf);
-                       dbg!(&bytes_buf);
-                    // let amt = socket.send(&bytes_buf[..]);
-                    */
-
-                    // faster implementation
-                    // TODO verify big-endian or little-endian for u16 numbers
-                    // XXX order of statements performance
-                    let msg_id_byte_0 = publish.msg_id as u8;
-                    let topic_id_byte_0 = publish.topic_id as u8;
-                    let msg_id_byte_1 = (publish.msg_id >> 8) as u8;
-                    let topic_id_byte_1 = (publish.topic_id >> 8) as u8;
-                    // message format
-                    // PUBACK:[len(0), msg_type(1),
-                    //         topic_id(2,3), msg_id(4,5),
-                    //         return_code(6)]
-                    let mut bytes =
-                        BytesMut::with_capacity(MSG_LEN_PUBACK as usize);
-                    let buf: &[u8] = &[
-                        MSG_LEN_PUBACK,
-                        MSG_TYPE_PUBACK,
-                        topic_id_byte_1,
-                        topic_id_byte_0,
-                        msg_id_byte_1,
-                        msg_id_byte_0,
+                    PubAck::tx(
+                        publish.topic_id,
+                        publish.msg_id,
                         RETURN_CODE_ACCEPTED,
-                    ];
-                    bytes.put(buf);
-                    client.transmit_tx.send((client.remote_addr, bytes));
-                    dbg!(&buf);
+                        client,
+                    );
                 }
                 QOS_LEVEL_2 => {
                     // 4-way handshake for QoS level 2 message for the RECEIVER.
@@ -182,27 +154,10 @@ impl Publish {
                     // 3. Receive PUBREL - in PubRel module
                     //      reply with PUBCOMP
                     //      cancel restransmit of PUBREC
-                    let msg_id_byte_0 = publish.msg_id as u8;
-                    let msg_id_byte_1 = (publish.msg_id >> 8) as u8;
-                    // PUBREC:[len(0),msg_type(1),
-                    //         msg_id(2,3)]
-                    let mut bytes =
-                        BytesMut::with_capacity(MSG_LEN_PUBACK as usize);
-                    let buf: &[u8] = &[
-                        MSG_LEN_PUBREC,
-                        MSG_TYPE_PUBREC,
-                        msg_id_byte_1,
-                        msg_id_byte_0,
-                    ];
-                    // TODO change to channel
-                    bytes.put(buf);
-                    client
-                        .transmit_tx
-                        .send((client.remote_addr, bytes.clone()));
-                    dbg!(&buf);
+
+                    let bytes = PubRec::tx(publish.msg_id, client);
                     // PUBREL message doesn't have topic id.
                     // For the time wheel hash, default to 0.
-
                     client.schedule_tx.send((
                         client.remote_addr,
                         MSG_TYPE_PUBREL,
@@ -220,7 +175,7 @@ impl Publish {
             // if retain {
             //   send a message to save the message in the topic db
             // }
-            client.sub_channel_tx.send(publish);
+            client.subscribe_tx.send(publish);
             Ok(())
         } else {
             return Err(ExoError::LenError(read_len, size));
@@ -232,6 +187,7 @@ impl Publish {
     /// 3. Send it to the channel.
     /// 4. Schedule retransmit for QoS Level 1 & 2.
     #[inline(always)]
+    #[trace]
     pub fn tx(
         topic_id: u16,
         msg_id: u16,
