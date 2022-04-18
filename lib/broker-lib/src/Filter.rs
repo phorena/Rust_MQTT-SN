@@ -1,10 +1,21 @@
-use std::collections::{HashMap, HashSet};
+use hashbrown::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
-use crate::Connection::{ConnId, Connection};
+// use crate::Connection::ConnId;
 use std::net::SocketAddr;
-use uuid::v1::{Context, Timestamp};
-use uuid::Uuid;
+//use uuid::v1::{Context, Timestamp};
+//use uuid::Uuid;
+
+macro_rules! function {
+    () => {{
+        fn f() {}
+        fn type_name_of<T>(_: T) -> &'static str {
+            std::any::type_name::<T>()
+        }
+        let name = type_name_of(f);
+        &name[..name.len() - 3]
+    }};
+}
 
 /// Checks if a topic or topic filter has wildcards
 #[inline(always)]
@@ -77,9 +88,9 @@ pub fn match_topic(topic: &str, filter: &str) -> bool {
 
 #[derive(Debug, Clone)]
 pub struct Filter {
-    wildcard_topics: HashMap<String, Arc<Mutex<HashSet<ConnId>>>>,
-    wildcard_filters: HashMap<String, Arc<Mutex<HashSet<ConnId>>>>,
-    concrete_topics: HashMap<String, Arc<Mutex<HashSet<ConnId>>>>,
+    wildcard_topics: HashMap<String, Arc<Mutex<HashSet<SocketAddr>>>>,
+    wildcard_filters: HashMap<String, Arc<Mutex<HashSet<SocketAddr>>>>,
+    concrete_topics: HashMap<String, Arc<Mutex<HashSet<SocketAddr>>>>,
 }
 
 impl Filter {
@@ -91,9 +102,9 @@ impl Filter {
         }
     }
     // TODO return better error
-    /// Insert a new filter/subscription from a connection.
+    /// Insert a new filter/subscription from a connection subscription.
     #[inline(always)]
-    pub fn insert(&mut self, filter: &str, id: ConnId) -> bool {
+    pub fn insert(&mut self, filter: &str, socket_addr: SocketAddr) -> Result<(), String> {
         if valid_filter(filter) {
             if has_wildcards(filter) {
                 let conn_set = self
@@ -101,26 +112,34 @@ impl Filter {
                     .entry(filter.to_string())
                     .or_insert(Arc::new(Mutex::new(HashSet::new())));
                 let mut conn_set = conn_set.lock().unwrap();
-                conn_set.insert(id);
+                if conn_set.insert(socket_addr) {
+                    return Ok(());
+                } else {
+                    // duplicate entry
+                    return Err(format!("{}: {} already subscribed to {}", function!(), socket_addr, filter));
+                }
             } else {
                 let conn_set = self
                     .concrete_topics
                     .entry(filter.to_string())
                     .or_insert(Arc::new(Mutex::new(HashSet::new())));
                 let mut conn_set = conn_set.lock().unwrap();
-                conn_set.insert(id);
+                if conn_set.insert(socket_addr) {
+                    return Ok(());
+                } else {
+                    // duplicate entry
+                    return Err(format!("{}: {} already subscribed to {}", function!(), socket_addr, filter));
+                }
             }
-            return true;
         }
-        false
+        Err(format!( "{}: invalid filter: {}.", function!(), filter))
     }
 
     #[inline(always)]
     pub fn match_topic_concrete(
         &mut self,
         topic: &str,
-    ) -> Option<HashSet<ConnId>> {
-        let id = Uuid::new_v4();
+    ) -> Option<HashSet<SocketAddr>> {
         if let Some(id_set) = self.concrete_topics.get(topic) {
             return Some(id_set.lock().unwrap().clone());
         }
@@ -131,7 +150,7 @@ impl Filter {
     pub fn match_topic_wildcard(
         &mut self,
         topic: &str,
-    ) -> Option<HashSet<ConnId>> {
+    ) -> Option<HashSet<SocketAddr>> {
         // Topic is in the wildcard_topics map.
         if let Some(id_set) = self.wildcard_topics.get(topic) {
             return Some(id_set.lock().unwrap().clone());
@@ -159,13 +178,13 @@ impl Filter {
     }
 
     // Doesn't work correctly.
-    pub fn match_topic(&mut self, topic: &str) -> Option<HashSet<ConnId>> {
+    pub fn match_topic(&mut self, topic: &str) -> Option<HashSet<SocketAddr>> {
         // Publish topic shouldn't have wildcards.
         if has_wildcards(topic) {
             return None;
         }
 
-        let mut new_set: HashSet<ConnId> = HashSet::new();
+        let mut new_set: HashSet<SocketAddr> = HashSet::new();
         if let Some(socket_set) = self.wildcard_topics.get(topic) {
             // return Some(socket_set.lock().unwrap().clone());
             let wildcard_set = socket_set.lock().unwrap().clone();
@@ -192,20 +211,16 @@ impl Filter {
     }
 }
 
-
 lazy_static! {
-    pub static ref GLOBAL_FILTERS: Mutex<Filter> =
-        Mutex::new(Filter::new());
+    pub static ref GLOBAL_FILTERS: Mutex<Filter> = Mutex::new(Filter::new());
 }
 
-pub fn global_filters_insert(filter: &str, id: ConnId) -> Result<(), String> {
+pub fn global_filter_insert(filter: &str, id: SocketAddr) -> Result<(), String> {
     let mut filters = GLOBAL_FILTERS.lock().unwrap();
-    if !filters.insert(filter, id) {
-        return Err(format!("Filter {} already exists", filter));
-    }
+    filters.insert(filter, id)?;
+    dbg!(filters);
     Ok(())
 }
-
 
 #[cfg(test)]
 mod test {
@@ -272,26 +287,16 @@ mod test {
         dbg!((context, ts, uuid));
 
         let mut filter = super::Filter::new();
-        let id = uuid::Uuid::new_v4();
-        filter.insert("aa/bb", id);
-        filter.insert("aa/cc", id);
-        let id = uuid::Uuid::new_v4();
-        filter.insert("aa/bb", id);
+        filter.insert("aa/bb", socket);
+        filter.insert("aa/cc", socket);
+        filter.insert("aa/bb", socket);
         let mut r = filter.match_topic("aa/bb").unwrap();
         dbg!(&r);
-
-        // Test for r is a pointer to the same set as the filter's set.
-        // Answer is no. r is a copy of the set, not pointer to the set.
-        let id = uuid::Uuid::new_v4();
-        r.insert(id);
         dbg!(&filter);
 
-        let id = uuid::Uuid::new_v4();
-        filter.insert("aa/#", id);
-        let id = uuid::Uuid::new_v4();
-        filter.insert("aa/#", id);
-        let id = uuid::Uuid::new_v4();
-        filter.insert("bb/#", id);
+        filter.insert("aa/#", socket);
+        filter.insert("aa/#", socket);
+        filter.insert("bb/#", socket);
         let r = filter.match_topic_concrete("aa/bb");
         dbg!(&r);
         let r = filter.match_topic_wildcard("aa/dd");

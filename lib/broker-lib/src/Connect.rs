@@ -20,7 +20,7 @@ use crate::{
     },
     BrokerLib::MqttSnClient,
     ConnAck::ConnAck,
-    Connection::{connection_hashmap_insert, Connection},
+    Connection::{connection_insert, Connection},
     // flags::{flags_set, flag_qos_level, },
     MSG_TYPE_CONNACK,
     MSG_TYPE_CONNECT,
@@ -147,7 +147,7 @@ impl Connect {
             // add connection to connection hashmaps.
             let connection =
                 Connection::new(client.remote_addr, connect.duration)?;
-            let _result = connection_hashmap_insert(connection)?;
+            let _result = connection_insert(connection)?;
             dbg!(_result);
             // Send connack to client after connection is established.
             ConnAck::tx(client, RETURN_CODE_ACCEPTED);
