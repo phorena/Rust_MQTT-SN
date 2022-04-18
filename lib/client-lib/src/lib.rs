@@ -86,6 +86,7 @@ pub const MSG_LEN_CONNACK: MsgLenConst = 3;
 pub const MSG_LEN_WILLMESSAGEREQ: MsgLenConst = 2;
 pub const MSG_LEN_REGACK:MsgLenConst=7;
 
+pub const MSG_LEN_WILLMSGRESP: MsgLenConst = 3;
 type ReturnCodeConst = u8;
 const RETURN_CODE_ACCEPTED: ReturnCodeConst = 0;
 const RETURN_CODE_CONGESTION: ReturnCodeConst = 1;
