@@ -215,9 +215,9 @@ lazy_static! {
     pub static ref GLOBAL_FILTERS: Mutex<Filter> = Mutex::new(Filter::new());
 }
 
-pub fn global_filter_insert(filter: &str, id: SocketAddr) -> Result<(), String> {
+pub fn global_filter_insert(filter: &str, socket_add: SocketAddr) -> Result<(), String> {
     let mut filters = GLOBAL_FILTERS.lock().unwrap();
-    filters.insert(filter, id)?;
+    filters.insert(filter, socket_add)?;
     dbg!(filters);
     Ok(())
 }
@@ -296,10 +296,16 @@ mod test {
 
         filter.insert("aa/#", socket);
         filter.insert("aa/#", socket);
-        filter.insert("bb/#", socket);
+        filter.insert("bb/+", socket);
+        let r = filter.match_topic_concrete("bb/bb");
+        dbg!(&r);
+        let r = filter.match_topic_concrete("bb/bb/cc");
+        dbg!(&r);
         let r = filter.match_topic_concrete("aa/bb");
         dbg!(&r);
         let r = filter.match_topic_wildcard("aa/dd");
+        dbg!(&r);
+        let r = filter.match_topic_wildcard("aa/ee/ff");
         dbg!(&r);
         let r = filter.match_topic_wildcard("zz/dd");
         dbg!(&r);

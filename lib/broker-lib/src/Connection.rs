@@ -101,6 +101,7 @@ impl Connection {
 }
 
 lazy_static! {
+    // TODO add comments!!!
     static ref CONN_HASHMAP: Mutex<HashMap<SocketAddr, Connection>> =
         Mutex::new(HashMap::new());
 
