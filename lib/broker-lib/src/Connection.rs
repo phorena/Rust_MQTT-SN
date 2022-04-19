@@ -71,10 +71,10 @@ pub fn generate_conn_id(
 }
 
 /// A connection is CURRENT network connection a client connects to the server.
-/// The filter is used to delete its global filters when the client disconnects 
+/// The filter is used to delete its global filters when the client disconnects
 /// or unsubscribes.
 /// In the future, the client might be able to connect to multiple servers and
-/// move to a different network connection. 
+/// move to a different network connection.
 #[derive(Debug, Clone)]
 pub struct Connection {
     socket_addr: SocketAddr,
@@ -116,30 +116,37 @@ pub fn connection_insert(conn: Connection) -> Result<(), String> {
     let socket_addr = conn.socket_addr;
     let _result = match conn_hashmap.try_insert(socket_addr, conn) {
         Ok(_) => return Ok(()),
-        Err(e) => return Err(format!(
-            "{}: socket_addr: {} already exists.",
-            function!(),
-            e.entry.key()
-        )),
+        Err(e) => {
+            return Err(format!(
+                "{}: socket_addr: {} already exists.",
+                function!(),
+                e.entry.key()
+            ))
+        }
     };
 }
 
 /// Insert a new filter to the connection.
 /// 1. Find the connection by socket_addr.
 /// 2. Insert the filter to the connection.
-pub fn connection_filter_insert(filter: &str, socket_addr: SocketAddr) -> Result<(), String> {
+pub fn connection_filter_insert(
+    filter: &str,
+    socket_addr: SocketAddr,
+) -> Result<(), String> {
     let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
     match conn_hashmap.get_mut(&socket_addr) {
         Some(conn) => {
             conn.filter.insert(filter, socket_addr)?;
             dbg!(conn_hashmap);
             return Ok(());
-        },
-        _ => return Err(format!(
-            "{}: socket_addr: {} doesn't exist.",
-            function!(),
-            socket_addr
-        )),
+        }
+        _ => {
+            return Err(format!(
+                "{}: socket_addr: {} doesn't exist.",
+                function!(),
+                socket_addr
+            ))
+        }
     };
 }
 
@@ -147,7 +154,7 @@ pub fn connection_filter_insert(filter: &str, socket_addr: SocketAddr) -> Result
 mod test {
     #[test]
     fn test_conn_hashmap() {
-        use std::net::{SocketAddr};
+        use std::net::SocketAddr;
 
         // insert first connection
         let socket = "127.0.0.1:1200".parse::<SocketAddr>().unwrap();
@@ -161,7 +168,7 @@ mod test {
         let result = super::connection_insert(connection);
         assert!(!result.is_ok());
         dbg!(result);
-        
+
         // insert different socket_addr, should succeed.
         let socket = "127.0.0.2:1200".parse::<SocketAddr>().unwrap();
         let connection = super::Connection::new(socket, 0).unwrap();
@@ -192,7 +199,6 @@ mod test {
         let result = super::connection_filter_insert("test/#", socket);
         assert!(result.is_ok());
         dbg!(super::CONN_HASHMAP.lock().unwrap());
-
     }
     #[test]
     fn test_generate_uuid() {

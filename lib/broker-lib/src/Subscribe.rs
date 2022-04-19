@@ -24,9 +24,9 @@ use crate::{
         WILL_FALSE,
     },
     BrokerLib::MqttSnClient,
+    Connection::connection_filter_insert,
     Errors::ExoError,
     Filter::global_filter_insert,
-    Connection::{connection_filter_insert},
     SubAck::SubAck,
     MSG_TYPE_SUBACK,
     MSG_TYPE_SUBSCRIBE,
@@ -143,8 +143,14 @@ impl Subscribe {
         // TODO check QoS, https://www.hivemq.com/blog/mqtt-essentials-
         // part-6-mqtt-quality-of-service-levels/
         if read_len == size {
-            connection_filter_insert(&subscribe.topic_name[..], client.remote_addr)?;
-            global_filter_insert(&subscribe.topic_name[..], client.remote_addr)?;
+            connection_filter_insert(
+                &subscribe.topic_name[..],
+                client.remote_addr,
+            )?;
+            global_filter_insert(
+                &subscribe.topic_name[..],
+                client.remote_addr,
+            )?;
             match flag_qos_level(subscribe.flags) {
                 // TODO topic_id & return_code need values
                 QOS_LEVEL_1 => {

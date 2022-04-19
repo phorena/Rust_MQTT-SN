@@ -126,7 +126,7 @@ impl Publish {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
-    ) -> Result<(), ExoError> {
+    ) -> Result<(), String> {
         // TODO replace unwrap
         let (publish, read_fixed_len) = Publish::try_read(&buf, size).unwrap();
         dbg!(publish.clone());
@@ -180,7 +180,8 @@ impl Publish {
             client.subscribe_tx.send(publish);
             Ok(())
         } else {
-            return Err(ExoError::LenError(read_len, size));
+            // TODO remove len check
+            return Err("len error".to_string());
         }
     }
     /// Publish a message

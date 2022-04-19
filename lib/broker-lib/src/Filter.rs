@@ -91,6 +91,7 @@ pub struct Filter {
     wildcard_topics: HashMap<String, Arc<Mutex<HashSet<SocketAddr>>>>,
     wildcard_filters: HashMap<String, Arc<Mutex<HashSet<SocketAddr>>>>,
     concrete_topics: HashMap<String, Arc<Mutex<HashSet<SocketAddr>>>>,
+    id_topics: HashMap<u16, Arc<Mutex<HashSet<SocketAddr>>>>, // only MQTT-SN
 }
 
 impl Filter {
@@ -99,12 +100,40 @@ impl Filter {
             wildcard_topics: HashMap::new(),
             wildcard_filters: HashMap::new(),
             concrete_topics: HashMap::new(),
+            id_topics: HashMap::new(), // only MQTT-SN
+        }
+    } 
+    /// only MQTT-SN
+    // TODO write tests for this
+    pub fn insert_id_topic(
+        &mut self,
+        id: u16,
+        socket_addr: SocketAddr,
+    ) -> Result<(), String> {
+        let conn_set = self
+            .id_topics
+            .entry(id)
+            .or_insert(Arc::new(Mutex::new(HashSet::new())));
+        let mut conn_set = conn_set.lock().unwrap();
+        if conn_set.insert(socket_addr) {
+            return Ok(());
+        } else {
+            // duplicate entry
+            return Err(format!(
+                "{}: {} already subscribed to {}",
+                function!(),
+                socket_addr,
+                id
+            ));
         }
     }
-    // TODO return better error
-    /// Insert a new filter/subscription from a connection subscription.
+    /// Insert a new filter/subscription string from a connection subscription.
     #[inline(always)]
-    pub fn insert(&mut self, filter: &str, socket_addr: SocketAddr) -> Result<(), String> {
+    pub fn insert(
+        &mut self,
+        filter: &str,
+        socket_addr: SocketAddr,
+    ) -> Result<(), String> {
         if valid_filter(filter) {
             if has_wildcards(filter) {
                 let conn_set = self
@@ -116,7 +145,12 @@ impl Filter {
                     return Ok(());
                 } else {
                     // duplicate entry
-                    return Err(format!("{}: {} already subscribed to {}", function!(), socket_addr, filter));
+                    return Err(format!(
+                        "{}: {} already subscribed to {}",
+                        function!(),
+                        socket_addr,
+                        filter
+                    ));
                 }
             } else {
                 let conn_set = self
@@ -128,11 +162,27 @@ impl Filter {
                     return Ok(());
                 } else {
                     // duplicate entry
-                    return Err(format!("{}: {} already subscribed to {}", function!(), socket_addr, filter));
+                    return Err(format!(
+                        "{}: {} already subscribed to {}",
+                        function!(),
+                        socket_addr,
+                        filter
+                    ));
                 }
             }
         }
-        Err(format!( "{}: invalid filter: {}.", function!(), filter))
+        Err(format!("{}: invalid filter: {}.", function!(), filter))
+    }
+
+    #[inline(always)]
+    pub fn match_topic_id(
+        &mut self,
+        topic: u16,
+    ) -> Option<HashSet<SocketAddr>> {
+        if let Some(id_set) = self.id_topics.get(&topic) {
+            return Some(id_set.lock().unwrap().clone());
+        }
+        None
     }
 
     #[inline(always)]
@@ -215,7 +265,10 @@ lazy_static! {
     pub static ref GLOBAL_FILTERS: Mutex<Filter> = Mutex::new(Filter::new());
 }
 
-pub fn global_filter_insert(filter: &str, socket_add: SocketAddr) -> Result<(), String> {
+pub fn global_filter_insert(
+    filter: &str,
+    socket_add: SocketAddr,
+) -> Result<(), String> {
     let mut filters = GLOBAL_FILTERS.lock().unwrap();
     filters.insert(filter, socket_add)?;
     dbg!(filters);
