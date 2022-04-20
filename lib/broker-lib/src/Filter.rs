@@ -1,10 +1,16 @@
 use hashbrown::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
+use bisetmap::BisetMap;
+
 // use crate::Connection::ConnId;
 use std::net::SocketAddr;
 //use uuid::v1::{Context, Timestamp};
 //use uuid::Uuid;
+
+use crate::flags::{
+    QoSConst, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
+};
 
 macro_rules! function {
     () => {{
@@ -94,6 +100,28 @@ pub struct Filter {
     id_topics: HashMap<u16, Arc<Mutex<HashSet<SocketAddr>>>>, // only MQTT-SN
 }
 
+#[derive(Debug, Clone)]
+pub struct Filter2 {
+    // wildcard_topics: HashMap<String, Arc<Mutex<HashSet<SocketAddr>>>>,
+    // wildcard_filters: HashMap<String, Arc<Mutex<HashSet<SocketAddr>>>>,
+    concrete_topics: BisetMap<String, SocketAddr>,
+    // id_topics: HashMap<u16, Arc<Mutex<HashSet<SocketAddr>>>>, // only MQTT-SN
+}
+
+impl Filter2 {
+    pub fn new() -> Self {
+        Filter2 {
+            // wildcard_topics: HashMap::new(),
+            // wildcard_filters: HashMap::new(),
+            concrete_topics: BisetMap::new(),
+            // id_topics: HashMap::new(), // only MQTT-SN
+        }
+    }
+    pub fn insert_topic(&mut self, topic: &str, addr: SocketAddr) {
+        self.concrete_topics.insert(topic.to_string(), addr);
+    }
+}
+
 impl Filter {
     pub fn new() -> Self {
         Filter {
@@ -102,7 +130,7 @@ impl Filter {
             concrete_topics: HashMap::new(),
             id_topics: HashMap::new(), // only MQTT-SN
         }
-    } 
+    }
     /// only MQTT-SN
     // TODO write tests for this
     pub fn insert_id_topic(
@@ -261,8 +289,146 @@ impl Filter {
     }
 }
 
+type TopicIdType = u16;
+
 lazy_static! {
     pub static ref GLOBAL_FILTERS: Mutex<Filter> = Mutex::new(Filter::new());
+    pub static ref GLOBAL_CONCRETE_TOPICS: Mutex<BisetMap<String, SocketAddr>> =
+        Mutex::new(BisetMap::new());
+    pub static ref GLOBAL_WILDCARD_TOPICS: Mutex<BisetMap<String, SocketAddr>> =
+        Mutex::new(BisetMap::new());
+    pub static ref GLOBAL_WILDCARD_FILTERS: Mutex<BisetMap<String, SocketAddr>> =
+        Mutex::new(BisetMap::new());
+    pub static ref GLOBAL_TOPIC_IDS: Mutex<BisetMap<TopicIdType, SocketAddr>> =
+        Mutex::new(BisetMap::new());
+    pub static ref GLOBAL_TOPIC_IDS_QOS: Mutex<BisetMap<(TopicIdType, SocketAddr), QoSConst>> =
+        Mutex::new(BisetMap::new());
+    /// Topic name to topic id map is 1:1. Using a BisetMap to allow access from both sides.
+    pub static ref GLOBAL_TOPIC_NAME_TO_IDS: Mutex<BisetMap<String, TopicIdType>> =
+        Mutex::new(BisetMap::new());
+    pub static ref GLOBAL_TOPIC_ID: Mutex<TopicIdType> = Mutex::new(0);
+}
+
+pub fn try_insert_topic_name_and_id(
+    topic_name: String,
+) -> Result<TopicIdType, String> {
+    let topic_ids = GLOBAL_TOPIC_NAME_TO_IDS.lock().unwrap().get(&topic_name);
+    // If topic name is already in the map, return the existing topic id,
+    // otherwise insert the topic name and topic id into the map.
+    if topic_ids.len() == 0 {
+        let topic_id = *GLOBAL_TOPIC_ID.lock().unwrap();
+        GLOBAL_TOPIC_NAME_TO_IDS.lock().unwrap().insert(topic_name, topic_id);
+        *GLOBAL_TOPIC_ID.lock().unwrap() = topic_id + 1;
+        return Ok(topic_id);
+    } else {
+        // Topic name is already in the map with only one topic id.
+        return Ok(topic_ids[0]);
+    }
+}
+
+#[inline(always)]
+pub fn insert_subscriber_with_topic_id(
+    socket_add: SocketAddr,
+    id: u16,
+    qos: QoSConst,
+) -> Result<(), String> {
+    GLOBAL_TOPIC_IDS.lock().unwrap().insert(id, socket_add);
+    GLOBAL_TOPIC_IDS_QOS
+        .lock()
+        .unwrap()
+        .insert((id, socket_add), qos);
+    Ok(())
+}
+
+#[inline(always)]
+pub fn get_subscribers_with_topic_id(id: u16)
+    -> Vec<(SocketAddr, QoSConst)> {
+    let sock_vec = GLOBAL_TOPIC_IDS.lock().unwrap().get(&id);
+    let mut return_vec: Vec<(SocketAddr, QoSConst)> = Vec::new();
+    for sock in sock_vec {
+        let qos_vec = GLOBAL_TOPIC_IDS_QOS.lock().unwrap().get(&(id, sock));
+        for qos in qos_vec {
+            return_vec.push((sock, qos));
+        }
+    }
+    return_vec
+}
+
+#[inline(always)]
+pub fn delete_subscribers_with_socket_addr(socket_addr: &SocketAddr) {
+    GLOBAL_TOPIC_IDS.lock().unwrap().rev_delete(socket_addr);
+}
+
+#[inline(always)]
+pub fn insert_filter(
+    filter: String,
+    socket_add: SocketAddr,
+) -> Result<(), String> {
+    if valid_filter(&filter[..]) {
+        if has_wildcards(&filter[..]) {
+            GLOBAL_WILDCARD_FILTERS
+                .lock()
+                .unwrap()
+                .insert(filter, socket_add);
+        } else {
+            GLOBAL_CONCRETE_TOPICS
+                .lock()
+                .unwrap()
+                .insert(filter.clone(), socket_add);
+        }
+        return Ok(());
+    }
+    Err(format!("{}: invalid filter: {}.", function!(), filter))
+}
+
+/// Remove topics and filters from the bisetmaps using the rev_delete()
+#[inline(always)]
+pub fn delete_filter(socket_add: SocketAddr) {
+    GLOBAL_WILDCARD_FILTERS
+        .lock()
+        .unwrap()
+        .rev_delete(&socket_add);
+    GLOBAL_CONCRETE_TOPICS
+        .lock()
+        .unwrap()
+        .rev_delete(&socket_add);
+    GLOBAL_WILDCARD_TOPICS
+        .lock()
+        .unwrap()
+        .rev_delete(&socket_add);
+}
+
+#[inline(always)]
+pub fn match_concrete_topics(topic: &String) -> Vec<SocketAddr> {
+    GLOBAL_CONCRETE_TOPICS.lock().unwrap().get(&topic)
+}
+
+#[inline(always)]
+pub fn match_topics(topic: &String) -> Vec<SocketAddr> {
+    let sock_vec = GLOBAL_WILDCARD_TOPICS.lock().unwrap().get(topic);
+    if sock_vec.len() == 0 {
+        // The topic doesn't match any wildcard topics.
+        // Matching the topic against all wildcard filters.
+        for (filter, socket_vec) in
+            GLOBAL_WILDCARD_FILTERS.lock().unwrap().collect()
+        {
+            if match_topic(topic, &filter) {
+                // Insert each socket_addr into the matching wildcard_topics.
+                for sock in socket_vec {
+                    GLOBAL_WILDCARD_TOPICS
+                        .lock()
+                        .unwrap()
+                        .insert(topic.clone(), sock);
+                }
+            }
+        }
+    }
+    let wildcards = GLOBAL_WILDCARD_TOPICS.lock().unwrap().get(topic);
+    let mut concretes = GLOBAL_CONCRETE_TOPICS.lock().unwrap().get(topic);
+    concretes.append(&mut wildcards.clone());
+    concretes.sort();
+    concretes.dedup();
+    concretes
 }
 
 pub fn global_filter_insert(
@@ -277,13 +443,168 @@ pub fn global_filter_insert(
 
 #[cfg(test)]
 mod test {
-    use std::net::SocketAddr;
     use uuid::Uuid;
 
     use uuid::v1::{Context, Timestamp};
 
     use std::time::{SystemTime, UNIX_EPOCH};
 
+    #[test]
+    fn test_topic_name_and_id() {
+        let topic_id = super::try_insert_topic_name_and_id("test".to_string()).unwrap();
+        assert_eq!(topic_id, 0);
+        let topic_id = super::try_insert_topic_name_and_id("test".to_string()).unwrap();
+        assert_eq!(topic_id, 0);
+        let topic_id = super::try_insert_topic_name_and_id("test/now".to_string()).unwrap();
+        assert_eq!(topic_id, 1);
+        dbg!(super::GLOBAL_TOPIC_NAME_TO_IDS.lock().unwrap());
+        dbg!(super::GLOBAL_TOPIC_ID.lock().unwrap());
+
+}
+    #[test]
+    fn test_topic_id() {
+        use crate::flags::{
+            QoSConst, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
+        };
+        use std::net::SocketAddr;
+
+        let socket = "127.0.0.1:1200".parse::<SocketAddr>().unwrap();
+        let socket2 = "127.0.0.2:1200".parse::<SocketAddr>().unwrap();
+        let socket3 = "127.0.0.3:1200".parse::<SocketAddr>().unwrap();
+        let socket4 = "127.0.0.4:1200".parse::<SocketAddr>().unwrap();
+        super::insert_subscriber_with_topic_id(socket, 1, QOS_LEVEL_2);
+        super::insert_subscriber_with_topic_id(socket2, 1, QOS_LEVEL_1);
+        super::insert_subscriber_with_topic_id(socket3, 1, QOS_LEVEL_0);
+        super::insert_subscriber_with_topic_id(socket, 2, QOS_LEVEL_2);
+        super::insert_subscriber_with_topic_id(socket2, 2, QOS_LEVEL_1);
+        super::insert_subscriber_with_topic_id(socket3, 3, QOS_LEVEL_0);
+        dbg!(super::GLOBAL_TOPIC_IDS.lock().unwrap());
+        dbg!(super::GLOBAL_TOPIC_IDS_QOS.lock().unwrap());
+        let result = super::get_subscribers_with_topic_id(1);
+        dbg!(result);
+        let result = super::get_subscribers_with_topic_id(2);
+        dbg!(result);
+        let result = super::get_subscribers_with_topic_id(3);
+        dbg!(result);
+    }
+
+    #[test]
+    fn test_insert_filter() {
+        use std::net::SocketAddr;
+
+        let socket = "127.0.0.1:1200".parse::<SocketAddr>().unwrap();
+        let socket2 = "127.0.0.2:1200".parse::<SocketAddr>().unwrap();
+        let socket3 = "127.0.0.3:1200".parse::<SocketAddr>().unwrap();
+        let socket4 = "127.0.0.4:1200".parse::<SocketAddr>().unwrap();
+        super::insert_filter("hello".to_string(), socket);
+        super::insert_filter("hello".to_string(), socket2);
+        super::insert_filter("hello/world".to_string(), socket);
+        super::insert_filter("hello/world".to_string(), socket2);
+        super::insert_filter("hello/world".to_string(), socket4);
+        super::insert_filter("hello/#".to_string(), socket);
+        super::insert_filter("hello/#".to_string(), socket2);
+        super::insert_filter("hello/world/#".to_string(), socket);
+        super::insert_filter("hello/world/#".to_string(), socket2);
+        super::insert_filter("hello/world/#".to_string(), socket3);
+        dbg!(super::GLOBAL_CONCRETE_TOPICS.lock().unwrap());
+        dbg!(super::GLOBAL_WILDCARD_FILTERS.lock().unwrap());
+        let result = super::match_topics(&"hello".to_string());
+        dbg!(result);
+        let result = super::match_topics(&"hello/world".to_string());
+        dbg!(result);
+        let result = super::match_topics(&"hi".to_string());
+        dbg!(result);
+        let result = super::match_topics(&"hello/there".to_string());
+        dbg!(result);
+        let result = super::match_topics(&"hello/world/there".to_string());
+        dbg!(result);
+
+        dbg!(super::GLOBAL_CONCRETE_TOPICS.lock().unwrap());
+        dbg!(super::GLOBAL_WILDCARD_FILTERS.lock().unwrap());
+        dbg!(super::GLOBAL_WILDCARD_TOPICS.lock().unwrap());
+        super::delete_filter(socket2);
+        dbg!(super::GLOBAL_CONCRETE_TOPICS.lock().unwrap());
+        dbg!(super::GLOBAL_WILDCARD_FILTERS.lock().unwrap());
+        dbg!(super::GLOBAL_WILDCARD_TOPICS.lock().unwrap());
+    }
+    #[test]
+    fn test_filter2_insert_topic() {
+        use std::net::SocketAddr;
+
+        let socket = "127.0.0.1:1200".parse::<SocketAddr>().unwrap();
+        let socket2 = "127.0.0.2:1200".parse::<SocketAddr>().unwrap();
+
+        super::GLOBAL_CONCRETE_TOPICS
+            .lock()
+            .unwrap()
+            .insert("/test".to_string(), socket);
+        // Duplicate entry, one entry should be inserted.
+        super::GLOBAL_CONCRETE_TOPICS
+            .lock()
+            .unwrap()
+            .insert("/test".to_string(), socket);
+        super::GLOBAL_CONCRETE_TOPICS
+            .lock()
+            .unwrap()
+            .insert("/test".to_string(), socket2);
+        super::GLOBAL_CONCRETE_TOPICS
+            .lock()
+            .unwrap()
+            .insert("/test2".to_string(), socket);
+        super::GLOBAL_CONCRETE_TOPICS
+            .lock()
+            .unwrap()
+            .insert("/test2".to_string(), socket2);
+        dbg!(super::GLOBAL_CONCRETE_TOPICS.lock().unwrap());
+        let result = super::GLOBAL_CONCRETE_TOPICS
+            .lock()
+            .unwrap()
+            .get(&"/test".to_string());
+        dbg!(result);
+        let result = super::GLOBAL_CONCRETE_TOPICS
+            .lock()
+            .unwrap()
+            .rev_get(&socket);
+        dbg!(result);
+        super::GLOBAL_CONCRETE_TOPICS
+            .lock()
+            .unwrap()
+            .remove(&"/test".to_string(), &socket);
+        dbg!(super::GLOBAL_CONCRETE_TOPICS.lock().unwrap());
+        super::GLOBAL_CONCRETE_TOPICS
+            .lock()
+            .unwrap()
+            .insert("/test".to_string(), socket);
+        dbg!(super::GLOBAL_CONCRETE_TOPICS.lock().unwrap());
+        super::GLOBAL_CONCRETE_TOPICS
+            .lock()
+            .unwrap()
+            .delete(&"/test".to_string());
+        dbg!(super::GLOBAL_CONCRETE_TOPICS.lock().unwrap());
+        super::GLOBAL_CONCRETE_TOPICS
+            .lock()
+            .unwrap()
+            .insert("/test".to_string(), socket);
+        super::GLOBAL_CONCRETE_TOPICS
+            .lock()
+            .unwrap()
+            .insert("/test".to_string(), socket2);
+        super::GLOBAL_CONCRETE_TOPICS
+            .lock()
+            .unwrap()
+            .rev_delete(&socket2);
+        dbg!(super::GLOBAL_CONCRETE_TOPICS.lock().unwrap());
+
+        /*
+
+        let mut filter2 = super::Filter2::new();
+        filter2.insert_topic("hello", socket);
+        filter2.insert_topic("hello", socket2);
+        filter2.insert_topic("hi", socket);
+        filter2.insert_topic("hi", socket2);
+        dbg!(filter2);
+        */
+    }
     #[test]
     fn test_insert() {
         use std::net::{IpAddr, Ipv4Addr, SocketAddr};
