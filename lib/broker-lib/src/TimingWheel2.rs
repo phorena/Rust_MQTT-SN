@@ -1,26 +1,17 @@
 #![warn(rust_2018_idioms)]
-#[macro_use]
-use core::fmt::Debug;
-use bytes::{Bytes, BytesMut};
+use bytes::BytesMut;
 use chrono::{Datelike, Local, Timelike};
+use core::fmt::Debug;
 use core::hash::Hash;
-use crossbeam::channel::{unbounded, Receiver, Sender};
-use crossbeam_utils;
+use crossbeam::channel::{Receiver, Sender};
 use std::collections::HashMap;
-use std::net::UdpSocket;
-use std::sync::atomic::{AtomicU8, Ordering};
-use std::time::{Duration, SystemTime};
-use std::{hint, thread};
+use std::thread;
+use std::time::Duration;
 use std::{net::SocketAddr, sync::Arc, sync::Mutex};
 
 use trace_var::trace_var;
 
-use crate::MSG_TYPE_MAX;
-use crate::MTU;
-use crate::{MsgTypeConst, StateMachine};
-
 // TODO move to utility lib
-
 macro_rules! function {
     () => {{
         fn f() {}
@@ -39,7 +30,8 @@ macro_rules! function {
 
 // dbg macro that prints function name instead of file name.
 // https://stackoverflow.com/questions/65946195/understanding-the-dbg-macro-in-rust
-macro_rules! dbg {
+/*
+macro_rules! dbg2 {
     () => {
         $crate::eprintln!("[{}:{}]", function!(), line!());
     };
@@ -71,6 +63,7 @@ macro_rules! dbg {
         ($($dbg!($val)),+,)
     };
 }
+*/
 
 #[derive(Debug, Clone)]
 struct Slot<KEY: Debug + Clone> {
@@ -320,17 +313,6 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
         self.cur_counter = self.cur_counter + 1;
         return cur_slot;
     }
-
-    fn print(&mut self) {
-        let slot = &self.slot_vec[0];
-        println!("+++++++++++++++++++{:?}", slot);
-        let slot = &self.slot_vec[1];
-        println!("+++++++++++++++++++{:?}", slot);
-        let slot = &self.slot_vec[2];
-        println!("+++++++++++++++++++{:?}", slot);
-        let slot = &self.slot_vec[3];
-        println!("+++++++++++++++++++{:?}", slot);
-    }
 }
 
 /// RetransmitHeader is stored in:
@@ -424,7 +406,7 @@ impl RetransTimeWheel {
                             // XXX lock an entry in the array, instead of the wheel?
                             let mut cancel_wheel_lock =
                                 cancel_wheel.lock().unwrap();
-                            cancel_wheel_lock.cancel(retrans_hdr);
+                            let _result = cancel_wheel_lock.cancel(retrans_hdr);
                         }
                     }
                     Err(why) => {
@@ -461,7 +443,7 @@ impl RetransTimeWheel {
                         {
                             // XXX lock an entry in the array, instead of the wheel?
                             let mut rx_wheel_lock = rx_wheel.lock().unwrap();
-                            rx_wheel_lock.schedule(
+                            let _result = rx_wheel_lock.schedule(
                                 retrans_hdr,
                                 data,
                                 default_duration,
@@ -496,7 +478,8 @@ impl RetransTimeWheel {
                         // dbg!(ack.clone());
                         let (retrans_hdr, data) = ack;
                         dbg!((retrans_hdr.addr, data.bytes.clone()));
-                        transmit_tx.send((retrans_hdr.addr, data.bytes));
+                        let _result =
+                            transmit_tx.send((retrans_hdr.addr, data.bytes));
                     }
                     // let len = socket_tx3.send_to(b"hello", remote_addr);
                 }

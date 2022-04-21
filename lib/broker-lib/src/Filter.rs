@@ -289,7 +289,7 @@ impl Filter {
     }
 }
 
-type TopicIdType = u16;
+pub type TopicIdType = u16;
 
 lazy_static! {
     pub static ref GLOBAL_FILTERS: Mutex<Filter> = Mutex::new(Filter::new());

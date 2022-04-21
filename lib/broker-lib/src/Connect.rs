@@ -104,11 +104,11 @@ impl Connect {
             connect.try_write(&mut bytes_buf);
             dbg!(bytes_buf.clone());
             // transmit to network
-            client
+            let _result = client
                 .transmit_tx
                 .send((client.remote_addr, bytes_buf.to_owned()));
             // schedule retransmit
-            client.schedule_tx.send((
+            let _result = client.schedule_tx.send((
                 client.remote_addr,
                 MSG_TYPE_CONNACK,
                 0,

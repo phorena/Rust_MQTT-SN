@@ -1,38 +1,14 @@
 use bytes::{BufMut, BytesMut};
-use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
 use std::mem;
-use std::str;
-use std::{io, net::SocketAddr, net::SocketAddrV4, sync::Arc, sync::Mutex};
 
 use crate::{
-    flags::{
-        flag_qos_level, flags_set, CleanSessionConst, DupConst, QoSConst,
-        RetainConst, TopicIdTypeConst, WillConst, CLEAN_SESSION_FALSE,
-        CLEAN_SESSION_TRUE, DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1,
-        QOS_LEVEL_2, QOS_LEVEL_3, RETAIN_FALSE, RETAIN_TRUE,
-        TOPIC_ID_TYPE_NORMAL, TOPIC_ID_TYPE_PRE_DEFINED,
-        TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
-    },
     BrokerLib::MqttSnClient,
     Errors::ExoError,
     // flags::{flags_set, flag_qos_level, },
-    StateMachine,
     MSG_LEN_PUBACK,
-    MSG_LEN_PUBREC,
-
-    MSG_TYPE_CONNACK,
-    MSG_TYPE_CONNECT,
     MSG_TYPE_PUBACK,
-    MSG_TYPE_PUBCOMP,
-    MSG_TYPE_PUBLISH,
-    MSG_TYPE_PUBREC,
-    MSG_TYPE_PUBREL,
-    MSG_TYPE_SUBACK,
-
-    MSG_TYPE_SUBSCRIBE,
-    RETURN_CODE_ACCEPTED,
 };
 #[derive(
     Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default, PartialEq,
@@ -78,7 +54,7 @@ impl PubAck {
         let (pub_ack, read_len) = PubAck::try_read(&buf, size).unwrap();
         dbg!(pub_ack.clone());
         if read_len == MSG_LEN_PUBACK as usize {
-            client.cancel_tx.send((
+            let _result = client.cancel_tx.send((
                 client.remote_addr,
                 pub_ack.msg_type,
                 pub_ack.topic_id,
@@ -133,7 +109,7 @@ impl PubAck {
             return_code,
         ];
         bytes.put(buf);
-        client.transmit_tx.send((client.remote_addr, bytes));
+        let _result = client.transmit_tx.send((client.remote_addr, bytes));
         dbg!(&buf);
     }
 }

@@ -67,7 +67,7 @@ impl ConnAck {
         let (conn_ack, read_len) = ConnAck::try_read(&buf, size).unwrap();
         dbg!(conn_ack.clone());
         if read_len == MSG_LEN_CONNACK as usize {
-            client.cancel_tx.send((
+            let _result = client.cancel_tx.send((
                 client.remote_addr,
                 conn_ack.msg_type,
                 0,
@@ -92,7 +92,7 @@ impl ConnAck {
         dbg!(bytes_buf.clone());
         dbg!(client.remote_addr);
         // transmit to network
-        client
+        let _result = client
             .transmit_tx
             .send((client.remote_addr, bytes_buf.to_owned()));
     }

@@ -89,7 +89,7 @@ impl SubAck {
             //     No topic_id passing to send for now.
             //     because the subscribe message might not contain it.
             //     The retransmision was scheduled with 0.
-            client.cancel_tx.send((
+            let _result = client.cancel_tx.send((
                 client.remote_addr,
                 sub_ack.msg_type,
                 0,
@@ -125,7 +125,7 @@ impl SubAck {
         dbg!(bytes_buf.clone());
         dbg!(client.remote_addr);
         // transmit to network
-        client
+        let _result = client
             .transmit_tx
             .send((client.remote_addr, bytes_buf.to_owned()));
     }

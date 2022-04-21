@@ -160,7 +160,7 @@ impl Publish {
                     let bytes = PubRec::tx(publish.msg_id, client);
                     // PUBREL message doesn't have topic id.
                     // For the time wheel hash, default to 0.
-                    client.schedule_tx.send((
+                    let _result = client.schedule_tx.send((
                         client.remote_addr,
                         MSG_TYPE_PUBREL,
                         0,
@@ -177,7 +177,7 @@ impl Publish {
             // if retain {
             //   send a message to save the message in the topic db
             // }
-            client.subscribe_tx.send(publish);
+            let _result = client.subscribe_tx.send(publish);
             Ok(())
         } else {
             // TODO remove len check
@@ -202,7 +202,7 @@ impl Publish {
         let publish = Publish::new(topic_id, msg_id, qos, retain, data);
         let mut bytes_buf = BytesMut::with_capacity(publish.len as usize);
         publish.try_write(&mut bytes_buf);
-        client
+        let _result = client
             .transmit_tx
             .send((client.remote_addr, bytes_buf.to_owned()));
         dbg!(&qos);
@@ -211,7 +211,7 @@ impl Publish {
             // cancel it if receive a PUBACK message.
             QOS_LEVEL_1 => {
                 dbg!((&qos, QOS_LEVEL_1));
-                client.schedule_tx.send((
+                let _result = client.schedule_tx.send((
                     client.remote_addr,
                     MSG_TYPE_PUBACK,
                     topic_id,
@@ -234,7 +234,7 @@ impl Publish {
                 // PUBREC message doesn't have topic id.
                 // For the time wheel hash, default to 0.
                 dbg!(&qos);
-                client.schedule_tx.send((
+                let _result = client.schedule_tx.send((
                     client.remote_addr,
                     MSG_TYPE_PUBREC,
                     0,

@@ -14,11 +14,8 @@ use crate::{
         TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
     },
     */
-    BrokerLib::MqttSnClient,
-    Errors::ExoError,
-    MSG_LEN_PUBREL,
+    BrokerLib::MqttSnClient, Errors::ExoError, MSG_LEN_PUBREL,
     MSG_TYPE_PUBREL,
-
     /*
     flags::{flags_set, flag_qos_level, },
     StateMachine,
@@ -68,7 +65,7 @@ impl PubRel {
         if buf[0] == MSG_LEN_PUBREL && buf[1] == MSG_TYPE_PUBREL {
             // TODO verify as Big Endian
             let msg_id = buf[2] as u16 + ((buf[3] as u16) << 8);
-            client.cancel_tx.send((
+            let _result = client.cancel_tx.send((
                 client.remote_addr,
                 MSG_TYPE_PUBREL,
                 0,
@@ -96,7 +93,7 @@ impl PubRel {
             msg_id_byte_0,
         ];
         bytes.put(buf);
-        client.transmit_tx.send((client.remote_addr, bytes));
+        let _result = client.transmit_tx.send((client.remote_addr, bytes));
         dbg!(&buf);
     }
 }
