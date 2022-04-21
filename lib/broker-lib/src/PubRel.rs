@@ -2,34 +2,38 @@ use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
 use std::mem;
-use std::str;
 
 use crate::{
+    /*
     flags::{
         flag_qos_level, flags_set, CleanSessionConst, DupConst, QoSConst,
         RetainConst, TopicIdTypeConst, WillConst, CLEAN_SESSION_FALSE,
         CLEAN_SESSION_TRUE, DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1,
         QOS_LEVEL_2, QOS_LEVEL_3, RETAIN_FALSE, RETAIN_TRUE,
-        TOPIC_ID_TYPE_NORNAL, TOPIC_ID_TYPE_PRE_DEFINED,
+        TOPIC_ID_TYPE_NORMAL, TOPIC_ID_TYPE_PRE_DEFINED,
         TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
     },
+    */
     BrokerLib::MqttSnClient,
     Errors::ExoError,
-    // flags::{flags_set, flag_qos_level, },
+    MSG_LEN_PUBREL,
+    MSG_TYPE_PUBREL,
+
+    /*
+    flags::{flags_set, flag_qos_level, },
     StateMachine,
     MSG_LEN_PUBACK,
-    MSG_LEN_PUBREL,
 
     MSG_TYPE_CONNACK,
     MSG_TYPE_CONNECT,
     MSG_TYPE_PUBACK,
     MSG_TYPE_PUBCOMP,
     MSG_TYPE_PUBLISH,
-    MSG_TYPE_PUBREL,
     MSG_TYPE_SUBACK,
 
     MSG_TYPE_SUBSCRIBE,
     RETURN_CODE_ACCEPTED,
+    */
 };
 #[derive(
     Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default, PartialEq,

@@ -309,7 +309,7 @@ lazy_static! {
     pub static ref GLOBAL_TOPIC_ID: Mutex<TopicIdType> = Mutex::new(0);
 }
 
-pub fn try_insert_topic_name_and_id(
+pub fn try_insert_topic_name(
     topic_name: String,
 ) -> Result<TopicIdType, String> {
     let topic_ids = GLOBAL_TOPIC_NAME_TO_IDS.lock().unwrap().get(&topic_name);
@@ -317,7 +317,10 @@ pub fn try_insert_topic_name_and_id(
     // otherwise insert the topic name and topic id into the map.
     if topic_ids.len() == 0 {
         let topic_id = *GLOBAL_TOPIC_ID.lock().unwrap();
-        GLOBAL_TOPIC_NAME_TO_IDS.lock().unwrap().insert(topic_name, topic_id);
+        GLOBAL_TOPIC_NAME_TO_IDS
+            .lock()
+            .unwrap()
+            .insert(topic_name, topic_id);
         *GLOBAL_TOPIC_ID.lock().unwrap() = topic_id + 1;
         return Ok(topic_id);
     } else {
@@ -329,7 +332,7 @@ pub fn try_insert_topic_name_and_id(
 #[inline(always)]
 pub fn insert_subscriber_with_topic_id(
     socket_add: SocketAddr,
-    id: u16,
+    id: TopicIdType,
     qos: QoSConst,
 ) -> Result<(), String> {
     GLOBAL_TOPIC_IDS.lock().unwrap().insert(id, socket_add);
@@ -341,8 +344,7 @@ pub fn insert_subscriber_with_topic_id(
 }
 
 #[inline(always)]
-pub fn get_subscribers_with_topic_id(id: u16)
-    -> Vec<(SocketAddr, QoSConst)> {
+pub fn get_subscribers_with_topic_id(id: u16) -> Vec<(SocketAddr, QoSConst)> {
     let sock_vec = GLOBAL_TOPIC_IDS.lock().unwrap().get(&id);
     let mut return_vec: Vec<(SocketAddr, QoSConst)> = Vec::new();
     for sock in sock_vec {
@@ -451,16 +453,18 @@ mod test {
 
     #[test]
     fn test_topic_name_and_id() {
-        let topic_id = super::try_insert_topic_name_and_id("test".to_string()).unwrap();
+        let topic_id =
+            super::try_insert_topic_name("test".to_string()).unwrap();
         assert_eq!(topic_id, 0);
-        let topic_id = super::try_insert_topic_name_and_id("test".to_string()).unwrap();
+        let topic_id =
+            super::try_insert_topic_name("test".to_string()).unwrap();
         assert_eq!(topic_id, 0);
-        let topic_id = super::try_insert_topic_name_and_id("test/now".to_string()).unwrap();
+        let topic_id =
+            super::try_insert_topic_name("test/now".to_string()).unwrap();
         assert_eq!(topic_id, 1);
         dbg!(super::GLOBAL_TOPIC_NAME_TO_IDS.lock().unwrap());
         dbg!(super::GLOBAL_TOPIC_ID.lock().unwrap());
-
-}
+    }
     #[test]
     fn test_topic_id() {
         use crate::flags::{
