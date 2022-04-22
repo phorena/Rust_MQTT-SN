@@ -17,7 +17,6 @@ use crate::{
         WILL_FALSE, WILL_TRUE,
     },
     BrokerLib::MqttSnClient,
-    Errors::ExoError,
     PubAck::PubAck,
     PubRec::PubRec,
     MSG_LEN_PUBACK, MSG_LEN_PUBREC, MSG_TYPE_CONNACK, MSG_TYPE_CONNECT,
@@ -146,6 +145,7 @@ impl Publish {
                         RETURN_CODE_ACCEPTED,
                         client,
                     );
+            // TODO XXX schedule message for all subscribers
                 }
                 QOS_LEVEL_2 => {
                     // 4-way handshake for QoS level 2 message for the RECEIVER.
@@ -167,6 +167,7 @@ impl Publish {
                         publish.msg_id,
                         bytes,
                     ));
+            // TODO XXX schedule message for all subscribers in the PUBREL message
                 }
                 _ => {} // do nothing for QoS levels 0 & 3.
             }
@@ -198,7 +199,7 @@ impl Publish {
         retain: u8,
         data: String,
         client: &MqttSnClient,
-    ) -> Result<(), ExoError> {
+    ) -> Result<(), String> {
         let publish = Publish::new(topic_id, msg_id, qos, retain, data);
         let mut bytes_buf = BytesMut::with_capacity(publish.len as usize);
         publish.try_write(&mut bytes_buf);

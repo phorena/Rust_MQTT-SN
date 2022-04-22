@@ -199,7 +199,7 @@ impl Filter {
                 }
             }
         }
-        Err(format!("{}: invalid filter: {}.", function!(), filter))
+        Err(format!("{} - {}: invalid filter: {}.", socket_addr, function!(), filter))
     }
 
     #[inline(always)]
