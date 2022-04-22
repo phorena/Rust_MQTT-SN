@@ -12,7 +12,7 @@ use crate::{
     flags::{
         flag_qos_level, flags_set, CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE,
         DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2,
-        QOS_LEVEL_3, RETAIN_FALSE, RETAIN_TRUE, TOPIC_ID_TYPE_NORNAL,
+        QOS_LEVEL_3, RETAIN_FALSE, RETAIN_TRUE, TOPIC_ID_TYPE_NORMAL,
         TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
         WILL_FALSE, WILL_TRUE,
     },
@@ -79,7 +79,7 @@ impl Publish {
             retain,
             WILL_FALSE,          // not used
             CLEAN_SESSION_FALSE, // not used
-            TOPIC_ID_TYPE_NORNAL,
+            TOPIC_ID_TYPE_NORMAL,
         ); // default for now
         let mut bytes = BytesMut::new();
         bytes.put_slice(data.as_bytes());

@@ -23,7 +23,7 @@ pub const CLEAN_SESSION_FALSE: CleanSessionConst = 0b_0_00_0_0_0_00;
 pub const CLEAN_SESSION_TRUE: CleanSessionConst = 0b_0_00_0_0_1_00;
 
 pub type TopicIdTypeConst = u8;
-pub const TOPIC_ID_TYPE_NORNAL: TopicIdTypeConst = 0b_0_00_0_0_0_00;
+pub const TOPIC_ID_TYPE_NORMAL: TopicIdTypeConst = 0b_0_00_0_0_0_00;
 pub const TOPIC_ID_TYPE_PRE_DEFINED: TopicIdTypeConst = 0b_0_00_0_0_0_01;
 pub const TOPIC_ID_TYPE_SHORT: TopicIdTypeConst = 0b_0_00_0_0_0_10;
 pub const TOPIC_ID_TYPE_RESERVED: TopicIdTypeConst = 0b_0_00_0_0_0_11;

@@ -372,7 +372,7 @@ impl MqttSnClient {
         qos: u8,
         retain: u8,
     ) -> &Receiver<Publish> {
-        let sub = Subscribe::tx(topic, msg_id, qos, retain, &self);
+        let _result = Subscribe::tx(topic, msg_id, qos, retain, &self);
         &self.subscribe_rx
     }
     /// Publish a message

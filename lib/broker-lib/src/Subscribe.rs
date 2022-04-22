@@ -160,6 +160,7 @@ impl Subscribe {
                         topic_id,
                         flag_qos_level(subscribe.flags),
                     )?;
+                    dbg!(topic_id);
                     // Because only QoS flag is used and other flags are not used,
                     // return the same flags as received.
                     SubAck::tx(
@@ -176,11 +177,13 @@ impl Subscribe {
                     // topic_id to the hash map.
                     match subscribe.topic_name.parse::<u16>() {
                         Ok(topic_id) => {
+                            dbg!(topic_id);
                             insert_subscriber_with_topic_id(
                                 client.remote_addr,
                                 topic_id,
                                 flag_qos_level(subscribe.flags),
                             )?;
+                            dbg!(topic_id);
                             // Because only QoS flag is used and other flags are not used,
                             // return the same flags as received.
                             SubAck::tx(

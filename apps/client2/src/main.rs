@@ -32,7 +32,7 @@ use client_lib::{
         CleanSessionConst, DupConst, QoSConst, RetainConst, TopicIdTypeConst,
         WillConst, CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE, DUP_FALSE,
         DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
-        RETAIN_FALSE, RETAIN_TRUE, TOPIC_ID_TYPE_NORNAL,
+        RETAIN_FALSE, RETAIN_TRUE, TOPIC_ID_TYPE_NORMAL,
         TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
         WILL_FALSE, WILL_TRUE,
     },
@@ -80,8 +80,10 @@ fn main() {
     let client_sub = client.clone();
     let client_id = generate_client_id();
     client_connect.connect(client_id, socket);
-    client_main.subscribe("hello".to_string(), 1, QOS_LEVEL_0, RETAIN_FALSE);
-    client_main.subscribe("hello2".to_string(), 2, QOS_LEVEL_0, RETAIN_FALSE);
+    client_main.subscribe("hello".to_string(), 1, QOS_LEVEL_1, RETAIN_TRUE);
+    client_main.subscribe("hello2".to_string(), 2, QOS_LEVEL_2, RETAIN_FALSE);
+    client_main.subscribe_topic_id(1, 2, QOS_LEVEL_2, RETAIN_FALSE);
+    client_main.subscribe_topic_id(1122, 2, QOS_LEVEL_2, RETAIN_FALSE);
     let mut i = 0;
 
     // This thread reads the channel for all subscribed topics.
@@ -94,8 +96,8 @@ fn main() {
     let publish_thread = thread::spawn(move || loop {
         let msg = format!("hi {:?}", i);
         let msg2 = format!("hi {:?}", i + 1000);
-        client_main.publish(1, i, QOS_LEVEL_0, RETAIN_TRUE, msg.to_string());
-        client_main.publish(2, i, QOS_LEVEL_0, RETAIN_FALSE, msg2.to_string());
+        client_main.publish(1, i, QOS_LEVEL_2, RETAIN_TRUE, msg.to_string());
+        client_main.publish(2, i, QOS_LEVEL_1, RETAIN_FALSE, msg2.to_string());
         i += 1;
         thread::sleep(Duration::from_secs(2));
     });
