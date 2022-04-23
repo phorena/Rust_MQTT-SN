@@ -1,9 +1,9 @@
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
-use getset::{CopyGetters, Getters, MutGetters, Setters};
+use getset::{CopyGetters, Getters, MutGetters};
 use std::str;
 
-#[derive(Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default)]
+#[derive(Debug, Clone, Getters, MutGetters, CopyGetters, Default)]
 #[getset(get, set)]
 pub struct WillTopic {
     len: u8,
@@ -15,6 +15,7 @@ pub struct WillTopic {
 }
 
 impl WillTopic {
+    /*
     fn constraint_len(_val: &u8) -> bool {
         //dbg!(_val);
         true
@@ -31,4 +32,5 @@ impl WillTopic {
         //dbg!(_val);
         true
     }
+    */
 }

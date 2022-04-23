@@ -1,6 +1,6 @@
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
-use getset::{CopyGetters, Getters, MutGetters, Setters};
+use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 use std::str;
 
@@ -40,7 +40,7 @@ use crate::{
 };
 
 #[derive(
-    Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default, PartialEq,
+    Debug, Clone, Getters, MutGetters, CopyGetters, Default, PartialEq,
 )]
 #[getset(get, set)]
 pub struct Subscribe {
@@ -78,6 +78,7 @@ impl Subscribe {
         subscribe
     }
 
+    /*
     fn constraint_len(_val: &u8) -> bool {
         //dbg!(_val);
         true
@@ -98,7 +99,6 @@ impl Subscribe {
         //dbg!(_val);
         true
     }
-    /*
     fn constraint_bb(_val: &BytesMut) -> bool {
         //dbg!(_val);
         true

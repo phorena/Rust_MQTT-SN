@@ -75,13 +75,16 @@ pub fn generate_conn_id(
 /// or unsubscribes.
 /// In the future, the client might be able to connect to multiple servers and
 /// move to a different network connection.
+
+// TODO: remove later
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Connection {
     socket_addr: SocketAddr,
-    clean: bool,
+    _clean: bool,
     // TODO Struct Will
-    will: u8,
-    state: u8,
+    _will: u8,
+    _state: u8,
     duration: u16,
     filter: Filter,
 }
@@ -90,9 +93,9 @@ impl Connection {
     pub fn new(socket_addr: SocketAddr, duration: u16) -> Result<Self, String> {
         let conn = Connection {
             socket_addr,
-            clean: true,
-            will: 0,
-            state: 0,
+            _clean: true,
+            _will: 0,
+            _state: 0,
             duration,
             filter: Filter::new(),
         };
@@ -137,7 +140,7 @@ pub fn connection_filter_insert(
     match conn_hashmap.get_mut(&socket_addr) {
         Some(conn) => {
             conn.filter.insert(filter, socket_addr)?;
-            dbg!(conn_hashmap);
+            // dbg!(conn_hashmap);
             return Ok(());
         }
         _ => {

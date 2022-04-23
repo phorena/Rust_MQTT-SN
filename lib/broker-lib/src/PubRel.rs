@@ -1,6 +1,6 @@
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
-use getset::{CopyGetters, Getters, MutGetters, Setters};
+use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
 use crate::{
@@ -33,7 +33,7 @@ use crate::{
     */
 };
 #[derive(
-    Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default, PartialEq,
+    Debug, Clone, Getters, MutGetters, CopyGetters, Default, PartialEq,
 )]
 #[getset(get, set)]
 pub struct PubRel {
@@ -44,6 +44,7 @@ pub struct PubRel {
 }
 
 impl PubRel {
+    /*
     fn constraint_len(_val: &u8) -> bool {
         //dbg!(_val);
         true
@@ -56,10 +57,11 @@ impl PubRel {
         //dbg!(_val);
         true
     }
+    */
     #[inline(always)]
     pub fn rx(
         buf: &[u8],
-        size: usize,
+        _size: usize,
         client: &MqttSnClient,
     ) -> Result<u16, ExoError> {
         if buf[0] == MSG_LEN_PUBREL && buf[1] == MSG_TYPE_PUBREL {

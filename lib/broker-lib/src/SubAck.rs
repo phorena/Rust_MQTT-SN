@@ -32,11 +32,11 @@ use crate::{
 };
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
-use getset::{CopyGetters, Getters, MutGetters, Setters};
+use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
 #[derive(
-    Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default, PartialEq,
+    Debug, Clone, Getters, MutGetters, CopyGetters, Default, PartialEq,
 )]
 #[getset(get, set)]
 pub struct SubAck {
@@ -51,6 +51,7 @@ pub struct SubAck {
 }
 
 impl SubAck {
+    /*
     fn constraint_len(_val: &u8) -> bool {
         //dbg!(_val);
         true
@@ -75,7 +76,7 @@ impl SubAck {
         //dbg!(_val);
         true
     }
-
+*/
     pub fn rx(
         buf: &[u8],
         size: usize,

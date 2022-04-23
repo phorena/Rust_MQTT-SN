@@ -25,8 +25,8 @@
 
 #![doc(html_root_url = "https://docs.rs/bincode/2.0.0-dev")]
 #![crate_name = "bincode"]
-#![crate_type = "rlib"]
-#![crate_type = "dylib"]
+// #![crate_type = "rlib"]
+// #![crate_type = "dylib"]
 
 extern crate byteorder;
 #[macro_use]

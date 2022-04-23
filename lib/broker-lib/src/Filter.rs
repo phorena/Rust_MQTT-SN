@@ -446,7 +446,7 @@ pub fn global_filter_insert(
 ) -> Result<(), String> {
     let mut filters = GLOBAL_FILTERS.lock().unwrap();
     filters.insert(filter, socket_add)?;
-    dbg!(filters);
+    // dbg!(filters);
     Ok(())
 }
 

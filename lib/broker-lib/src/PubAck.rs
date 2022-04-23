@@ -1,6 +1,6 @@
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
-use getset::{CopyGetters, Getters, MutGetters, Setters};
+use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
 use crate::{
@@ -11,7 +11,7 @@ use crate::{
     MSG_TYPE_PUBACK,
 };
 #[derive(
-    Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default, PartialEq,
+    Debug, Clone, Getters, /* Setters,*/ MutGetters, CopyGetters, Default, PartialEq,
 )]
 #[getset(get, set)]
 pub struct PubAck {
@@ -24,6 +24,7 @@ pub struct PubAck {
 }
 
 impl PubAck {
+    /*
     fn constraint_len(_val: &u8) -> bool {
         //dbg!(_val);
         true
@@ -44,6 +45,7 @@ impl PubAck {
         //dbg!(_val);
         true
     }
+    */
 
     #[inline(always)]
     pub fn rx(

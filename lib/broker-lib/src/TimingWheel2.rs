@@ -1,4 +1,4 @@
-#![warn(rust_2018_idioms)]
+// #![warn(rust_2018_idioms)]
 use bytes::BytesMut;
 use chrono::{Datelike, Local, Timelike};
 use core::fmt::Debug;
@@ -12,6 +12,19 @@ use std::{net::SocketAddr, sync::Arc, sync::Mutex};
 use trace_var::trace_var;
 
 // TODO move to utility lib
+
+// #[allow(dead_code)]
+macro_rules! function {
+    () => {{
+        fn f() {}
+        fn type_name_of<T>(_: T) -> &'static str {
+            std::any::type_name::<T>()
+        }
+        let name = type_name_of(f);
+        &name[..name.len() - 3]
+    }};
+}
+/*
 macro_rules! function {
     () => {{
         fn f() {}
@@ -27,7 +40,7 @@ macro_rules! function {
         }
     }};
 }
-
+*/
 // dbg macro that prints function name instead of file name.
 // https://stackoverflow.com/questions/65946195/understanding-the-dbg-macro-in-rust
 /*
@@ -88,7 +101,8 @@ impl<KEY: Debug + Clone> Slot<KEY> {
 // The last one might be over 64, rounding up.
 /// static TIME_WHEEL_MAX_SLOTS:usize = (1000 / TIME_WHEEL_SLEEP_DURATION) * 64 * 2;
 // Initial timeout duration is 300 ms
-static TIME_WHEEL_DEFAULT_DURATION_MS: usize = 300;
+
+// static TIME_WHEEL_DEFAULT_DURATION_MS: usize = 300;
 
 #[derive(Debug, Clone)]
 pub struct TimingWheel2<KEY: Debug + Clone, VAL: Debug + Clone> {
@@ -140,7 +154,7 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
         key: KEY,
         val: VAL,
         duration: usize,
-    ) -> Result<(), (String, KEY)> {
+    ) -> Result<(), String> {
         // store the key in a slot of the timing wheel
         let index = (self.cur_counter + duration) % self.max_slot;
         let slot = &self.slot_vec[index];
@@ -155,12 +169,12 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
     // Reschedule for later expiration, but not changes to the hashmap.
     #[trace_var(index, slot, vec)]
     #[inline(always)]
-    fn reschedule(
+    fn _reschedule(
         &mut self,
         key: KEY,
         duration: usize,
-    ) -> Result<(), (String, KEY)> {
-        dbg!((&key, duration, self.hash.lock(), self.cur_counter));
+    ) -> Result<(), String> {
+        // dbg!((&key, duration, self.hash.lock(), self.cur_counter));
         // store the key in a slot of the timing wheel
         let index = (self.cur_counter + duration) % self.max_slot;
         let slot = &self.slot_vec[index];
@@ -171,12 +185,12 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
     }
 
     #[inline(always)]
-    fn get_cur_counter(&mut self) -> usize {
+    fn _get_cur_counter(&mut self) -> usize {
         self.cur_counter
     }
 
     #[inline(always)]
-    fn get_hash(&mut self, key: KEY) -> Result<VAL, Option<(String, KEY)>> {
+    fn _get_hash(&mut self, key: KEY) -> Result<VAL, Option<String>> {
         match self.hash.lock() {
             Ok(hash) => match hash.get(&key) {
                 Some(val) => {
@@ -186,8 +200,8 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
                 None => Err(None),
             },
             _ => {
-                let string = format!("[{}:hash.lock()]", function!());
-                Err(Some((string, key)))
+                let string = format!("get_hash :{:?}", key);
+                Err(Some(string))
             }
         }
     }
@@ -196,7 +210,7 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
     /// the expire() won't return data from the slot if it has been deleted
     #[inline(always)]
     #[trace_var(hash)]
-    fn cancel(&mut self, key: KEY) -> Result<(), (String, KEY)> {
+    fn cancel(&mut self, key: KEY) -> Result<(), String> {
         let mut hash = self.hash.lock().unwrap();
         match hash.remove(&key) {
             Some(_val) => {
@@ -204,8 +218,8 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
                 Ok(())
             }
             None => {
-                let string = format!("[{}:hash.remove()]", function!());
-                Err((string, key))
+                // Err(format!("{:?}", key))
+                Err(format!("{}:{:?}", function!(), key))
             }
         }
     }
@@ -213,7 +227,7 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
     /// remove the data from the hash only
     /// the expire() won't return data from the slot if it has been deleted
     #[inline(always)]
-    fn reset(&mut self, key: KEY) -> Result<(), (String, KEY)> {
+    fn _reset(&mut self, key: KEY) -> Result<(), String> {
         let hash = self.hash.lock().unwrap();
         match hash.get(&key) {
             Some(_val) => {
@@ -221,8 +235,10 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
                 Ok(())
             }
             None => {
-                let string = format!("[{}:hash.remove()]", function!());
-                Err((string, key))
+                Err(format!("reset {:?}", key))
+                // XXX the line below generates a warning in the function macro.
+                // don't know why. the cancel() is ok.
+                // Err(format!("{}:{:?}", function!(), key))
             }
         }
     }
@@ -307,7 +323,7 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
     /// remove it from the hashmap, else reschedule to the new duration.
     #[inline(always)]
     // fn keep_alive_expire(&mut self) -> Vec<(KEY, VAL)>
-    fn keep_alive_expire(&mut self) -> &Slot<KEY> {
+    fn _keep_alive_expire(&mut self) -> &Slot<KEY> {
         // select and lock the current time slot in the Vec
         let cur_slot = &self.slot_vec[self.cur_counter % self.max_slot];
         self.cur_counter = self.cur_counter + 1;
@@ -341,10 +357,11 @@ pub struct RetransmitData {
 
 #[derive(Debug, Clone)]
 struct KeepAliveData {
-    conn_duration: u16,
-    latest_counter: u32,
+    _conn_duration: u16,
+    _latest_counter: u32,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct RetransTimeWheel {
     schedule_tx: Sender<(SocketAddr, u8, u16, u16, BytesMut)>,
@@ -378,6 +395,7 @@ impl RetransTimeWheel {
             wheel,
         }
     }
+
     pub fn run(self) {
         let sleep_duration = self.wheel.sleep_duration;
         let default_duration = self.wheel.default_duration;
@@ -389,7 +407,7 @@ impl RetransTimeWheel {
         let expire_wheel = w.clone();
         let cancel_wheel = w.clone();
         // receive messages for cancel
-        let cancel_thread = thread::spawn(move || {
+        let _cancel_thread = thread::spawn(move || {
             loop {
                 match cancel_rx.recv() {
                     // XXX
@@ -424,7 +442,7 @@ impl RetransTimeWheel {
             }
         });
         // receive messages for schedule
-        let schedule_thread = thread::spawn(move || {
+        let _schedule_thread = thread::spawn(move || {
             loop {
                 match schedule_rx.recv() {
                     // XXX
@@ -465,7 +483,7 @@ impl RetransTimeWheel {
             }
         });
         // timing wheel expire checks for timeout messages
-        let expire_thread = thread::spawn(move || {
+        let _expire_thread = thread::spawn(move || {
             // tokio::spawn(async move {
             loop {
                 // use the block to allow lock() to automatically

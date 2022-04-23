@@ -1,13 +1,13 @@
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
-use getset::{CopyGetters, Getters, MutGetters, Setters};
+use getset::{CopyGetters, Getters, MutGetters};
 
 #[derive(
     Debug,
     Clone,
     Copy,
     Getters,
-    Setters,
+ //   Setters,
     MutGetters,
     CopyGetters,
     Default,
@@ -20,6 +20,7 @@ pub struct PingResp {
     pub msg_type: u8,
 }
 
+/*
 impl PingResp {
     fn constraint_len(_val: &u8) -> bool {
         //dbg!(_val);
@@ -30,3 +31,4 @@ impl PingResp {
         true
     }
 }
+*/

@@ -1,6 +1,6 @@
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
-use getset::{CopyGetters, Getters, MutGetters, Setters};
+use getset::{CopyGetters, Getters, MutGetters, /* Setters */};
 
 use crate::{
     BrokerLib::MqttSnClient,
@@ -26,7 +26,7 @@ pub enum ConnAckError {
     Clone,
     Copy,
     Getters,
-    Setters,
+    // Setters,
     MutGetters,
     CopyGetters,
     Default,
@@ -41,6 +41,7 @@ pub struct ConnAck {
 }
 
 impl ConnAck {
+    /*
     fn constraint_len(_val: &u8) -> bool {
         //dbg!(_val);
         true
@@ -59,6 +60,7 @@ impl ConnAck {
         //dbg!(_val);
         true
     }
+    */
     pub fn rx(
         buf: &[u8],
         size: usize,

@@ -1,6 +1,6 @@
 #![warn(rust_2018_idioms)]
 #![allow(unused_imports)]
-#[macro_use]
+// #[macro_use]
 // use std::sync::mpsc::{Sender, Receiver};
 // use std::sync::mpsc;
 use core::fmt::Debug;
@@ -64,7 +64,7 @@ fn main() {
     // The struct Publish is recv.
     // TODO return error for subscribe and publish function calls.
     let rx_thread2 = thread::spawn(move || loop {
-        dbg!(client_sub.subscribe_rx.recv());
+        let _result = client_sub.subscribe_rx.recv();
     });
 
     let publish_thread = thread::spawn(move || loop {

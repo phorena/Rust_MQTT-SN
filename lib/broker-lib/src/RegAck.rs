@@ -1,9 +1,9 @@
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
-use getset::{CopyGetters, Getters, MutGetters, Setters};
+use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
-#[derive(Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default)]
+#[derive(Debug, Clone, Getters, MutGetters, CopyGetters, Default)]
 #[getset(get, set)]
 pub struct RegAck {
     pub len: u8,
@@ -15,6 +15,7 @@ pub struct RegAck {
 }
 
 impl RegAck {
+    /*
     fn constraint_len(_val: &u8) -> bool {
         //dbg!(_val);
         true
@@ -35,4 +36,5 @@ impl RegAck {
         //dbg!(_val);
         true
     }
+    */
 }

@@ -1,7 +1,7 @@
 #![allow(unused_imports)]
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
-use getset::{CopyGetters, Getters, MutGetters, Setters};
+use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 use std::net::SocketAddr;
 use std::str;
@@ -52,7 +52,7 @@ pub struct Publish3Bytes {
 */
 
 #[derive(
-    Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default, PartialEq,
+    Debug, Clone, Getters, MutGetters, CopyGetters, Default, PartialEq,
 )]
 #[getset(get, set)]
 pub struct Publish {
@@ -95,6 +95,7 @@ impl Publish {
         publish
     }
 
+    /*
     fn constraint_len(_val: &u8) -> bool {
         //dbg!(_val);
         true
@@ -119,6 +120,7 @@ impl Publish {
         //dbg!(_val);
         true
     }
+    */
 
     #[inline(always)]
     pub fn rx(
@@ -176,7 +178,7 @@ impl Publish {
                 }
                 QOS_LEVEL_0 | QOS_LEVEL_3 => {}
                 _ => {
-                    // Should never happen because flag_qos_level() filter for 4 cases only.
+                    // Should never happen because flag_qos_level() filters for 4 cases only.
                     {}
                 }
             }

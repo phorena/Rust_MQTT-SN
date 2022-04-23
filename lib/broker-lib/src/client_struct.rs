@@ -126,11 +126,12 @@ impl StateMachine {
         self.states[cur_state as usize][msg_type as usize]
     }
 }
-
+#[allow(non_camel_case_types)]
 #[derive(PartialEq, Eq, Hash, Debug, Copy, Clone)]
 pub struct client_struct {
     state: u8,
 }
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct ClientStruct {
     // for performance, use lockfree structure

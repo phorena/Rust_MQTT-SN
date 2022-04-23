@@ -1,7 +1,7 @@
 use crate::MTU;
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
-use getset::{CopyGetters, Getters, MutGetters, Setters};
+use getset::{CopyGetters, Getters, MutGetters,};
 use std::mem;
 use std::str;
 // TODO rewrite with generics
@@ -13,7 +13,7 @@ pub struct MessageDb {
 }
 
 #[derive(
-    Debug, Clone, Copy, Getters, Setters, MutGetters, CopyGetters, Default,
+    Debug, Clone, Copy, Getters, MutGetters, CopyGetters, Default,
 )]
 #[getset(get, set)]
 pub struct MessageDbKey {
@@ -22,13 +22,15 @@ pub struct MessageDbKey {
 
 // TODO
 impl MessageDbKey {
+    /*
     fn constraint_topic_id(_val: &u16) -> bool {
         //dbg!(_val);
         true
     }
+    */
 }
 
-#[derive(Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default)]
+#[derive(Debug, Clone, Getters,  MutGetters, CopyGetters, Default)]
 #[getset(get, set)]
 pub struct MessageDbValue {
     pub message: String,
@@ -36,10 +38,12 @@ pub struct MessageDbValue {
 
 // TODO
 impl MessageDbValue {
+    /*
     fn constraint_message(_val: &String) -> bool {
         //dbg!(_val);
         true
     }
+    */
 }
 
 impl MessageDb {
@@ -88,14 +92,14 @@ impl MessageDb {
         match get_result {
             Some(old_value) => {
                 // TODO check return value of results
-                let result = self.db.compare_and_swap(
+                let _result = self.db.compare_and_swap(
                     &key_buf[..],
                     Some(old_value), // old value, None for not present
                     Some(&value_buf[..]), // new value, None for delete
                 );
             }
             None => {
-                let result = self.db.compare_and_swap(
+                let _result = self.db.compare_and_swap(
                     &key_buf[..],
                     None as Option<&[u8]>, // old value, None for not present
                     Some(&value_buf[..]),  // new value, None for delete
