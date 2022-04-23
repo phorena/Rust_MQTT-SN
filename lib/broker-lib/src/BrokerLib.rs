@@ -375,11 +375,7 @@ impl MqttSnClient {
         let _result = Subscribe::tx(topic, msg_id, qos, retain, &self);
         &self.subscribe_rx
     }
-    /// Publish a message
-    /// 1. Format a message with Publish struct.
-    /// 2. Serialize into a byte stream.
-    /// 3. Send it to the channel.
-    /// 4. Schedule retransmit for QoS Level 1 & 2.
+    /* XXX TODO client code.
     pub fn publish(
         &self,
         topic_id: u16,
@@ -390,4 +386,5 @@ impl MqttSnClient {
     ) {
         let _result = Publish::tx(topic_id, msg_id, qos, retain, data, &self);
     }
+    */
 }

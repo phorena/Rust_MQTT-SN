@@ -67,7 +67,7 @@ impl Advertise {
         let (advertise, read_len) = Advertise::try_read(&buf, size).unwrap();
         dbg!(advertise.clone());                                                                   
         if read_len == size {
-            GwInfo::tx(advertise.gw_id,client);
+            // GwInfo::tx(advertise.gw_id,client);
             Ok(())
         } 
         else {

@@ -8,9 +8,7 @@ use std::net::SocketAddr;
 //use uuid::v1::{Context, Timestamp};
 //use uuid::Uuid;
 
-use crate::flags::{
-    QoSConst, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
-};
+use crate::flags::QoSConst;
 
 macro_rules! function {
     () => {{
@@ -199,7 +197,12 @@ impl Filter {
                 }
             }
         }
-        Err(format!("{} - {}: invalid filter: {}.", socket_addr, function!(), filter))
+        Err(format!(
+            "{} {}: invalid filter: {}.",
+            function!(),
+            socket_addr,
+            filter
+        ))
     }
 
     #[inline(always)]
@@ -343,14 +346,18 @@ pub fn insert_subscriber_with_topic_id(
     Ok(())
 }
 
+/// Get list of (socket_addr, qos) that subscribed to the topic_id.
 #[inline(always)]
 pub fn get_subscribers_with_topic_id(id: u16) -> Vec<(SocketAddr, QoSConst)> {
+    // Get the list of socket_addr that subscribed to the topic_id.
     let sock_vec = GLOBAL_TOPIC_IDS.lock().unwrap().get(&id);
     let mut return_vec: Vec<(SocketAddr, QoSConst)> = Vec::new();
-    for sock in sock_vec {
-        let qos_vec = GLOBAL_TOPIC_IDS_QOS.lock().unwrap().get(&(id, sock));
+    // Get the QoS of each socket_addr subscribed to the topic_id.
+    for socket_addr in sock_vec {
+        let qos_vec =
+            GLOBAL_TOPIC_IDS_QOS.lock().unwrap().get(&(id, socket_addr));
         for qos in qos_vec {
-            return_vec.push((sock, qos));
+            return_vec.push((socket_addr, qos));
         }
     }
     return_vec
@@ -476,6 +483,8 @@ mod test {
         let socket2 = "127.0.0.2:1200".parse::<SocketAddr>().unwrap();
         let socket3 = "127.0.0.3:1200".parse::<SocketAddr>().unwrap();
         let socket4 = "127.0.0.4:1200".parse::<SocketAddr>().unwrap();
+        let result = super::get_subscribers_with_topic_id(1);
+        dbg!(result);
         super::insert_subscriber_with_topic_id(socket, 1, QOS_LEVEL_2);
         super::insert_subscriber_with_topic_id(socket2, 1, QOS_LEVEL_1);
         super::insert_subscriber_with_topic_id(socket3, 1, QOS_LEVEL_0);

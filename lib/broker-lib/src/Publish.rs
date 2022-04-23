@@ -3,6 +3,7 @@ use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
 use std::mem;
+use std::net::SocketAddr;
 use std::str;
 
 extern crate trace_caller;
@@ -17,6 +18,7 @@ use crate::{
         WILL_FALSE, WILL_TRUE,
     },
     BrokerLib::MqttSnClient,
+    Filter::get_subscribers_with_topic_id,
     PubAck::PubAck,
     PubRec::PubRec,
     MSG_LEN_PUBACK, MSG_LEN_PUBREC, MSG_TYPE_CONNACK, MSG_TYPE_CONNECT,
@@ -71,7 +73,7 @@ impl Publish {
         msg_id: u16,
         qos: u8,
         retain: u8,
-        data: String,
+        data: BytesMut,
     ) -> Self {
         let len = (data.len() + 7) as u8;
         let flags = flags_set(
@@ -82,15 +84,13 @@ impl Publish {
             CLEAN_SESSION_FALSE, // not used
             TOPIC_ID_TYPE_NORMAL,
         ); // default for now
-        let mut bytes = BytesMut::new();
-        bytes.put_slice(data.as_bytes());
         let publish = Publish {
             len,
             msg_type: MSG_TYPE_PUBLISH,
             flags,
             topic_id,
             msg_id,
-            data: bytes,
+            data: BytesMut::new(),
         };
         publish
     }
@@ -134,19 +134,13 @@ impl Publish {
 
         dbg!((size, read_len));
 
+        let socket_addr_and_qos =
+            get_subscribers_with_topic_id(publish.topic_id);
+        dbg!(&socket_addr_and_qos);
         // TODO check QoS, https://www.hivemq.com/blog/mqtt-essentials-
         // part-6-mqtt-quality-of-service-levels/
         if read_len == size {
             match flag_qos_level(publish.flags) {
-                QOS_LEVEL_1 => {
-                    PubAck::tx(
-                        publish.topic_id,
-                        publish.msg_id,
-                        RETURN_CODE_ACCEPTED,
-                        client,
-                    );
-            // TODO XXX schedule message for all subscribers
-                }
                 QOS_LEVEL_2 => {
                     // 4-way handshake for QoS level 2 message for the RECEIVER.
                     // 1. Received PUBLISH message.
@@ -156,6 +150,7 @@ impl Publish {
                     // 3. Receive PUBREL - in PubRel module
                     //      reply with PUBCOMP
                     //      cancel restransmit of PUBREC
+                    // 4. Send PUBLISH message to subscribers from PUBREL.rx.
 
                     let bytes = PubRec::tx(publish.msg_id, client);
                     // PUBREL message doesn't have topic id.
@@ -167,9 +162,38 @@ impl Publish {
                         publish.msg_id,
                         bytes,
                     ));
-            // TODO XXX schedule message for all subscribers in the PUBREL message
+                    // TODO XXX schedule message for all subscribers in the PUBREL message
+                    return Ok(());
                 }
-                _ => {} // do nothing for QoS levels 0 & 3.
+                QOS_LEVEL_1 => {
+                    // send PUBACK to PUBLISH client
+                    PubAck::tx(
+                        publish.topic_id,
+                        publish.msg_id,
+                        RETURN_CODE_ACCEPTED,
+                        client,
+                    );
+                }
+                QOS_LEVEL_0 | QOS_LEVEL_3 => {}
+                _ => {
+                    // Should never happen because flag_qos_level() filter for 4 cases only.
+                    {}
+                }
+            }
+            // send PUBLISH messages to subscribers
+            for subscriber in socket_addr_and_qos {
+                let socket_addr = subscriber.0;
+                let qos = subscriber.1;
+                // TODO use Bytes not BytesMut to eliminate clone/copy.
+                let _result = Publish::tx(
+                    publish.topic_id,
+                    publish.msg_id,
+                    qos,
+                    RETAIN_FALSE,
+                    publish.data.clone(),
+                    client,
+                    socket_addr,
+                );
             }
 
             // TODO check dup, likely not dup
@@ -178,7 +202,6 @@ impl Publish {
             // if retain {
             //   send a message to save the message in the topic db
             // }
-            let _result = client.subscribe_tx.send(publish);
             Ok(())
         } else {
             // TODO remove len check
@@ -197,15 +220,15 @@ impl Publish {
         msg_id: u16,
         qos: u8,
         retain: u8,
-        data: String,
+        data: BytesMut,
         client: &MqttSnClient,
+        remote_addr: SocketAddr,
     ) -> Result<(), String> {
         let publish = Publish::new(topic_id, msg_id, qos, retain, data);
         let mut bytes_buf = BytesMut::with_capacity(publish.len as usize);
         publish.try_write(&mut bytes_buf);
-        let _result = client
-            .transmit_tx
-            .send((client.remote_addr, bytes_buf.to_owned()));
+        let _result =
+            client.transmit_tx.send((remote_addr, bytes_buf.to_owned()));
         dbg!(&qos);
         match qos {
             // For level 1, schedule a message for retransmit,
@@ -213,7 +236,7 @@ impl Publish {
             QOS_LEVEL_1 => {
                 dbg!((&qos, QOS_LEVEL_1));
                 let _result = client.schedule_tx.send((
-                    client.remote_addr,
+                    remote_addr,
                     MSG_TYPE_PUBACK,
                     topic_id,
                     msg_id,
@@ -236,7 +259,7 @@ impl Publish {
                 // For the time wheel hash, default to 0.
                 dbg!(&qos);
                 let _result = client.schedule_tx.send((
-                    client.remote_addr,
+                    remote_addr,
                     MSG_TYPE_PUBREC,
                     0,
                     msg_id,
