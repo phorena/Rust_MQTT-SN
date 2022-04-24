@@ -1,13 +1,29 @@
 use crate::{
-    ClientLib::MqttSnClient, Errors::ExoError, MSG_LEN_WILLMESSAGEREQ,
+    ClientLib::MqttSnClient, /*Errors::ExoError,*/ MSG_LEN_WILLMESSAGEREQ,
     MSG_TYPE_WILLMESSAGEREQ,
 };
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
-use getset::{CopyGetters, Getters, MutGetters, Setters};
+use getset::{CopyGetters, Getters, MutGetters /*Setters*/};
 
+macro_rules! function {
+    () => {{
+        fn f() {}
+        fn type_name_of<T>(_: T) -> &'static str {
+            std::any::type_name::<T>()
+        }
+        let name = type_name_of(f);
+        &name[..name.len() - 3]
+    }};
+}
 #[derive(
-    Debug, Clone, Copy, Getters, Setters, MutGetters, CopyGetters, Default,
+    Debug,
+    Clone,
+    Copy,
+    Getters,
+    /*Setters,*/ MutGetters,
+    CopyGetters,
+    Default,
 )]
 #[getset(get, set)]
 pub struct WillMsgReq {
@@ -17,14 +33,14 @@ pub struct WillMsgReq {
 }
 
 impl WillMsgReq {
-    fn constraint_len(_val: &u8) -> bool {
+    /*fn constraint_len(_val: &u8) -> bool {
         //dbg!(_val);
         true
     }
     fn constraint_msg_type(_val: &u8) -> bool {
         //dbg!(_val);
         true
-    }
+    }*/
 }
 
 pub fn tx(client: &MqttSnClient) {
@@ -39,7 +55,7 @@ pub fn tx(client: &MqttSnClient) {
     dbg!(bytes_buf.clone());
     dbg!(client.remote_addr);
     // transmit to network
-    client
+    let _result = client
         .transmit_tx
         .send((client.remote_addr, bytes_buf.to_owned()));
 }
@@ -47,11 +63,11 @@ pub fn rx(
     buf: &[u8],
     size: usize,
     client: &MqttSnClient,
-) -> Result<(), ExoError> {
+) -> Result<(), String> {
     let (will_msg_req, read_len) = WillMsgReq::try_read(&buf, size).unwrap();
     dbg!(will_msg_req.clone());
     if read_len == MSG_LEN_WILLMESSAGEREQ as usize {
-        client.cancel_tx.send((
+        let _result = client.cancel_tx.send((
             client.remote_addr,
             will_msg_req.msg_type,
             0,
@@ -59,9 +75,15 @@ pub fn rx(
         ));
         Ok(())
     } else {
-        Err(ExoError::LenError(
+        // Err(ExoError::LenError(
+        //     read_len,
+        //     MSG_LEN_WILLMESSAGEREQ as usize,
+        // ))
+        Err(format!(
+            "{} {}: Length Error: {}.",
+            function!(),
             read_len,
-            MSG_LEN_WILLMESSAGEREQ as usize,
+            MSG_LEN_WILLMESSAGEREQ
         ))
     }
 }

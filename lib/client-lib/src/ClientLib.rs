@@ -1,5 +1,5 @@
 use std::net::UdpSocket;
-use std::{hint, thread};
+use std::thread;
 use std::{net::SocketAddr, sync::Arc, sync::Mutex};
 
 use crate::TimingWheel2::RetransTimeWheel;
@@ -10,23 +10,23 @@ use crossbeam::channel::{unbounded, Receiver, Sender};
 use log::*;
 
 use crate::{
-    flags::{TOPIC_ID_TYPE_NORMAL, TOPIC_ID_TYPE_PRE_DEFINED,},
-    Channels::Channels,
+    flags::{TOPIC_ID_TYPE_NORMAL, TOPIC_ID_TYPE_PRE_DEFINED},
+    /*Channels::Channels,*/
     ConnAck::ConnAck,
     Connect::Connect,
-    Connection::{ConnHashMap},
+    Connection::ConnHashMap,
     PubAck::PubAck,
     Publish::Publish,
     StateMachine::{StateMachine, STATE_DISCONNECT},
     SubAck::SubAck,
     Subscribe::Subscribe,
-    TimingWheel2::{RetransmitData, RetransmitHeader},
+    /*TimingWheel2::{RetransmitData, RetransmitHeader},*/
     MSG_TYPE_CONNACK, MSG_TYPE_CONNECT, MSG_TYPE_PUBACK, MSG_TYPE_PUBLISH,
-    MSG_TYPE_PUBREC, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE,
+    /*MSG_TYPE_PUBREC,*/ MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE,
 };
-use trace_var::trace_var;
+//use trace_var::trace_var;
 
-macro_rules! function {
+/*macro_rules! function {
     () => {{
         fn f() {}
         fn type_name_of<T>(_: T) -> &'static str {
@@ -40,11 +40,11 @@ macro_rules! function {
             None => &name[..name.len() - 3],
         }
     }};
-}
+}*/
 
 // dbg macro that prints function name instead of file name.
 // https://stackoverflow.com/questions/65946195/understanding-the-dbg-macro-in-rust
-macro_rules! dbg_fn {
+/*macro_rules! dbg_fn {
     () => {
         $crate::eprintln!("[{}:{}]", function!(), line!());
     };
@@ -75,9 +75,9 @@ macro_rules! dbg_fn {
     ($($val:expr),+ $(,)?) => {
         ($($dbg_fn!($val)),+,)
     };
-}
+}*/
 
-macro_rules! dbg_buf {
+/*macro_rules! dbg_buf {
     ($buf:ident, $size:ident) => {
         let mut i: usize = 0;
         eprint!("[{}:{}] ", function!(), line!());
@@ -87,7 +87,7 @@ macro_rules! dbg_buf {
         }
         eprintln!("");
     };
-}
+}*/
 
 #[derive(Debug, Clone)]
 pub struct MqttSnClient {
@@ -158,9 +158,9 @@ impl MqttSnClient {
     }
 
     fn rx_loop(mut self, socket: UdpSocket) {
-        let self_transmit = self.clone();
+        let _self_transmit = self.clone();
         // name for easy debug
-        let socket_tx = socket.try_clone().expect("couldn't clone the socket");
+        let _socket_tx = socket.try_clone().expect("couldn't clone the socket");
         let builder = thread::Builder::new().name("recv_thread".into());
         // process input datagram from network
         let _recv_thread = builder.spawn(move || {
@@ -172,19 +172,19 @@ impl MqttSnClient {
                         // TODO process 3 bytes length
                         let msg_type = buf[1] as u8;
                         if msg_type == MSG_TYPE_PUBLISH {
-                            Publish::rx(&buf, size, &self);
+                            let _result = Publish::rx(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_PUBACK {
-                            PubAck::rx(&buf, size, &self);
+                            let _result = PubAck::rx(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_SUBACK {
-                            SubAck::rx(&buf, size, &self);
+                            let _result = SubAck::rx(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_SUBSCRIBE {
-                            Subscribe::rx(&buf, size, &self);
+                            let _result = Subscribe::rx(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_CONNACK {
@@ -226,19 +226,19 @@ impl MqttSnClient {
                         // TODO process 3 bytes length
                         let msg_type = buf[1] as u8;
                         if msg_type == MSG_TYPE_PUBLISH {
-                            Publish::rx(&buf, size, &self);
+                            let _result = Publish::rx(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_PUBACK {
-                            PubAck::rx(&buf, size, &self);
+                            let _result = PubAck::rx(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_SUBACK {
-                            SubAck::rx(&buf, size, &self);
+                            let _result = SubAck::rx(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_CONNECT {
-                            Connect::rx(&buf, size, &mut self);
+                            let _result = Connect::rx(&buf, size, &mut self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_CONNACK {
@@ -351,7 +351,14 @@ impl MqttSnClient {
         qos: u8,
         retain: u8,
     ) -> &Receiver<Publish> {
-        let _result = Subscribe::tx(topic, msg_id, qos, retain, TOPIC_ID_TYPE_NORMAL, &self);
+        let _result = Subscribe::tx(
+            topic,
+            msg_id,
+            qos,
+            retain,
+            TOPIC_ID_TYPE_NORMAL,
+            &self,
+        );
         &self.subscribe_rx
     }
     pub fn subscribe_topic_id(
@@ -363,7 +370,14 @@ impl MqttSnClient {
     ) -> &Receiver<Publish> {
         // TODO verify this topic_id (u16) to topic (2 bytes string)
         let topic = format!("{}", topic_id);
-        let _result = Subscribe::tx(topic, msg_id, qos, retain, TOPIC_ID_TYPE_PRE_DEFINED, &self);
+        let _result = Subscribe::tx(
+            topic,
+            msg_id,
+            qos,
+            retain,
+            TOPIC_ID_TYPE_PRE_DEFINED,
+            &self,
+        );
         &self.subscribe_rx
     }
     /// Publish a message

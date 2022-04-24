@@ -1,12 +1,25 @@
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
-use getset::{CopyGetters, Getters, MutGetters, Setters};
+use getset::{CopyGetters, Getters, MutGetters /*Setters*/};
 use std::mem;
 
 use crate::{
-    ClientLib::MqttSnClient, Errors::ExoError, MSG_LEN_REGACK, MSG_TYPE_REGACK,
+    ClientLib::MqttSnClient, /*Errors::ExoError,*/ MSG_LEN_REGACK,
+    MSG_TYPE_REGACK,
 };
-#[derive(Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default)]
+macro_rules! function {
+    () => {{
+        fn f() {}
+        fn type_name_of<T>(_: T) -> &'static str {
+            std::any::type_name::<T>()
+        }
+        let name = type_name_of(f);
+        &name[..name.len() - 3]
+    }};
+}
+#[derive(
+    Debug, Clone, Getters, /*Setters,*/ MutGetters, CopyGetters, Default,
+)]
 #[getset(get, set)]
 pub struct RegAck {
     pub len: u8,
@@ -18,7 +31,7 @@ pub struct RegAck {
 }
 
 impl RegAck {
-    fn constraint_len(_val: &u8) -> bool {
+    /*fn constraint_len(_val: &u8) -> bool {
         //dbg!(_val);
         true
     }
@@ -37,19 +50,19 @@ impl RegAck {
     fn constraint_return_code(_val: &u8) -> bool {
         //dbg!(_val);
         true
-    }
+    }*/
 
     #[inline(always)]
     pub fn rx(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
-    ) -> Result<(u16, u16, u8), ExoError> {
+    ) -> Result<(u16, u16, u8), String> {
         let (reg_ack, read_len) = RegAck::try_read(&buf, size).unwrap();
         dbg!(reg_ack.clone());
 
         if read_len == MSG_LEN_REGACK as usize {
-            client.cancel_tx.send((
+            let _result = client.cancel_tx.send((
                 client.remote_addr,
                 reg_ack.msg_type,
                 reg_ack.topic_id,
@@ -58,7 +71,13 @@ impl RegAck {
 
             Ok((reg_ack.topic_id, reg_ack.msg_id, reg_ack.return_code))
         } else {
-            Err(ExoError::LenError(read_len, MSG_LEN_REGACK as usize))
+            //Err(ExoError::LenError(read_len, MSG_LEN_REGACK as usize))
+            Err(format!(
+                "{} {}: Length Error: {}.",
+                function!(),
+                read_len,
+                MSG_LEN_REGACK
+            ))
         }
     }
 
@@ -81,6 +100,6 @@ impl RegAck {
         reg_ack.try_write(&mut bytes);
         dbg!(bytes.clone());
         dbg!(client.remote_addr);
-        client.transmit_tx.send((client.remote_addr, bytes));
+        let _result = client.transmit_tx.send((client.remote_addr, bytes));
     }
 }
