@@ -1,6 +1,6 @@
 use crate::{
     ClientLib::MqttSnClient,
-    Errors::ExoError,
+    //Errors::ExoError,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_WILLMSGRESP,
 
@@ -8,10 +8,10 @@ use crate::{
 };
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
-use getset::{CopyGetters, Getters, MutGetters, Setters};
+use getset::{CopyGetters, Getters, MutGetters, /*Setters*/};
 
 #[derive(
-    Debug, Clone, Copy, Getters, Setters, MutGetters, CopyGetters, Default,
+    Debug, Clone, Copy, Getters, /*Setters,*/MutGetters, CopyGetters, Default,
 )]
 #[getset(get, set)]
 pub struct WillMsgResp {
@@ -20,30 +20,39 @@ pub struct WillMsgResp {
     pub msg_type: u8,
     pub return_code: u8,
 }
-
+macro_rules! function {
+    () => {{
+        fn f() {}
+        fn type_name_of<T>(_: T) -> &'static str {
+            std::any::type_name::<T>()
+        }
+        let name = type_name_of(f);
+        &name[..name.len() - 3]
+    }};
+}
 impl WillMsgResp {
-    fn constraint_len(_val: &u8) -> bool {
-        //dbg!(_val);
-        true
-    }
-    fn constraint_msg_type(_val: &u8) -> bool {
-        //dbg!(_val);
-        true
-    }
-    fn constraint_return_code(_val: &u8) -> bool {
-        //dbg!(_val);
-        true
-    }
+    // fn constraint_len(_val: &u8) -> bool {
+    //     //dbg!(_val);
+    //     true
+    // }
+    // fn constraint_msg_type(_val: &u8) -> bool {
+    //     //dbg!(_val);
+    //     true
+    // }
+    // fn constraint_return_code(_val: &u8) -> bool {
+    //     //dbg!(_val);
+    //     true
+    // }
     pub fn rx(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
-    ) -> Result<(), ExoError> {
+    ) -> Result<(), String> {
         let (willmsgresp, read_len) =
             WillMsgResp::try_read(&buf, size).unwrap();
         dbg!(willmsgresp.clone());
         if read_len == MSG_LEN_WILLMSGRESP as usize {
-            client.cancel_tx.send((
+            let _rx = client.cancel_tx.send((
                 client.remote_addr,
                 willmsgresp.msg_type,
                 0,
@@ -51,7 +60,13 @@ impl WillMsgResp {
             ));
             Ok(())
         } else {
-            Err(ExoError::LenError(read_len, MSG_LEN_WILLMSGRESP as usize))
+            //Err(ExoError::LenError(read_len, MSG_LEN_WILLMSGRESP as usize))
+            Err(format!(
+                "{} {}: Length Error: {}.",
+                function!(),
+                read_len,
+                MSG_LEN_WILLMSGRESP
+            ))
         }
     }
     // TODO error checking and return
@@ -68,7 +83,7 @@ impl WillMsgResp {
         dbg!(bytes_buf.clone());
         dbg!(client.remote_addr);
         // transmit to network
-        client
+        let _tx = client
             .transmit_tx
             .send((client.remote_addr, bytes_buf.to_owned()));
     }
