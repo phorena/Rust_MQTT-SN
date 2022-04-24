@@ -10,7 +10,7 @@ edition = "2018"
 rust-fsm = { path = "../../lib/fsm" }
 getset = { path = "../../lib/getset" }
 # mqtt-sn-lib = { path="../../lib/mqtt-sn-lib"}
-client-lib = { path="../../lib/client-lib"}
+broker-lib = { path="../../lib/broker-lib"}
 # DTLS = {path = "../../lib/DTLS"}
 
 custom_debug = "0.5.0"
@@ -48,3 +48,6 @@ chrono = "0.4"
 crossbeam = "0.8.1"
 crossbeam-queue = "0.3.4"
 crossbeam-utils = "0.8.7"
+varmint = "0.1.3"
+hashbrown = "0.12.0"
+bisetmap = "0.1.6"

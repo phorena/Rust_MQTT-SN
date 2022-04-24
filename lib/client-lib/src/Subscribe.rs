@@ -4,6 +4,9 @@ use getset::{CopyGetters, Getters, MutGetters, Setters};
 use std::mem;
 use std::str;
 
+extern crate trace_caller;
+use trace_caller::trace;
+
 use crate::{
     //     StateMachine,
     flags::{
@@ -11,7 +14,7 @@ use crate::{
         flags_set,
         CLEAN_SESSION_FALSE,
         DUP_FALSE,
-        TOPIC_ID_TYPE_NORNAL,
+        TOPIC_ID_TYPE_NORMAL,
         // CleanSessionConst, DupConst, QoSConst, RetainConst, TopicIdTypeConst,
         // WillConst, CLEAN_SESSION_TRUE,
         // DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
@@ -41,7 +44,7 @@ pub struct Subscribe {
 }
 
 impl Subscribe {
-    pub fn new(topic_name: String, msg_id: u16, qos: u8, retain: u8) -> Self {
+    pub fn new(topic_name: String, msg_id: u16, qos: u8, retain: u8, topic_id_type: u8) -> Self {
         let len = (topic_name.len() + 5) as u8;
         let mut bb = BytesMut::new();
         bb.put_slice(topic_name.as_bytes());
@@ -51,7 +54,7 @@ impl Subscribe {
             retain,
             WILL_FALSE,          // not used
             CLEAN_SESSION_FALSE, // not used
-            TOPIC_ID_TYPE_NORNAL,
+            topic_id_type,
         ); // default for now
         let subscribe = Subscribe {
             len,
@@ -92,14 +95,16 @@ impl Subscribe {
     */
 
     // TODO error checking and return
+    #[trace]
     pub fn tx(
         topic: String,
         msg_id: u16,
         qos: u8,
         retain: u8,
+        topic_id_type: u8,
         client: &MqttSnClient,
     ) {
-        let subscribe = Subscribe::new(topic, msg_id, qos, retain);
+        let subscribe = Subscribe::new(topic, msg_id, qos, retain, topic_id_type);
         dbg!(&subscribe);
         let mut bytes_buf = BytesMut::with_capacity(subscribe.len as usize);
         subscribe.try_write(&mut bytes_buf);
@@ -117,6 +122,7 @@ impl Subscribe {
     }
 
     #[inline(always)]
+    #[trace]
     pub fn rx(
         buf: &[u8],
         size: usize,

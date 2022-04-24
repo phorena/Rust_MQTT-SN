@@ -1,6 +1,6 @@
 #![warn(rust_2018_idioms)]
 #![allow(unused_imports)]
-#[macro_use]
+// #[macro_use]
 // use std::sync::mpsc::{Sender, Receiver};
 // use std::sync::mpsc;
 use core::fmt::Debug;
@@ -21,28 +21,10 @@ use trace_var::trace_var;
 use bytes::{BufMut, BytesMut};
 
 // use DTLS::dtls_client::DtlsClient;
-use client_lib::{
-    //    ConnectionDb::ConnectionDb,
-    //    SubscriberDb::SubscriberDb,
-    //    Advertise::Advertise,
-    //    Transfer::Transfer,MTU,
-    //    TopicDb::TopicDb,
-    //    MessageDb::MessageDb,
-    flags::{
-        CleanSessionConst, DupConst, QoSConst, RetainConst, TopicIdTypeConst,
-        WillConst, CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE, DUP_FALSE,
-        DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
-        RETAIN_FALSE, RETAIN_TRUE, TOPIC_ID_TYPE_NORNAL,
-        TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
-        WILL_FALSE, WILL_TRUE,
-    },
-    ClientLib::MqttSnClient,
-};
+use broker_lib::*;
+use BrokerLib::MqttSnClient;
 
-fn generate_client_id() -> String {
-    format!("exofense/{}", nanoid!())
-}
-
+/*
 fn mpmc() {
     let (tx, rx) = unbounded();
     let rx2 = rx.clone();
@@ -62,12 +44,11 @@ fn mpmc() {
     let rx_thread2 = thread::spawn(move || loop {
         dbg!(rx2.recv());
     });
-    /*
     rx_thread2.join().expect("The sender thread has panicked");
     rx_thread.join().expect("The sender thread has panicked");
     tx_thread.join().expect("The sender thread has panicked");
-    */
 }
+    */
 
 fn main() {
     init_logging();
@@ -76,17 +57,14 @@ fn main() {
 
     let client = MqttSnClient::new(remote_addr);
     let client_loop = client.clone();
-    let client_main = client.clone();
     let client_sub = client.clone();
-    let client_id = generate_client_id();
     client_loop.broker_rx_loop(socket);
-    let mut i = 0;
 
     // This thread reads the channel for all subscribed topics.
     // The struct Publish is recv.
     // TODO return error for subscribe and publish function calls.
     let rx_thread2 = thread::spawn(move || loop {
-        dbg!(client_sub.subscribe_rx.recv());
+        let _result = client_sub.subscribe_rx.recv();
     });
 
     let publish_thread = thread::spawn(move || loop {

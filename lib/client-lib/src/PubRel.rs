@@ -10,7 +10,7 @@ use crate::{
         RetainConst, TopicIdTypeConst, WillConst, CLEAN_SESSION_FALSE,
         CLEAN_SESSION_TRUE, DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1,
         QOS_LEVEL_2, QOS_LEVEL_3, RETAIN_FALSE, RETAIN_TRUE,
-        TOPIC_ID_TYPE_NORNAL, TOPIC_ID_TYPE_PRE_DEFINED,
+        TOPIC_ID_TYPE_NORMAL, TOPIC_ID_TYPE_PRE_DEFINED,
         TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
     },
     ClientLib::MqttSnClient,
@@ -74,10 +74,7 @@ impl PubRel {
         }
     }
     #[inline(always)]
-    pub fn tx(
-        msg_id: u16,
-        client: &MqttSnClient,
-    ) {
+    pub fn tx(msg_id: u16, client: &MqttSnClient) {
         // faster implementation
         // TODO verify big-endian or little-endian for u16 numbers
         // XXX order of statements performance

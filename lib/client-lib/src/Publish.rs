@@ -5,11 +5,14 @@ use getset::{CopyGetters, Getters, MutGetters, Setters};
 use std::mem;
 use std::str;
 
+extern crate trace_caller;
+use trace_caller::trace;
+
 use crate::{
     flags::{
         flag_qos_level, flags_set, CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE,
         DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2,
-        QOS_LEVEL_3, RETAIN_FALSE, RETAIN_TRUE, TOPIC_ID_TYPE_NORNAL,
+        QOS_LEVEL_3, RETAIN_FALSE, RETAIN_TRUE, TOPIC_ID_TYPE_NORMAL,
         TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
         WILL_FALSE, WILL_TRUE,
     },
@@ -76,7 +79,7 @@ impl Publish {
             retain,
             WILL_FALSE,          // not used
             CLEAN_SESSION_FALSE, // not used
-            TOPIC_ID_TYPE_NORNAL,
+            TOPIC_ID_TYPE_NORMAL,
         ); // default for now
         let mut bytes = BytesMut::new();
         bytes.put_slice(data.as_bytes());
@@ -135,8 +138,12 @@ impl Publish {
         if read_len == size {
             match flag_qos_level(publish.flags) {
                 QOS_LEVEL_1 => {
-                    PubAck::tx(publish.topic_id, publish.msg_id,
-                        RETURN_CODE_ACCEPTED, client);
+                    PubAck::tx(
+                        publish.topic_id,
+                        publish.msg_id,
+                        RETURN_CODE_ACCEPTED,
+                        client,
+                    );
                 }
                 QOS_LEVEL_2 => {
                     // 4-way handshake for QoS level 2 message for the RECEIVER.
@@ -180,6 +187,7 @@ impl Publish {
     /// 3. Send it to the channel.
     /// 4. Schedule retransmit for QoS Level 1 & 2.
     #[inline(always)]
+    #[trace]
     pub fn tx(
         topic_id: u16,
         msg_id: u16,
