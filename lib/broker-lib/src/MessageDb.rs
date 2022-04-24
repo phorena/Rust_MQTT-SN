@@ -1,7 +1,7 @@
 use crate::MTU;
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
-use getset::{CopyGetters, Getters, MutGetters,};
+use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 use std::str;
 // TODO rewrite with generics
@@ -12,9 +12,7 @@ pub struct MessageDb {
     pub old_value: String,
 }
 
-#[derive(
-    Debug, Clone, Copy, Getters, MutGetters, CopyGetters, Default,
-)]
+#[derive(Debug, Clone, Copy, Getters, MutGetters, CopyGetters, Default)]
 #[getset(get, set)]
 pub struct MessageDbKey {
     pub topic_id: u16,
@@ -30,7 +28,7 @@ impl MessageDbKey {
     */
 }
 
-#[derive(Debug, Clone, Getters,  MutGetters, CopyGetters, Default)]
+#[derive(Debug, Clone, Getters, MutGetters, CopyGetters, Default)]
 #[getset(get, set)]
 pub struct MessageDbValue {
     pub message: String,

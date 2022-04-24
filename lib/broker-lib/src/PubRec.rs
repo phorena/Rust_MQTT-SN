@@ -11,7 +11,13 @@ use crate::{
     MSG_TYPE_PUBREC,
 };
 #[derive(
-    Debug, Clone, Getters, /* Setters,*/ MutGetters, CopyGetters, Default, PartialEq,
+    Debug,
+    Clone,
+    Getters,
+    /* Setters,*/ MutGetters,
+    CopyGetters,
+    Default,
+    PartialEq,
 )]
 #[getset(get, set)]
 pub struct PubRec {

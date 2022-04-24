@@ -169,11 +169,7 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
     // Reschedule for later expiration, but not changes to the hashmap.
     #[trace_var(index, slot, vec)]
     #[inline(always)]
-    fn _reschedule(
-        &mut self,
-        key: KEY,
-        duration: usize,
-    ) -> Result<(), String> {
+    fn _reschedule(&mut self, key: KEY, duration: usize) -> Result<(), String> {
         // dbg!((&key, duration, self.hash.lock(), self.cur_counter));
         // store the key in a slot of the timing wheel
         let index = (self.cur_counter + duration) % self.max_slot;
