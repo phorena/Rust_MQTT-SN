@@ -37,7 +37,7 @@ impl UnsubAck {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
-    )->Result<u16, ExoError>{
+    )->Result<u16,String>{
         let (unsub_ack, read_len) = UnsubAck::try_read(&buf, size).unwrap();
         dbg!(unsub_ack.clone());
 
@@ -56,7 +56,10 @@ impl UnsubAck {
             // TODO check flags
              Ok(unsub_ack.msg_id)
         } else {
-            Err(ExoError::LenError(read_len, MSG_LEN_UNSUBACK as usize))
+            return Err(format!(
+                "{}:{}",read_len,MSG_LEN_UNSUBACK as usize
+            ))
+            // Err(ExoError::LenError(read_len, MSG_LEN_UNSUBACK as usize))
         }
     }
 
