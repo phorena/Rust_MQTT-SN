@@ -1,11 +1,11 @@
 use crate::Filter::Filter;
-use log::*;
+//use log::*;
 use std::collections::HashMap;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::net::{IpAddr,/* Ipv4Addr,*/ SocketAddr};
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::v1::{Context, Timestamp};
-use uuid::{Error, Uuid};
-    use rand::Rng;
+use uuid::{/*Error,*/ Uuid};
+//use rand::Rng;
 
 
 
@@ -150,7 +150,7 @@ mod test {
 
     let random_bytes = rand::thread_rng().gen::<[u8; 6]>();
     println!("{:?}", random_bytes);
-        use std::net::{IpAddr, Ipv6Addr, SocketAddr};
+        use std::net::{/*IpAddr, Ipv6Addr, */SocketAddr};
         let socket = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
         let mut conn_hashmap = super::ConnHashMap::new(11, socket);
         let socket = "127.0.0.1:1200".parse::<SocketAddr>().unwrap();

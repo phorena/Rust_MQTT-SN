@@ -4,13 +4,13 @@ use crossbeam::channel::{unbounded, Receiver, Sender};
 use std::net::SocketAddr;
 
 pub struct TransChannelData {
-    addr: SocketAddr,
-    bytes: BytesMut,
+    _addr: SocketAddr,
+    _bytes: BytesMut,
 }
 
 pub struct ScheduleChannelData {
-    header: RetransmitHeader,
-    bytes: BytesMut,
+    _header: RetransmitHeader,
+    _bytes: BytesMut,
 }
 
 #[derive(Debug, Clone)]
