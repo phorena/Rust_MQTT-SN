@@ -8,6 +8,7 @@ use num_enum::IntoPrimitive;
 #[derive(
     FromPrimitive, IntoPrimitive, PartialEq, Eq, Hash, Debug, Copy, Clone,
 )]
+#[allow(non_camel_case_types)]
 #[repr(u8)]
 pub enum MsgType {
     ADVERTISE = 0,

@@ -1,10 +1,10 @@
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
-use getset::{CopyGetters, Getters, MutGetters, Setters};
+use getset::{CopyGetters, Getters, MutGetters /*, Setters */};
 use std::mem;
 
 #[derive(
-    Debug, Clone, Copy, Getters, Setters, MutGetters, CopyGetters, Default,
+    Debug, Clone, Copy, Getters, /*Setters,*/ MutGetters, CopyGetters, Default,
 )]
 #[getset(get, set)]
 pub struct PingReq {
@@ -15,6 +15,7 @@ pub struct PingReq {
 }
 
 impl PingReq {
+    /*
     fn constraint_len(_val: &u8) -> bool {
         //dbg!(_val);
         true
@@ -27,4 +28,5 @@ impl PingReq {
         //dbg!(_val);
         true
     }
+    */
 }
