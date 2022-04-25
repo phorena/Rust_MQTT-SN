@@ -62,7 +62,7 @@ impl Advertise {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
-    ) -> Result<(), ExoError> {
+    ) -> Result<(), String> {
 
         let (advertise, read_len) = Advertise::try_read(&buf, size).unwrap();
         dbg!(advertise.clone());                                                                   
@@ -71,7 +71,7 @@ impl Advertise {
             Ok(())
         } 
         else {
-            return Err(ExoError::LenError(read_len, size));
+            return Err(format!("{}:{}",read_len,size));
         }
     }
 }    
