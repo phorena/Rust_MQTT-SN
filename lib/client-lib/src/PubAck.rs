@@ -16,7 +16,6 @@ use crate::{
         TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
     },
     ClientLib::MqttSnClient,
-    Errors::ExoError,
     // flags::{flags_set, flag_qos_level, },
     StateMachine,
     MSG_LEN_PUBACK,
@@ -72,7 +71,7 @@ impl PubAck {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
-    ) -> Result<(u16, u16, u8), ExoError> {
+    ) -> Result<(u16, u16, u8), String> {
         let (pub_ack, read_len) = PubAck::try_read(&buf, size).unwrap();
         dbg!(pub_ack.clone());
         if read_len == MSG_LEN_PUBACK as usize {
@@ -85,7 +84,7 @@ impl PubAck {
             // TODO process return code?
             Ok((pub_ack.topic_id, pub_ack.msg_id, pub_ack.return_code))
         } else {
-            Err(ExoError::LenError(read_len, MSG_LEN_PUBACK as usize))
+            Err(format!("{}:{}",read_len, MSG_LEN_PUBACK as usize))
         }
     }
     #[inline(always)]

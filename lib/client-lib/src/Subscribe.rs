@@ -24,7 +24,6 @@ use crate::{
         WILL_FALSE,
     },
     ClientLib::MqttSnClient,
-    Errors::ExoError,
     SubAck::SubAck,
     MSG_TYPE_SUBACK,
     MSG_TYPE_SUBSCRIBE,
@@ -127,7 +126,7 @@ impl Subscribe {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
-    ) -> Result<(), ExoError> {
+    ) -> Result<(), String> {
         // TODO replace unwrap
         let (subscribe, read_fixed_len) =
             Subscribe::try_read(&buf, size).unwrap();
@@ -164,7 +163,7 @@ impl Subscribe {
             }
             Ok(())
         } else {
-            return Err(ExoError::LenError(read_len, size));
+            return Err(format!("{}:{}",read_len,size));
         }
     }
 }

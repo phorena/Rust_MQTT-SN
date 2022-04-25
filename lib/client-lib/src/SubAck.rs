@@ -8,7 +8,6 @@ use crate::{
         TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
     },
     ClientLib::MqttSnClient,
-    Errors::ExoError,
     // flags::{flags_set, flag_qos_level, },
     StateMachine,
     MSG_LEN_PUBREC,
@@ -76,7 +75,7 @@ impl SubAck {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
-    ) -> Result<u16, ExoError> {
+    ) -> Result<u16, String> {
         let (sub_ack, read_len) = SubAck::try_read(&buf, size).unwrap();
         dbg!(sub_ack.clone());
 
@@ -95,7 +94,7 @@ impl SubAck {
             // TODO check flags
             Ok(sub_ack.topic_id)
         } else {
-            Err(ExoError::LenError(read_len, MSG_LEN_SUBACK as usize))
+            Err(format!("{}:{}",read_len, MSG_LEN_SUBACK as usize))
         }
     }
 

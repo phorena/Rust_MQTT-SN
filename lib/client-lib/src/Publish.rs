@@ -17,7 +17,6 @@ use crate::{
         WILL_FALSE, WILL_TRUE,
     },
     ClientLib::MqttSnClient,
-    Errors::ExoError,
     PubAck::PubAck,
     PubRec::PubRec,
     MSG_LEN_PUBACK, MSG_LEN_PUBREC, MSG_TYPE_CONNACK, MSG_TYPE_CONNECT,
@@ -124,7 +123,7 @@ impl Publish {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
-    ) -> Result<(), ExoError> {
+    ) -> Result<(), String> {
         // TODO replace unwrap
         let (publish, read_fixed_len) = Publish::try_read(&buf, size).unwrap();
         dbg!(publish.clone());
@@ -178,7 +177,7 @@ impl Publish {
             client.subscribe_tx.send(publish);
             Ok(())
         } else {
-            return Err(ExoError::LenError(read_len, size));
+            return Err(format!("{}:{}",read_len, size));
         }
     }
     /// Publish a message
@@ -195,7 +194,7 @@ impl Publish {
         retain: u8,
         data: String,
         client: &MqttSnClient,
-    ) -> Result<(), ExoError> {
+    ) -> Result<(), String> {
         let publish = Publish::new(topic_id, msg_id, qos, retain, data);
         let mut bytes_buf = BytesMut::with_capacity(publish.len as usize);
         publish.try_write(&mut bytes_buf);

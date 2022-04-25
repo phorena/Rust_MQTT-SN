@@ -14,7 +14,6 @@ use crate::{
         TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
     },
     ClientLib::MqttSnClient,
-    Errors::ExoError,
     // flags::{flags_set, flag_qos_level, },
     StateMachine,
     MSG_LEN_PUBACK,
@@ -58,7 +57,7 @@ impl PubRel {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
-    ) -> Result<u16, ExoError> {
+    ) -> Result<u16, String> {
         if buf[0] == MSG_LEN_PUBREL && buf[1] == MSG_TYPE_PUBREL {
             // TODO verify as Big Endian
             let msg_id = buf[2] as u16 + ((buf[3] as u16) << 8);
@@ -70,7 +69,7 @@ impl PubRel {
             ));
             Ok(msg_id)
         } else {
-            Err(ExoError::LenError(buf[0] as usize, MSG_LEN_PUBREL as usize))
+            Err(format!("{}:{}",buf[0] as usize, MSG_LEN_PUBREL as usize))
         }
     }
     #[inline(always)]

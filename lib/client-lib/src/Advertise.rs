@@ -3,7 +3,6 @@ use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
 use std::mem;
 use crate::{
-    Errors::ExoError,
     ClientLib::MqttSnClient,
 };
 
