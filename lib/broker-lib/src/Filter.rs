@@ -3,6 +3,8 @@ use std::sync::{Arc, Mutex};
 
 use bisetmap::BisetMap;
 
+use crate::TopicIdType;
+
 // use crate::Connection::ConnId;
 use std::net::SocketAddr;
 //use uuid::v1::{Context, Timestamp};
@@ -292,8 +294,6 @@ impl Filter {
     }
 }
 
-pub type TopicIdType = u16;
-
 lazy_static! {
     pub static ref GLOBAL_FILTERS: Mutex<Filter> = Mutex::new(Filter::new());
     pub static ref GLOBAL_CONCRETE_TOPICS: Mutex<BisetMap<String, SocketAddr>> =
@@ -346,18 +346,27 @@ pub fn insert_subscriber_with_topic_id(
     Ok(())
 }
 
-/// Get list of (socket_addr, qos) that subscribed to the topic_id.
+#[derive(Clone, Debug)]
+pub struct Subscriber {
+    pub socket_addr: SocketAddr,
+    pub qos: QoSConst,
+}
+
+/// Get the vector of subscribers with the topic_id key.
 #[inline(always)]
-pub fn get_subscribers_with_topic_id(id: u16) -> Vec<(SocketAddr, QoSConst)> {
+pub fn get_subscribers_with_topic_id(id: u16) -> Vec<Subscriber> {
     // Get the list of socket_addr that subscribed to the topic_id.
     let sock_vec = GLOBAL_TOPIC_IDS.lock().unwrap().get(&id);
-    let mut return_vec: Vec<(SocketAddr, QoSConst)> = Vec::new();
+    let mut return_vec: Vec<Subscriber> = Vec::new();
     // Get the QoS of each socket_addr subscribed to the topic_id.
     for socket_addr in sock_vec {
         let qos_vec =
             GLOBAL_TOPIC_IDS_QOS.lock().unwrap().get(&(id, socket_addr));
         for qos in qos_vec {
-            return_vec.push((socket_addr, qos));
+            return_vec.push(Subscriber {
+                socket_addr: socket_addr,
+                qos: qos,
+            });
         }
     }
     return_vec
@@ -371,23 +380,28 @@ pub fn delete_subscribers_with_socket_addr(socket_addr: &SocketAddr) {
 #[inline(always)]
 pub fn insert_filter(
     filter: String,
-    socket_add: SocketAddr,
+    socket_addr: SocketAddr,
 ) -> Result<(), String> {
     if valid_filter(&filter[..]) {
         if has_wildcards(&filter[..]) {
             GLOBAL_WILDCARD_FILTERS
                 .lock()
                 .unwrap()
-                .insert(filter, socket_add);
+                .insert(filter, socket_addr);
         } else {
             GLOBAL_CONCRETE_TOPICS
                 .lock()
                 .unwrap()
-                .insert(filter.clone(), socket_add);
+                .insert(filter.clone(), socket_addr);
         }
         return Ok(());
     }
-    Err(format!("{}: invalid filter: {}.", function!(), filter))
+    Err(format!(
+        "{}: {} invalid filter: {}.",
+        function!(),
+        socket_addr,
+        filter
+    ))
 }
 
 /// Remove topics and filters from the bisetmaps using the rev_delete()

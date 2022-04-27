@@ -52,31 +52,31 @@ pub struct SubAck {
 
 impl SubAck {
     /*
-    fn constraint_len(_val: &u8) -> bool {
-        //dbg!(_val);
-        true
-    }
-    fn constraint_msg_type(_val: &u8) -> bool {
-        //dbg!(_val);
-        true
-    }
-    fn constraint_flags(_val: &u8) -> bool {
-        //dbg!(_val);
-        true
-    }
-    fn constraint_topic_id(_val: &u16) -> bool {
-        //dbg!(_val);
-        true
-    }
-    fn constraint_msg_id(_val: &u16) -> bool {
-        //dbg!(_val);
-        true
-    }
-    fn constraint_return_code(_val: &u8) -> bool {
-        //dbg!(_val);
-        true
-    }
-*/
+        fn constraint_len(_val: &u8) -> bool {
+            //dbg!(_val);
+            true
+        }
+        fn constraint_msg_type(_val: &u8) -> bool {
+            //dbg!(_val);
+            true
+        }
+        fn constraint_flags(_val: &u8) -> bool {
+            //dbg!(_val);
+            true
+        }
+        fn constraint_topic_id(_val: &u16) -> bool {
+            //dbg!(_val);
+            true
+        }
+        fn constraint_msg_id(_val: &u16) -> bool {
+            //dbg!(_val);
+            true
+        }
+        fn constraint_return_code(_val: &u8) -> bool {
+            //dbg!(_val);
+            true
+        }
+    */
     pub fn rx(
         buf: &[u8],
         size: usize,

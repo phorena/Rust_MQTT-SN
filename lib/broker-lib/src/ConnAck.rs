@@ -1,6 +1,6 @@
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
-use getset::{CopyGetters, Getters, MutGetters, /* Setters */};
+use getset::{CopyGetters, Getters, MutGetters /* Setters */};
 
 use crate::{
     BrokerLib::MqttSnClient,

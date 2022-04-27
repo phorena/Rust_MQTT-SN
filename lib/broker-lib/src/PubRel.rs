@@ -4,18 +4,7 @@ use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
 use crate::{
-    /*
-    flags::{
-        flag_qos_level, flags_set, CleanSessionConst, DupConst, QoSConst,
-        RetainConst, TopicIdTypeConst, WillConst, CLEAN_SESSION_FALSE,
-        CLEAN_SESSION_TRUE, DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1,
-        QOS_LEVEL_2, QOS_LEVEL_3, RETAIN_FALSE, RETAIN_TRUE,
-        TOPIC_ID_TYPE_NORMAL, TOPIC_ID_TYPE_PRE_DEFINED,
-        TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
-    },
-    */
-    BrokerLib::MqttSnClient, Errors::ExoError, MSG_LEN_PUBREL,
-    MSG_TYPE_PUBREL,
+    pub_msg_cache::PubMsgCache,
     /*
     flags::{flags_set, flag_qos_level, },
     StateMachine,
@@ -31,6 +20,18 @@ use crate::{
     MSG_TYPE_SUBSCRIBE,
     RETURN_CODE_ACCEPTED,
     */
+    /*
+    flags::{
+        flag_qos_level, flags_set, CleanSessionConst, DupConst, QoSConst,
+        RetainConst, TopicIdTypeConst, WillConst, CLEAN_SESSION_FALSE,
+        CLEAN_SESSION_TRUE, DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1,
+        QOS_LEVEL_2, QOS_LEVEL_3, RETAIN_FALSE, RETAIN_TRUE,
+        TOPIC_ID_TYPE_NORMAL, TOPIC_ID_TYPE_PRE_DEFINED,
+        TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
+    },
+    */
+    BrokerLib::MqttSnClient, Errors::ExoError, PubComp::PubComp,
+    Publish::Publish, MSG_LEN_PUBREL, MSG_TYPE_PUBREL,
 };
 #[derive(
     Debug, Clone, Getters, MutGetters, CopyGetters, Default, PartialEq,
@@ -63,17 +64,37 @@ impl PubRel {
         buf: &[u8],
         _size: usize,
         client: &MqttSnClient,
-    ) -> Result<u16, ExoError> {
+    ) -> Result<(), ExoError> {
         if buf[0] == MSG_LEN_PUBREL && buf[1] == MSG_TYPE_PUBREL {
             // TODO verify as Big Endian
             let msg_id = buf[2] as u16 + ((buf[3] as u16) << 8);
+            // Cancel the timer for PUBREL
             let _result = client.cancel_tx.send((
                 client.remote_addr,
                 MSG_TYPE_PUBREL,
                 0,
                 msg_id,
             ));
-            Ok(msg_id)
+            // TODO use ?
+            // Send PUBCOMP
+            let _result = PubComp::tx(msg_id, client);
+            // Send publish message to subscribers.
+
+            match PubMsgCache::remove((client.remote_addr, msg_id)) {
+                Some(val) => {
+                    //dbg!("pub_msg_cache_remove");
+                    let _result = Publish::send_msg_to_subscribers(
+                        val.subscriber_vec,
+                        val.publish,
+                        client,
+                    );
+                }
+                None => {
+                    // TODO return error
+                    {}
+                }
+            }
+            Ok(())
         } else {
             Err(ExoError::LenError(buf[0] as usize, MSG_LEN_PUBREL as usize))
         }

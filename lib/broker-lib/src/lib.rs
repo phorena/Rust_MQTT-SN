@@ -37,6 +37,8 @@ pub mod PingResp;
 #[allow(non_snake_case)]
 pub mod PubAck;
 #[allow(non_snake_case)]
+pub mod PubComp;
+#[allow(non_snake_case)]
 pub mod PubRec;
 #[allow(non_snake_case)]
 pub mod PubRel;
@@ -84,11 +86,15 @@ pub mod WillTopicResp;
 pub mod WillTopicUpd;
 pub mod client_struct;
 pub mod flags;
+pub mod pub_msg_cache;
 // pub mod BrokerLib;
 #[allow(non_snake_case)]
 pub mod Channels;
 
 pub const MTU: usize = 1500;
+
+pub type TopicIdType = u16;
+pub type MsgIdType = u16;
 
 pub type MsgTypeConst = u8;
 pub const MSG_TYPE_CONNECT: MsgTypeConst = 0x4;

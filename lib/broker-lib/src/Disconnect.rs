@@ -4,7 +4,13 @@ use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
 #[derive(
-    Debug, Clone, Copy, Getters, /*Setters,*/ MutGetters, CopyGetters, Default,
+    Debug,
+    Clone,
+    Copy,
+    Getters,
+    /*Setters,*/ MutGetters,
+    CopyGetters,
+    Default,
 )]
 #[getset(get, set)]
 pub struct Disconnect {

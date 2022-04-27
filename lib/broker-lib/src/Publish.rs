@@ -7,6 +7,8 @@ use std::net::SocketAddr;
 use std::str;
 
 extern crate trace_caller;
+use hashbrown::HashMap;
+use std::sync::Mutex;
 use trace_caller::trace;
 
 use crate::{
@@ -17,8 +19,9 @@ use crate::{
         TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
         WILL_FALSE, WILL_TRUE,
     },
+    pub_msg_cache::PubMsgCache,
     BrokerLib::MqttSnClient,
-    Filter::get_subscribers_with_topic_id,
+    Filter::{get_subscribers_with_topic_id, Subscriber},
     PubAck::PubAck,
     PubRec::PubRec,
     MSG_LEN_PUBACK, MSG_LEN_PUBREC, MSG_TYPE_CONNACK, MSG_TYPE_CONNECT,
@@ -52,7 +55,7 @@ pub struct Publish3Bytes {
 */
 
 #[derive(
-    Debug, Clone, Getters, MutGetters, CopyGetters, Default, PartialEq,
+    Debug, Clone, Getters, MutGetters, CopyGetters, Default, PartialEq, Hash, Eq,
 )]
 #[getset(get, set)]
 pub struct Publish {
@@ -136,9 +139,8 @@ impl Publish {
 
         dbg!((size, read_len));
 
-        let socket_addr_and_qos =
-            get_subscribers_with_topic_id(publish.topic_id);
-        dbg!(&socket_addr_and_qos);
+        let subscriber_vec = get_subscribers_with_topic_id(publish.topic_id);
+        dbg!(&subscriber_vec);
         // TODO check QoS, https://www.hivemq.com/blog/mqtt-essentials-
         // part-6-mqtt-quality-of-service-levels/
         if read_len == size {
@@ -164,7 +166,18 @@ impl Publish {
                         publish.msg_id,
                         bytes,
                     ));
-                    // TODO XXX schedule message for all subscribers in the PUBREL message
+                    // cache the publish message and the subscribers to send when PUBREL is received
+                    // from the publisher. The remote_addr and msg_id are used as the key because they
+                    // are part the message.
+                    let msg_id = publish.msg_id; // copy the msg_id so publish can be used in the hash
+                    let cache = PubMsgCache {
+                        publish,
+                        subscriber_vec,
+                    };
+                    PubMsgCache::try_insert(
+                        (client.remote_addr, msg_id),
+                        cache,
+                    )?;
                     return Ok(());
                 }
                 QOS_LEVEL_1 => {
@@ -182,21 +195,7 @@ impl Publish {
                     {}
                 }
             }
-            // send PUBLISH messages to subscribers
-            for subscriber in socket_addr_and_qos {
-                let socket_addr = subscriber.0;
-                let qos = subscriber.1;
-                // TODO use Bytes not BytesMut to eliminate clone/copy.
-                let _result = Publish::tx(
-                    publish.topic_id,
-                    publish.msg_id,
-                    qos,
-                    RETAIN_FALSE,
-                    publish.data.clone(),
-                    client,
-                    socket_addr,
-                );
-            }
+            Publish::send_msg_to_subscribers(subscriber_vec, publish, client)?;
 
             // TODO check dup, likely not dup
             //
@@ -210,6 +209,7 @@ impl Publish {
             return Err("len error".to_string());
         }
     }
+
     /// Publish a message
     /// 1. Format a message with Publish struct.
     /// 2. Serialize into a byte stream.
@@ -279,6 +279,31 @@ impl Publish {
                 // TODO return error
                 ()
             }
+        }
+        Ok(())
+    }
+    /// send PUBLISH messages to subscribers
+    pub fn send_msg_to_subscribers(
+        subscriber_vec: Vec<Subscriber>,
+        publish: Publish,
+        client: &MqttSnClient,
+    ) -> Result<(), String> {
+        // send PUBLISH messages to subscribers
+        for subscriber in subscriber_vec {
+            let socket_addr = subscriber.socket_addr;
+            let qos = subscriber.qos;
+            // TODO use Bytes not BytesMut to eliminate clone/copy.
+            // TODO error for every subscriber/message
+            // Can't return error, because not all subscribers will have error.
+            let _result = Publish::tx(
+                publish.topic_id,
+                publish.msg_id,
+                qos,
+                RETAIN_FALSE,
+                publish.data.clone(),
+                client,
+                socket_addr,
+            );
         }
         Ok(())
     }

@@ -11,7 +11,13 @@ use crate::{
     MSG_TYPE_PUBACK,
 };
 #[derive(
-    Debug, Clone, Getters, /* Setters,*/ MutGetters, CopyGetters, Default, PartialEq,
+    Debug,
+    Clone,
+    Getters,
+    /* Setters,*/ MutGetters,
+    CopyGetters,
+    Default,
+    PartialEq,
 )]
 #[getset(get, set)]
 pub struct PubAck {

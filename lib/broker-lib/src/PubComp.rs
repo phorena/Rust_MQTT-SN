@@ -1,37 +1,17 @@
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
-use getset::{CopyGetters, Getters, MutGetters, Setters};
+use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
-use std::str;
 
 use crate::{
-    flags::{
-        flag_qos_level, flags_set, CleanSessionConst, DupConst, QoSConst,
-        RetainConst, TopicIdTypeConst, WillConst, CLEAN_SESSION_FALSE,
-        CLEAN_SESSION_TRUE, DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1,
-        QOS_LEVEL_2, QOS_LEVEL_3, RETAIN_FALSE, RETAIN_TRUE,
-        TOPIC_ID_TYPE_NORNAL, TOPIC_ID_TYPE_PRE_DEFINED,
-        TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
-    },
     BrokerLib::MqttSnClient,
     Errors::ExoError,
     // flags::{flags_set, flag_qos_level, },
-    StateMachine,
-    MSG_LEN_PUBACK,
     MSG_LEN_PUBCOMP,
 
-    MSG_TYPE_CONNACK,
-    MSG_TYPE_CONNECT,
-    MSG_TYPE_PUBACK,
     MSG_TYPE_PUBCOMP,
-    MSG_TYPE_PUBLISH,
-    MSG_TYPE_PUBCOMP,
-    MSG_TYPE_SUBACK,
-
-    MSG_TYPE_SUBSCRIBE,
-    RETURN_CODE_ACCEPTED,
 };
-#[derive(Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default)]
+#[derive(Debug, Clone, Getters, MutGetters, CopyGetters, Default)]
 #[getset(get, set)]
 pub struct PubComp {
     pub len: u8,
@@ -41,6 +21,7 @@ pub struct PubComp {
 }
 
 impl PubComp {
+    /*
     fn constraint_len(_val: &u8) -> bool {
         //dbg!(_val);
         true
@@ -53,31 +34,9 @@ impl PubComp {
         //dbg!(_val);
         true
     }
+    */
     #[inline(always)]
-    pub fn rx(
-        buf: &[u8],
-        size: usize,
-        client: &MqttSnClient,
-    ) -> Result<u16, ExoError> {
-        if buf[0] == MSG_LEN_PUBCOMP && buf[1] == MSG_TYPE_PUBCOMP {
-            // TODO verify as Big Endian
-            let msg_id = buf[2] as u16 + ((buf[3] as u16) << 8);
-            client.cancel_tx.send((
-                client.remote_addr,
-                MSG_TYPE_PUBCOMP,
-                0,
-                msg_id,
-            ));
-            Ok(msg_id)
-        } else {
-            Err(ExoError::LenError(buf[0] as usize, MSG_LEN_PUBCOMP as usize))
-        }
-    }
-    #[inline(always)]
-    pub fn tx(
-        msg_id: u16,
-        client: &MqttSnClient,
-    ) {
+    pub fn tx(msg_id: u16, client: &MqttSnClient) -> Result<(), String> {
         // faster implementation
         // TODO verify big-endian or little-endian for u16 numbers
         // XXX order of statements performance
@@ -93,7 +52,31 @@ impl PubComp {
             msg_id_byte_0,
         ];
         bytes.put(buf);
-        client.transmit_tx.send((client.remote_addr, bytes));
+        let _result = client.transmit_tx.send((client.remote_addr, bytes));
         dbg!(&buf);
+        Ok(())
+    }
+    #[inline(always)]
+    pub fn rx(
+        buf: &[u8],
+        size: usize,
+        client: &MqttSnClient,
+    ) -> Result<u16, ExoError> {
+        if buf[0] == MSG_LEN_PUBCOMP && buf[1] == MSG_TYPE_PUBCOMP {
+            // TODO verify as Big Endian
+            let msg_id = buf[2] as u16 + ((buf[3] as u16) << 8);
+            let _result = client.cancel_tx.send((
+                client.remote_addr,
+                MSG_TYPE_PUBCOMP,
+                0,
+                msg_id,
+            ));
+            Ok(msg_id)
+        } else {
+            Err(ExoError::LenError(
+                buf[0] as usize,
+                MSG_LEN_PUBCOMP as usize,
+            ))
+        }
     }
 }

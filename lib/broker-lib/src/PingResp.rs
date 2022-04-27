@@ -7,7 +7,7 @@ use getset::{CopyGetters, Getters, MutGetters};
     Clone,
     Copy,
     Getters,
- //   Setters,
+    //   Setters,
     MutGetters,
     CopyGetters,
     Default,
