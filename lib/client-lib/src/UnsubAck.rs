@@ -1,14 +1,11 @@
+use crate::{
+    ClientLib::MqttSnClient, Errors::ExoError, MSG_LEN_UNSUBACK,
+    MSG_TYPE_UNSUBACK,
+};
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
 use std::mem;
-use crate::{
-    
-    ClientLib::MqttSnClient,
-    Errors::ExoError,
-    MSG_LEN_UNSUBACK,
-    MSG_TYPE_UNSUBACK
-};
 #[derive(Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default)]
 #[getset(get, set)]
 pub struct UnsubAck {
@@ -37,7 +34,7 @@ impl UnsubAck {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
-    )->Result<u16, ExoError>{
+    ) -> Result<u16, ExoError> {
         let (unsub_ack, read_len) = UnsubAck::try_read(&buf, size).unwrap();
         dbg!(unsub_ack.clone());
 
@@ -54,24 +51,18 @@ impl UnsubAck {
             ));
             // TODO check QoS in flags
             // TODO check flags
-             Ok(unsub_ack.msg_id)
+            Ok(unsub_ack.msg_id)
         } else {
             Err(ExoError::LenError(read_len, MSG_LEN_UNSUBACK as usize))
         }
     }
 
     // TODO error checking and return
-    pub fn tx(
-        client: &MqttSnClient,
-                
-        msg_id: u16,
-        return_code: u8,
-    ) {
+    pub fn tx(client: &MqttSnClient, msg_id: u16, return_code: u8) {
         let unsub_ack = UnsubAck {
             len: MSG_LEN_UNSUBACK,
             msg_type: MSG_TYPE_UNSUBACK,
             msg_id,
-            
         };
         let mut bytes_buf = BytesMut::with_capacity(MSG_LEN_UNSUBACK as usize);
         dbg!(unsub_ack.clone());

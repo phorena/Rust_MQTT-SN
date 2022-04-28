@@ -68,6 +68,24 @@ impl PubRel {
         if buf[0] == MSG_LEN_PUBREL && buf[1] == MSG_TYPE_PUBREL {
             // TODO verify as Big Endian
             let msg_id = buf[2] as u16 + ((buf[3] as u16) << 8);
+            // TODO use ?
+            // Send PUBCOMP to publisher
+            let _result = PubComp::tx(msg_id, client);
+            // Send publish message to subscribers.
+            match PubMsgCache::remove((client.remote_addr, msg_id)) {
+                Some(pub_msg_cache) => {
+                    dbg!(&pub_msg_cache);
+                    let _result = Publish::send_msg_to_subscribers(
+                        pub_msg_cache.subscriber_vec,
+                        pub_msg_cache.publish,
+                        client,
+                    );
+                }
+                None => {
+                    // TODO return error or no subscribers?
+                    {}
+                }
+            }
             // Cancel the timer for PUBREL
             let _result = client.cancel_tx.send((
                 client.remote_addr,
@@ -75,25 +93,6 @@ impl PubRel {
                 0,
                 msg_id,
             ));
-            // TODO use ?
-            // Send PUBCOMP
-            let _result = PubComp::tx(msg_id, client);
-            // Send publish message to subscribers.
-
-            match PubMsgCache::remove((client.remote_addr, msg_id)) {
-                Some(val) => {
-                    //dbg!("pub_msg_cache_remove");
-                    let _result = Publish::send_msg_to_subscribers(
-                        val.subscriber_vec,
-                        val.publish,
-                        client,
-                    );
-                }
-                None => {
-                    // TODO return error
-                    {}
-                }
-            }
             Ok(())
         } else {
             Err(ExoError::LenError(buf[0] as usize, MSG_LEN_PUBREL as usize))

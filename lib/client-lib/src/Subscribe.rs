@@ -44,7 +44,13 @@ pub struct Subscribe {
 }
 
 impl Subscribe {
-    pub fn new(topic_name: String, msg_id: u16, qos: u8, retain: u8, topic_id_type: u8) -> Self {
+    pub fn new(
+        topic_name: String,
+        msg_id: u16,
+        qos: u8,
+        retain: u8,
+        topic_id_type: u8,
+    ) -> Self {
         let len = (topic_name.len() + 5) as u8;
         let mut bb = BytesMut::new();
         bb.put_slice(topic_name.as_bytes());
@@ -104,7 +110,8 @@ impl Subscribe {
         topic_id_type: u8,
         client: &MqttSnClient,
     ) {
-        let subscribe = Subscribe::new(topic, msg_id, qos, retain, topic_id_type);
+        let subscribe =
+            Subscribe::new(topic, msg_id, qos, retain, topic_id_type);
         dbg!(&subscribe);
         let mut bytes_buf = BytesMut::with_capacity(subscribe.len as usize);
         subscribe.try_write(&mut bytes_buf);

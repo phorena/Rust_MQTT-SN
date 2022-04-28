@@ -1,13 +1,11 @@
 use crate::Filter::Filter;
 use log::*;
+use rand::Rng;
 use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::v1::{Context, Timestamp};
 use uuid::{Error, Uuid};
-    use rand::Rng;
-
-
 
 macro_rules! function {
     () => {{
@@ -17,7 +15,7 @@ macro_rules! function {
         }
         let name = type_name_of(f);
         &name[..name.len() - 3]
-    }}
+    }};
 }
 
 pub type ConnId = Uuid;
@@ -124,7 +122,11 @@ impl ConnHashMap {
             self.socket_addr_hashmap.insert(socket_addr, id);
             return Ok(());
         } else {
-            return Err(format!("{}: socket_addr: {} already exists", function!(), socket_addr));
+            return Err(format!(
+                "{}: socket_addr: {} already exists",
+                function!(),
+                socket_addr
+            ));
         }
     }
     /// Get connection by socket_addr
@@ -145,11 +147,10 @@ impl ConnHashMap {
 mod test {
     #[test]
     fn test_conn_hashmap() {
+        use rand::Rng;
 
-    use rand::Rng;
-
-    let random_bytes = rand::thread_rng().gen::<[u8; 6]>();
-    println!("{:?}", random_bytes);
+        let random_bytes = rand::thread_rng().gen::<[u8; 6]>();
+        println!("{:?}", random_bytes);
         use std::net::{IpAddr, Ipv6Addr, SocketAddr};
         let socket = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
         let mut conn_hashmap = super::ConnHashMap::new(11, socket);

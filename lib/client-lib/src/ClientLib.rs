@@ -1,5 +1,5 @@
 use std::net::UdpSocket;
-use std::{hint, thread};
+use std::{thread};
 use std::{net::SocketAddr, sync::Arc, sync::Mutex};
 
 use crate::TimingWheel2::RetransTimeWheel;
@@ -10,19 +10,19 @@ use crossbeam::channel::{unbounded, Receiver, Sender};
 use log::*;
 
 use crate::{
-    flags::{TOPIC_ID_TYPE_NORMAL, TOPIC_ID_TYPE_PRE_DEFINED,},
-    Channels::Channels,
+    flags::{TOPIC_ID_TYPE_NORMAL, TOPIC_ID_TYPE_PRE_DEFINED},
     ConnAck::ConnAck,
     Connect::Connect,
-    Connection::{ConnHashMap},
+    Connection::ConnHashMap,
     PubAck::PubAck,
     Publish::Publish,
+    PubRec::PubRec,
+    PubComp::PubComp,
     StateMachine::{StateMachine, STATE_DISCONNECT},
     SubAck::SubAck,
     Subscribe::Subscribe,
-    TimingWheel2::{RetransmitData, RetransmitHeader},
     MSG_TYPE_CONNACK, MSG_TYPE_CONNECT, MSG_TYPE_PUBACK, MSG_TYPE_PUBLISH,
-    MSG_TYPE_PUBREC, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE,
+    MSG_TYPE_PUBREC, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE, MSG_TYPE_PUBCOMP,
 };
 use trace_var::trace_var;
 
@@ -168,6 +168,7 @@ impl MqttSnClient {
             loop {
                 match socket.recv_from(&mut buf) {
                     Ok((size, addr)) => {
+                        dbg_buf!(buf, size);
                         self.remote_addr = addr;
                         // TODO process 3 bytes length
                         let msg_type = buf[1] as u8;
@@ -185,6 +186,16 @@ impl MqttSnClient {
                         };
                         if msg_type == MSG_TYPE_SUBSCRIBE {
                             Subscribe::rx(&buf, size, &self);
+                            continue;
+                        };
+                        if msg_type == MSG_TYPE_PUBREC {
+                            dbg!(size);
+                            let _result = PubRec::rx(&buf, size, &self);
+                            continue;
+                        };
+                        if msg_type == MSG_TYPE_PUBCOMP {
+                            dbg!(size);
+                            let _result = PubComp::rx(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_CONNACK {
@@ -211,69 +222,6 @@ impl MqttSnClient {
         });
     }
 
-    pub fn broker_rx_loop(mut self, socket: UdpSocket) {
-        let self_transmit = self.clone();
-        // name for easy debug
-        let socket_tx = socket.try_clone().expect("couldn't clone the socket");
-        let builder = thread::Builder::new().name("recv_thread".into());
-        // process input datagram from network
-        let _recv_thread = builder.spawn(move || {
-            let mut buf = [0; 1500];
-            loop {
-                match socket.recv_from(&mut buf) {
-                    Ok((size, addr)) => {
-                        self.remote_addr = addr;
-                        // TODO process 3 bytes length
-                        let msg_type = buf[1] as u8;
-                        if msg_type == MSG_TYPE_PUBLISH {
-                            Publish::rx(&buf, size, &self);
-                            continue;
-                        };
-                        if msg_type == MSG_TYPE_PUBACK {
-                            PubAck::rx(&buf, size, &self);
-                            continue;
-                        };
-                        if msg_type == MSG_TYPE_SUBACK {
-                            SubAck::rx(&buf, size, &self);
-                            continue;
-                        };
-                        if msg_type == MSG_TYPE_CONNECT {
-                            Connect::rx(&buf, size, &mut self);
-                            continue;
-                        };
-                        if msg_type == MSG_TYPE_CONNACK {
-                            match ConnAck::rx(&buf, size, &self) {
-                                Ok(_) => {
-                                    // Broker shouldn't receive ConnAck
-                                    // because it doesn't send Connect for now.
-                                    error!("Broker ConnAck {:?}", addr);
-                                }
-                                Err(why) => error!("ConnAck {:?}", why),
-                            }
-                            continue;
-                        };
-                    }
-                    Err(why) => {
-                        error!("{}", why);
-                    }
-                }
-            }
-        });
-        let builder = thread::Builder::new().name("transmit_rx_thread".into());
-        // process input datagram from network
-        let _transmit_rx_thread = builder.spawn(move || loop {
-            match self_transmit.transmit_rx.recv() {
-                Ok((addr, bytes)) => {
-                    // TODO DTLS
-                    dbg!((addr, &bytes));
-                    let _result = socket_tx.send_to(&bytes[..], addr);
-                }
-                Err(why) => {
-                    println!("channel_rx_thread: {}", why);
-                }
-            }
-        });
-    }
 
     /// Connect to a remote broker
     /// 1. send connect message
@@ -316,7 +264,7 @@ impl MqttSnClient {
             let mut buf = [0; 1500];
             match socket.recv_from(&mut buf) {
                 Ok((size, addr)) => {
-                    dbg!((size, addr, buf));
+                    // dbg!((size, addr, buf));
                     self.remote_addr = addr;
                     // TODO process 3 bytes length
                     let msg_type = buf[1] as u8;
@@ -351,7 +299,14 @@ impl MqttSnClient {
         qos: u8,
         retain: u8,
     ) -> &Receiver<Publish> {
-        let _result = Subscribe::tx(topic, msg_id, qos, retain, TOPIC_ID_TYPE_NORMAL, &self);
+        let _result = Subscribe::tx(
+            topic,
+            msg_id,
+            qos,
+            retain,
+            TOPIC_ID_TYPE_NORMAL,
+            &self,
+        );
         &self.subscribe_rx
     }
     pub fn subscribe_topic_id(
@@ -363,7 +318,14 @@ impl MqttSnClient {
     ) -> &Receiver<Publish> {
         // TODO verify this topic_id (u16) to topic (2 bytes string)
         let topic = format!("{}", topic_id);
-        let _result = Subscribe::tx(topic, msg_id, qos, retain, TOPIC_ID_TYPE_PRE_DEFINED, &self);
+        let _result = Subscribe::tx(
+            topic,
+            msg_id,
+            qos,
+            retain,
+            TOPIC_ID_TYPE_PRE_DEFINED,
+            &self,
+        );
         &self.subscribe_rx
     }
     /// Publish a message

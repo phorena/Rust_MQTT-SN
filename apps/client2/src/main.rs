@@ -96,7 +96,7 @@ fn main() {
     let publish_thread = thread::spawn(move || loop {
         let msg = format!("hi {:?}", i);
         let msg2 = format!("hi {:?}", i + 1000);
-        client_main.publish(1, i, QOS_LEVEL_1, RETAIN_TRUE, msg.to_string());
+        client_main.publish(1, i, QOS_LEVEL_2, RETAIN_TRUE, msg.to_string());
 //         client_main.publish(2, i, QOS_LEVEL_1, RETAIN_FALSE, msg2.to_string());
         i += 1;
         thread::sleep(Duration::from_secs(2));

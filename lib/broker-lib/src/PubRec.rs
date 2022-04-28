@@ -78,6 +78,7 @@ impl PubRec {
             msg_id_byte_1,
             msg_id_byte_0,
         ];
+        dbg!(&buf);
         bytes.put(buf);
         // TODO replace BytesMut with Bytes to eliminate clone as copy
         let _result =

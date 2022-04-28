@@ -156,6 +156,7 @@ impl Publish {
                     //      cancel restransmit of PUBREC
                     // 4. Send PUBLISH message to subscribers from PUBREL.rx.
 
+                    //dbg!(&client);
                     let bytes = PubRec::tx(publish.msg_id, client);
                     // PUBREL message doesn't have topic id.
                     // For the time wheel hash, default to 0.

@@ -86,7 +86,9 @@ pub mod WillTopicResp;
 pub mod WillTopicUpd;
 pub mod client_struct;
 pub mod flags;
+pub mod message;
 pub mod pub_msg_cache;
+
 // pub mod BrokerLib;
 #[allow(non_snake_case)]
 pub mod Channels;

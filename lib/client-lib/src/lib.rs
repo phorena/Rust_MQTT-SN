@@ -18,6 +18,7 @@ pub mod MsgType;
 pub mod PingReq;
 pub mod PingResp;
 pub mod PubAck;
+pub mod PubComp;
 pub mod PubRec;
 pub mod PubRel;
 pub mod Publish;
@@ -63,7 +64,7 @@ pub const MSG_TYPE_PUBREL: MsgTypeConst = 0x10;
 // TODO fill in the rest
 pub const MSG_TYPE_WILLMSGRESP: MsgTypeConst = 0x1D; // 29
 pub const MSG_TYPE_WILLMESSAGEREQ: MsgTypeConst = 0x08;
-pub const MSG_TYPE_REGACK:MsgTypeConst=0x0B;
+pub const MSG_TYPE_REGACK: MsgTypeConst = 0x0B;
 // 0x1E-0xFD reserved
 pub const MSG_TYPE_ENCAP_MSG: MsgTypeConst = 0xFE;
 // XXX not an optimal choice because, array of MsgTypeConst
@@ -86,7 +87,7 @@ pub const MSG_LEN_SUBACK: MsgLenConst = 8;
 pub const MSG_LEN_UNSUBACK: MsgLenConst = 8;
 pub const MSG_LEN_CONNACK: MsgLenConst = 3;
 pub const MSG_LEN_WILLMESSAGEREQ: MsgLenConst = 2;
-pub const MSG_LEN_REGACK:MsgLenConst=7;
+pub const MSG_LEN_REGACK: MsgLenConst = 7;
 
 pub const MSG_LEN_WILLMSGRESP: MsgLenConst = 3;
 type ReturnCodeConst = u8;

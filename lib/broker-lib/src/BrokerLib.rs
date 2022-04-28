@@ -15,6 +15,7 @@ use crate::{
     Connect::Connect,
     // Connection::ConnHashMap,
     PubAck::PubAck,
+    PubRel::PubRel,
     Publish::Publish,
     StateMachine::{StateMachine, STATE_DISCONNECT},
     SubAck::SubAck,
@@ -24,13 +25,12 @@ use crate::{
     MSG_TYPE_CONNECT,
     MSG_TYPE_PUBACK,
     MSG_TYPE_PUBLISH,
-    // MSG_TYPE_PUBREC,
+    MSG_TYPE_PUBREL,
     MSG_TYPE_SUBACK,
     MSG_TYPE_SUBSCRIBE,
 };
 // use trace_var::trace_var;
 
-/*
 macro_rules! function {
     () => {{
         fn f() {}
@@ -93,7 +93,6 @@ macro_rules! dbg_buf {
         eprintln!("");
     };
 }
-*/
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum MessageTypeEnum {
@@ -176,58 +175,6 @@ impl MqttSnClient {
         }
     }
 
-    fn rx_loop(mut self, socket: UdpSocket) {
-        // name for easy debug
-        let builder = thread::Builder::new().name("recv_thread".into());
-        // process input datagram from network
-        let _recv_thread = builder.spawn(move || {
-            let mut buf = [0; 1500];
-            loop {
-                match socket.recv_from(&mut buf) {
-                    Ok((size, addr)) => {
-                        self.remote_addr = addr;
-                        // TODO process 3 bytes length
-                        let msg_type = buf[1] as u8;
-                        if msg_type == MSG_TYPE_PUBLISH {
-                            let _result = Publish::rx(&buf, size, &self);
-                            continue;
-                        };
-                        if msg_type == MSG_TYPE_PUBACK {
-                            let _result = PubAck::rx(&buf, size, &self);
-                            continue;
-                        };
-                        if msg_type == MSG_TYPE_SUBACK {
-                            let _result = SubAck::rx(&buf, size, &self);
-                            continue;
-                        };
-                        if msg_type == MSG_TYPE_SUBSCRIBE {
-                            let _result = Subscribe::rx(&buf, size, &self);
-                            continue;
-                        };
-                        if msg_type == MSG_TYPE_CONNACK {
-                            match ConnAck::rx(&buf, size, &self) {
-                                Ok(_) => {
-                                    dbg!(*self.state.lock().unwrap());
-                                    let cur_state = *self.state.lock().unwrap();
-                                    *self.state.lock().unwrap() = self
-                                        .state_machine
-                                        .transition(cur_state, MSG_TYPE_CONNACK)
-                                        .unwrap();
-                                    dbg!(*self.state.lock().unwrap());
-                                }
-                                Err(why) => error!("ConnAck {:?}", why),
-                            }
-                            continue;
-                        };
-                    }
-                    Err(why) => {
-                        error!("{}", why);
-                    }
-                }
-            }
-        });
-    }
-
     pub fn broker_rx_loop(mut self, socket: UdpSocket) {
         let self_transmit = self.clone();
         // name for easy debug
@@ -242,8 +189,13 @@ impl MqttSnClient {
                         self.remote_addr = addr;
                         // TODO process 3 bytes length
                         let msg_type = buf[1] as u8;
+                        dbg_buf!(buf, size);
                         if msg_type == MSG_TYPE_PUBLISH {
                             let _result = Publish::rx(&buf, size, &self);
+                            continue;
+                        };
+                        if msg_type == MSG_TYPE_PUBREL {
+                            let _result = PubRel::rx(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_PUBACK {
@@ -362,7 +314,6 @@ impl MqttSnClient {
                 }
             }
         }
-        self.rx_loop(socket);
     }
 
     pub fn subscribe(
