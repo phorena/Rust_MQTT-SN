@@ -28,7 +28,7 @@ lazy_static! {
 
 #[derive(Debug, Clone)]
 pub struct PubMsgCache {
-    pub publish: PublishBody,
+    pub publish_body: PublishBody,
     pub subscriber_vec: Vec<Subscriber>,
 }
 

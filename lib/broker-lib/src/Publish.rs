@@ -171,23 +171,24 @@ impl Publish {
         dbg!((size, read_len));
         */
 
-        let publish: PublishBody;
+        let publish_body: PublishBody;
         let _read_fixed_len;
         if header.header_len == 2 {
             // TODO replace unwrap
-            (publish, _read_fixed_len) =
+            (publish_body, _read_fixed_len) =
                 PublishBody::try_read(&buf[2..], size).unwrap();
         } else {
-            (publish, _read_fixed_len) =
+            (publish_body, _read_fixed_len) =
                 PublishBody::try_read(&buf[4..], size).unwrap();
         }
 
-        dbg!(publish.clone());
-        let subscriber_vec = get_subscribers_with_topic_id(publish.topic_id);
+        dbg!(publish_body.clone());
+        let subscriber_vec =
+            get_subscribers_with_topic_id(publish_body.topic_id);
         dbg!(&subscriber_vec);
         // TODO check QoS, https://www.hivemq.com/blog/mqtt-essentials-
         // part-6-mqtt-quality-of-service-levels/
-        match flag_qos_level(publish.flags) {
+        match flag_qos_level(publish_body.flags) {
             QOS_LEVEL_2 => {
                 // 4-way handshake for QoS level 2 message for the RECEIVER.
                 // 1. Received PUBLISH message.
@@ -200,22 +201,22 @@ impl Publish {
                 // 4. Send PUBLISH message to subscribers from PUBREL.rx.
 
                 //dbg!(&client);
-                let bytes = PubRec::tx(publish.msg_id, client);
+                let bytes = PubRec::tx(publish_body.msg_id, client);
                 // PUBREL message doesn't have topic id.
                 // For the time wheel hash, default to 0.
                 let _result = client.schedule_tx.send((
                     client.remote_addr,
                     MSG_TYPE_PUBREL,
                     0,
-                    publish.msg_id,
+                    publish_body.msg_id,
                     bytes,
                 ));
                 // cache the publish message and the subscribers to send when PUBREL is received
                 // from the publisher. The remote_addr and msg_id are used as the key because they
                 // are part the message.
-                let msg_id = publish.msg_id; // copy the msg_id so publish can be used in the hash
+                let msg_id = publish_body.msg_id; // copy the msg_id so publish can be used in the hash
                 let cache = PubMsgCache {
-                    publish,
+                    publish_body,
                     subscriber_vec,
                 };
                 PubMsgCache::try_insert((client.remote_addr, msg_id), cache)?;
@@ -224,8 +225,8 @@ impl Publish {
             QOS_LEVEL_1 => {
                 // send PUBACK to PUBLISH client
                 PubAck::tx(
-                    publish.topic_id,
-                    publish.msg_id,
+                    publish_body.topic_id,
+                    publish_body.msg_id,
                     RETURN_CODE_ACCEPTED,
                     client,
                 );
@@ -236,7 +237,7 @@ impl Publish {
                 {}
             }
         }
-        Publish::send_msg_to_subscribers(subscriber_vec, publish, client)?;
+        Publish::send_msg_to_subscribers(subscriber_vec, publish_body, client)?;
 
         // TODO check dup, likely not dup
         //
@@ -377,7 +378,7 @@ impl Publish {
             // TODO error for every subscriber/message
             // TODO use Bytes not BytesMut to eliminate clone/copy.
             // TODO new tx method to reduce have try_write() run once for every subscriber.
-            let _result = Publish::tx(
+            Publish::tx(
                 publish.topic_id,
                 publish.msg_id,
                 qos,
@@ -385,7 +386,7 @@ impl Publish {
                 publish.data.clone(),
                 client,
                 socket_addr,
-            );
+            )?;
         }
         Ok(())
     }

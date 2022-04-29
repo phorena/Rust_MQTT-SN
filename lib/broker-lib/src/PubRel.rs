@@ -30,9 +30,26 @@ use crate::{
         TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
     },
     */
-    BrokerLib::MqttSnClient, Errors::ExoError, PubComp::PubComp,
-    Publish::Publish, MSG_LEN_PUBREL, MSG_TYPE_PUBREL,
+    BrokerLib::MqttSnClient, PubComp::PubComp, Publish::Publish, MSG_LEN_PUBREL,
+    MSG_TYPE_PUBREL,
 };
+
+macro_rules! function {
+    () => {{
+        fn f() {}
+        fn type_name_of<T>(_: T) -> &'static str {
+            std::any::type_name::<T>()
+        }
+        let name = type_name_of(f);
+
+        // Find and cut the rest of the path
+        match &name[..name.len() - 3].rfind(':') {
+            Some(pos) => &name[pos + 1..name.len() - 3],
+            None => &name[..name.len() - 3],
+        }
+    }};
+}
+
 #[derive(
     Debug, Clone, Getters, MutGetters, CopyGetters, Default, PartialEq,
 )]
@@ -64,7 +81,7 @@ impl PubRel {
         buf: &[u8],
         _size: usize,
         client: &MqttSnClient,
-    ) -> Result<(), ExoError> {
+    ) -> Result<(), String> {
         if buf[0] == MSG_LEN_PUBREL && buf[1] == MSG_TYPE_PUBREL {
             // TODO verify as Big Endian
             let msg_id = buf[2] as u16 + ((buf[3] as u16) << 8);
@@ -77,7 +94,7 @@ impl PubRel {
                     dbg!(&pub_msg_cache);
                     let _result = Publish::send_msg_to_subscribers(
                         pub_msg_cache.subscriber_vec,
-                        pub_msg_cache.publish,
+                        pub_msg_cache.publish_body,
                         client,
                     );
                 }
@@ -95,11 +112,16 @@ impl PubRel {
             ));
             Ok(())
         } else {
-            Err(ExoError::LenError(buf[0] as usize, MSG_LEN_PUBREL as usize))
+            return Err(format!(
+                "{}-{}: Length {}",
+                function!(),
+                client.remote_addr,
+                buf[0]
+            ));
         }
     }
     #[inline(always)]
-    pub fn tx(msg_id: u16, client: &MqttSnClient) {
+    pub fn tx(msg_id: u16, client: &MqttSnClient) -> Result<(), String> {
         // faster implementation
         // TODO verify big-endian or little-endian for u16 numbers
         // XXX order of statements performance
@@ -115,7 +137,14 @@ impl PubRel {
             msg_id_byte_0,
         ];
         bytes.put(buf);
-        let _result = client.transmit_tx.send((client.remote_addr, bytes));
-        dbg!(&buf);
+        match client.transmit_tx.send((client.remote_addr, bytes)) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(format!(
+                "{}-{}: {}",
+                function!(),
+                client.remote_addr,
+                e.to_string()
+            )),
+        }
     }
 }
