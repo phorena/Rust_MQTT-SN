@@ -70,39 +70,6 @@ pub fn generate_conn_id(
     Ok(uuid)
 }
 
-/// A connection is CURRENT network connection a client connects to the server.
-/// The filter is used to delete its global filters when the client disconnects
-/// or unsubscribes.
-/// In the future, the client might be able to connect to multiple servers and
-/// move to a different network connection.
-
-// TODO: remove later
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
-pub struct Connection {
-    socket_addr: SocketAddr,
-    _clean: bool,
-    // TODO Struct Will
-    _will: u8,
-    _state: u8,
-    duration: u16,
-    filter: Filter,
-}
-
-impl Connection {
-    pub fn new(socket_addr: SocketAddr, duration: u16) -> Result<Self, String> {
-        let conn = Connection {
-            socket_addr,
-            _clean: true,
-            _will: 0,
-            _state: 0,
-            duration,
-            filter: Filter::new(),
-        };
-        Ok(conn)
-    }
-}
-
 lazy_static! {
     // TODO add comments!!!
     static ref CONN_HASHMAP: Mutex<HashMap<SocketAddr, Connection>> =
@@ -114,6 +81,61 @@ lazy_static! {
         Mutex::new(HashMap::new());
 }
 
+/// A connection is CURRENT network connection a client connects to the server.
+/// The filter is used to delete its global filters when the client disconnects
+/// or unsubscribes.
+/// In the future, the client might be able to connect to multiple servers and
+/// move to a different network connection.
+
+// TODO: remove later
+// #[allow(dead_code)]
+#[derive(Debug, Clone)]
+pub struct Connection {
+    socket_addr: SocketAddr,
+    flags: u8,
+    // TODO Struct Will
+    _will: u8,
+    _state: u8,
+    duration: u16,
+}
+
+impl Connection {
+    pub fn new(
+        socket_addr: SocketAddr,
+        flags: u8,
+        duration: u16,
+    ) -> Result<Self, String> {
+        let conn = Connection {
+            socket_addr,
+            flags,
+            _will: 0,
+            _state: 0,
+            duration,
+        };
+        Ok(conn)
+    }
+    pub fn try_insert(
+        socket_addr: SocketAddr,
+        flags: u8,
+        duration: u16,
+    ) -> Result<(), String> {
+        let conn = Connection::new(socket_addr, flags, duration)?;
+        let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
+        let socket_addr = conn.socket_addr;
+        let _result = match conn_hashmap.try_insert(socket_addr, conn) {
+            Ok(_) => return Ok(()),
+            Err(e) => {
+                return Err(format!(
+                    "{}: socket_addr: {} already exists.",
+                    function!(),
+                    e.entry.key()
+                ))
+            }
+        };
+    }
+}
+
+/*
 pub fn connection_insert(conn: Connection) -> Result<(), String> {
     let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
     let socket_addr = conn.socket_addr;
@@ -152,13 +174,15 @@ pub fn connection_filter_insert(
         }
     };
 }
+*/
 
 #[cfg(test)]
 mod test {
     #[test]
     fn test_conn_hashmap() {
-        use std::net::SocketAddr;
 
+        /*
+        use std::net::SocketAddr;
         // insert first connection
         let socket = "127.0.0.1:1200".parse::<SocketAddr>().unwrap();
         let connection = super::Connection::new(socket, 0).unwrap();
@@ -202,6 +226,7 @@ mod test {
         let result = super::connection_filter_insert("test/#", socket);
         assert!(result.is_ok());
         dbg!(super::CONN_HASHMAP.lock().unwrap());
+        */
     }
     #[test]
     fn test_generate_uuid() {

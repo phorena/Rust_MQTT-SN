@@ -5,10 +5,10 @@ use std::mem;
 use std::str;
 
 use crate::{
+    /*
     flags::{
         flag_is_clean_session,
         flag_is_will,
-        /*
         flag_qos_level, flags_set,
         CleanSessionConst, DupConst, QoSConst, RetainConst, TopicIdTypeConst,
         WillConst, CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE, DUP_FALSE,
@@ -16,15 +16,9 @@ use crate::{
         RETAIN_FALSE, RETAIN_TRUE, TOPIC_ID_TYPE_NORNAL,
         TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
         WILL_FALSE, WILL_TRUE,
-        */
     },
-    BrokerLib::MqttSnClient,
-    ConnAck::ConnAck,
-    Connection::{connection_insert, Connection},
-    // flags::{flags_set, flag_qos_level, },
-    MSG_TYPE_CONNACK,
-    MSG_TYPE_CONNECT,
-    RETURN_CODE_ACCEPTED,
+        */
+    message::MsgHeader,
     /*
     Errors::ExoError,
     MSG_LEN_PUBACK,
@@ -40,8 +34,16 @@ use crate::{
     MSG_TYPE_SUBSCRIBE,
     RETURN_CODE_ACCEPTED,
     */
+    BrokerLib::MqttSnClient,
+    ConnAck::ConnAck,
+    Connection::Connection,
+    // flags::{flags_set, flag_qos_level, },
+    MSG_TYPE_CONNACK,
+    MSG_TYPE_CONNECT,
+    RETURN_CODE_ACCEPTED,
 };
 
+/// Connect and Connect4 are for sending CONNECT messages with different header lengths.
 #[derive(
     Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default, PartialEq,
 )]
@@ -50,6 +52,36 @@ pub struct Connect {
     pub len: u8,
     #[debug(format = "0x{:x}")]
     pub msg_type: u8,
+    #[debug(format = "0b{:08b}")]
+    pub flags: u8,
+    pub protocol_id: u8,
+    pub duration: u16,
+    pub client_id: String,
+}
+
+#[derive(
+    Debug, Clone, Getters, MutGetters, CopyGetters, Default, PartialEq,
+)]
+#[getset(get, set)]
+/// Connect message type with 4 bytes header.
+pub struct Connect4 {
+    pub one: u8,
+    pub len: u16,
+    #[debug(format = "0x{:x}")]
+    pub msg_type: u8,
+    #[debug(format = "0b{:08b}")]
+    pub flags: u8,
+    pub protocol_id: u8,
+    pub duration: u16,
+    pub client_id: String,
+}
+
+/// Body is for parsing the body of a CONNECT message, length is parsed be the caller.
+#[derive(
+    Debug, Clone, Getters, MutGetters, CopyGetters, Default, PartialEq,
+)]
+#[getset(get, set)]
+struct Body {
     #[debug(format = "0b{:08b}")]
     pub flags: u8,
     pub protocol_id: u8,
@@ -85,8 +117,13 @@ impl Connect {
     }
 
     // TODO error checking and return
-    pub fn tx(client_id: String, duration: u16, client: &MqttSnClient) {
+    pub fn tx(
+        client_id: String,
+        duration: u16,
+        client: &MqttSnClient,
+    ) -> Result<(), String> {
         let len = client_id.len() + 6;
+        // TODO check for 250 & 1400
         if len < 250 {
             let connect = Connect {
                 len: len as u8,
@@ -115,9 +152,39 @@ impl Connect {
                 0,
                 bytes_buf,
             ));
+            return Ok(());
+        } else if len < 1400 {
+            let connect = Connect4 {
+                one: 1,
+                len: len as u16,
+                msg_type: MSG_TYPE_CONNECT,
+                flags: 0b00000100,
+                protocol_id: 1,
+                duration,
+                client_id,
+            };
+            let mut bytes_buf = BytesMut::with_capacity(len);
+            // serialize the con_ack struct into byte(u8) array for the network.
+            // serialize the con_ack struct into byte(u8) array for the network.
+            dbg!(connect.clone());
+            dbg!((bytes_buf.clone(), &connect));
+            connect.try_write(&mut bytes_buf);
+            dbg!(bytes_buf.clone());
+            // transmit to network
+            let _result = client
+                .transmit_tx
+                .send((client.remote_addr, bytes_buf.to_owned()));
+            // schedule retransmit
+            let _result = client.schedule_tx.send((
+                client.remote_addr,
+                MSG_TYPE_CONNACK,
+                0,
+                0,
+                bytes_buf,
+            ));
+            return Ok(());
         } else {
-            // TODO long message modify try_write
-            ()
+            return Err(String::from("client_id too long"));
         }
     }
 
@@ -126,35 +193,19 @@ impl Connect {
         buf: &[u8],
         size: usize,
         client: &mut MqttSnClient,
+        header: MsgHeader,
     ) -> Result<(), String> {
-        // TODO replace unwrap
-        let (connect, read_fixed_len) = Connect::try_read(&buf, size).unwrap();
-        dbg!(connect.clone());
-        let read_len = read_fixed_len + connect.client_id.len();
-
-        if read_len == size {
-            if flag_is_will(connect.flags) {
-                // set will
-            }
-            if flag_is_clean_session(connect.flags) {
-                // clean session
-            }
-            // protocol_id
-            // duration
-            // client_id
-            // send connack
-
-            // add connection to connection hashmaps.
-            let connection =
-                Connection::new(client.remote_addr, connect.duration)?;
-            let _result = connection_insert(connection)?;
-            dbg!(_result);
-            // Send connack to client after connection is established.
-            ConnAck::tx(client, RETURN_CODE_ACCEPTED);
-            Ok(())
+        let body: Body;
+        let _read_fixed_len;
+        if header.header_len == 2 {
+            // TODO replace unwrap
+            (body, _read_fixed_len) = Body::try_read(&buf[2..], size).unwrap();
         } else {
-            // return Err(ExoError::LenError(read_len, size));
-            return Err("connect rx len error".to_string());
+            (body, _read_fixed_len) = Body::try_read(&buf[4..], size).unwrap();
         }
+        dbg!(body.clone());
+        Connection::try_insert(client.remote_addr, body.flags, body.duration)?;
+        ConnAck::tx(client, RETURN_CODE_ACCEPTED);
+        Ok(())
     }
 }

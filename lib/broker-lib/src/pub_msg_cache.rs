@@ -5,7 +5,7 @@ use std::sync::Mutex;
 use crate::MsgIdType;
 
 use crate::Filter::Subscriber;
-use crate::Publish::Publish;
+use crate::Publish::PublishBody;
 
 // use crate::Connection::ConnId;
 use std::net::SocketAddr;
@@ -28,7 +28,7 @@ lazy_static! {
 
 #[derive(Debug, Clone)]
 pub struct PubMsgCache {
-    pub publish: Publish,
+    pub publish: PublishBody,
     pub subscriber_vec: Vec<Subscriber>,
 }
 

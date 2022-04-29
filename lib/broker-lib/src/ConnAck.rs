@@ -33,6 +33,7 @@ pub enum ConnAckError {
     PartialEq,
 )]
 #[getset(get, set)]
+/// ConnAck message type has 3 bytes, doesn't need MsgHeader and Body.
 pub struct ConnAck {
     pub len: u8,
     #[debug(format = "0x{:x}")]

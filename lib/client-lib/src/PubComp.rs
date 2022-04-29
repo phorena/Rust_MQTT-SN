@@ -57,13 +57,13 @@ impl PubComp {
         msg_id: u16,
         client: &MqttSnClient,
     ) {
+        // TODO use the PUBREL message and change the message type to PubComp
+        // and send.
         // faster implementation
-        // TODO verify big-endian or little-endian for u16 numbers
-        // XXX order of statements performance
         let msg_id_byte_0 = msg_id as u8;
         let msg_id_byte_1 = (msg_id >> 8) as u8;
         // message format
-        // PUBACK:[len(0), msg_type(1), msg_id(2,3)]
+        // PUBCOMP:[len(0), msg_type(1), msg_id(2,3)]
         let mut bytes = BytesMut::with_capacity(MSG_LEN_PUBCOMP as usize);
         let buf: &[u8] = &[
             MSG_LEN_PUBCOMP,

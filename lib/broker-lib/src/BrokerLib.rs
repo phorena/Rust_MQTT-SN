@@ -10,6 +10,7 @@ use crossbeam::channel::{unbounded, Receiver, Sender};
 use log::*;
 
 use crate::{
+    message::MsgHeader,
     // Channels::Channels,
     ConnAck::ConnAck,
     Connect::Connect,
@@ -188,10 +189,14 @@ impl MqttSnClient {
                     Ok((size, addr)) => {
                         self.remote_addr = addr;
                         // TODO process 3 bytes length
+                        let msg_header =
+                            MsgHeader::try_read(&buf, size).unwrap();
+                        dbg!(&msg_header);
                         let msg_type = buf[1] as u8;
                         dbg_buf!(buf, size);
                         if msg_type == MSG_TYPE_PUBLISH {
-                            let _result = Publish::rx(&buf, size, &self);
+                            let _result =
+                                Publish::rx(&buf, size, &self, msg_header);
                             continue;
                         };
                         if msg_type == MSG_TYPE_PUBREL {
@@ -207,7 +212,8 @@ impl MqttSnClient {
                             continue;
                         };
                         if msg_type == MSG_TYPE_CONNECT {
-                            let _result = Connect::rx(&buf, size, &mut self);
+                            let _result =
+                                Connect::rx(&buf, size, &mut self, msg_header);
                             continue;
                         };
                         if msg_type == MSG_TYPE_SUBSCRIBE {

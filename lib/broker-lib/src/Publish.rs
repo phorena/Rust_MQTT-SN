@@ -19,6 +19,7 @@ use crate::{
         TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
         WILL_FALSE, WILL_TRUE,
     },
+    message::MsgHeader,
     pub_msg_cache::PubMsgCache,
     BrokerLib::MqttSnClient,
     Filter::{get_subscribers_with_topic_id, Subscriber},
@@ -68,6 +69,35 @@ pub struct Publish {
     msg_id: u16,
     // data: String,
     data: BytesMut,
+}
+
+#[derive(
+    Debug, Clone, Getters, MutGetters, CopyGetters, Default, PartialEq, Hash, Eq,
+)]
+#[getset(get, set)]
+struct Publish4 {
+    one: u8,
+    len: u16,
+    #[debug(format = "0x{:x}")]
+    msg_type: u8,
+    #[debug(format = "0b{:08b}")]
+    flags: u8,
+    topic_id: u16,
+    msg_id: u16,
+    // data: String,
+    data: BytesMut,
+}
+
+#[derive(
+    Debug, Clone, Getters, MutGetters, CopyGetters, Default, PartialEq, Hash, Eq,
+)]
+#[getset(get, set)]
+pub struct PublishBody {
+    pub msg_type: u8,
+    pub flags: u8,
+    pub topic_id: u16,
+    pub msg_id: u16,
+    pub data: BytesMut,
 }
 
 impl Publish {
@@ -130,85 +160,91 @@ impl Publish {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
+        header: MsgHeader,
     ) -> Result<(), String> {
-        // TODO replace unwrap
+        /*
         let (publish, read_fixed_len) = Publish::try_read(&buf, size).unwrap();
         dbg!(publish.clone());
         dbg!(publish.clone().data);
         let read_len = read_fixed_len + publish.data.len();
 
         dbg!((size, read_len));
+        */
 
+        let publish: PublishBody;
+        let _read_fixed_len;
+        if header.header_len == 2 {
+            // TODO replace unwrap
+            (publish, _read_fixed_len) =
+                PublishBody::try_read(&buf[2..], size).unwrap();
+        } else {
+            (publish, _read_fixed_len) =
+                PublishBody::try_read(&buf[4..], size).unwrap();
+        }
+
+        dbg!(publish.clone());
         let subscriber_vec = get_subscribers_with_topic_id(publish.topic_id);
         dbg!(&subscriber_vec);
         // TODO check QoS, https://www.hivemq.com/blog/mqtt-essentials-
         // part-6-mqtt-quality-of-service-levels/
-        if read_len == size {
-            match flag_qos_level(publish.flags) {
-                QOS_LEVEL_2 => {
-                    // 4-way handshake for QoS level 2 message for the RECEIVER.
-                    // 1. Received PUBLISH message.
-                    // 2. Reply with PUBREC,
-                    //      schedule for restransmit,
-                    //      expect PUBREL
-                    // 3. Receive PUBREL - in PubRel module
-                    //      reply with PUBCOMP
-                    //      cancel restransmit of PUBREC
-                    // 4. Send PUBLISH message to subscribers from PUBREL.rx.
+        match flag_qos_level(publish.flags) {
+            QOS_LEVEL_2 => {
+                // 4-way handshake for QoS level 2 message for the RECEIVER.
+                // 1. Received PUBLISH message.
+                // 2. Reply with PUBREC,
+                //      schedule for restransmit,
+                //      expect PUBREL
+                // 3. Receive PUBREL - in PubRel module
+                //      reply with PUBCOMP
+                //      cancel restransmit of PUBREC
+                // 4. Send PUBLISH message to subscribers from PUBREL.rx.
 
-                    //dbg!(&client);
-                    let bytes = PubRec::tx(publish.msg_id, client);
-                    // PUBREL message doesn't have topic id.
-                    // For the time wheel hash, default to 0.
-                    let _result = client.schedule_tx.send((
-                        client.remote_addr,
-                        MSG_TYPE_PUBREL,
-                        0,
-                        publish.msg_id,
-                        bytes,
-                    ));
-                    // cache the publish message and the subscribers to send when PUBREL is received
-                    // from the publisher. The remote_addr and msg_id are used as the key because they
-                    // are part the message.
-                    let msg_id = publish.msg_id; // copy the msg_id so publish can be used in the hash
-                    let cache = PubMsgCache {
-                        publish,
-                        subscriber_vec,
-                    };
-                    PubMsgCache::try_insert(
-                        (client.remote_addr, msg_id),
-                        cache,
-                    )?;
-                    return Ok(());
-                }
-                QOS_LEVEL_1 => {
-                    // send PUBACK to PUBLISH client
-                    PubAck::tx(
-                        publish.topic_id,
-                        publish.msg_id,
-                        RETURN_CODE_ACCEPTED,
-                        client,
-                    );
-                }
-                QOS_LEVEL_0 | QOS_LEVEL_3 => {}
-                _ => {
-                    // Should never happen because flag_qos_level() filters for 4 cases only.
-                    {}
-                }
+                //dbg!(&client);
+                let bytes = PubRec::tx(publish.msg_id, client);
+                // PUBREL message doesn't have topic id.
+                // For the time wheel hash, default to 0.
+                let _result = client.schedule_tx.send((
+                    client.remote_addr,
+                    MSG_TYPE_PUBREL,
+                    0,
+                    publish.msg_id,
+                    bytes,
+                ));
+                // cache the publish message and the subscribers to send when PUBREL is received
+                // from the publisher. The remote_addr and msg_id are used as the key because they
+                // are part the message.
+                let msg_id = publish.msg_id; // copy the msg_id so publish can be used in the hash
+                let cache = PubMsgCache {
+                    publish,
+                    subscriber_vec,
+                };
+                PubMsgCache::try_insert((client.remote_addr, msg_id), cache)?;
+                return Ok(());
             }
-            Publish::send_msg_to_subscribers(subscriber_vec, publish, client)?;
-
-            // TODO check dup, likely not dup
-            //
-            // TODO check retain, likely not retain
-            // if retain {
-            //   send a message to save the message in the topic db
-            // }
-            Ok(())
-        } else {
-            // TODO remove len check
-            return Err("len error".to_string());
+            QOS_LEVEL_1 => {
+                // send PUBACK to PUBLISH client
+                PubAck::tx(
+                    publish.topic_id,
+                    publish.msg_id,
+                    RETURN_CODE_ACCEPTED,
+                    client,
+                );
+            }
+            QOS_LEVEL_0 | QOS_LEVEL_3 => {}
+            _ => {
+                // Should never happen because flag_qos_level() filters for 4 cases only.
+                {}
+            }
         }
+        Publish::send_msg_to_subscribers(subscriber_vec, publish, client)?;
+
+        // TODO check dup, likely not dup
+        //
+        // TODO check retain, likely not retain
+        // if retain {
+        //   send a message to save the message in the topic db
+        // }
+        Ok(())
     }
 
     /// Publish a message
@@ -227,9 +263,53 @@ impl Publish {
         client: &MqttSnClient,
         remote_addr: SocketAddr,
     ) -> Result<(), String> {
-        let publish = Publish::new(topic_id, msg_id, qos, retain, data);
-        let mut bytes_buf = BytesMut::with_capacity(publish.len as usize);
-        publish.try_write(&mut bytes_buf);
+        // TODO check for value 6?
+        let len = data.len() + 6;
+        let mut bytes_buf = BytesMut::with_capacity(len);
+        // TODO verify that this is correct
+        let flags = flags_set(
+            DUP_FALSE,
+            qos,
+            retain,
+            WILL_FALSE,          // not used
+            CLEAN_SESSION_FALSE, // not used
+            TOPIC_ID_TYPE_NORMAL,
+        ); // default for now
+           // TODO check for 250 & 1400
+        if len < 250 {
+            let publish = Publish {
+                len: len as u8,
+                msg_type: MSG_TYPE_PUBLISH,
+                flags,
+                topic_id,
+                msg_id,
+                data: data.clone(),
+            };
+            // serialize the con_ack struct into byte(u8) array for the network.
+            // serialize the con_ack struct into byte(u8) array for the network.
+            dbg!((bytes_buf.clone(), &publish));
+            publish.try_write(&mut bytes_buf);
+            dbg!(bytes_buf.clone());
+            // transmit to network
+        } else if len < 1400 {
+            let publish = Publish4 {
+                one: 1,
+                len: len as u16,
+                msg_type: MSG_TYPE_PUBLISH,
+                flags,
+                topic_id,
+                msg_id,
+                data: data.clone(),
+            };
+            // serialize the con_ack struct into byte(u8) array for the network.
+            // serialize the con_ack struct into byte(u8) array for the network.
+            dbg!((bytes_buf.clone(), &publish));
+            publish.try_write(&mut bytes_buf);
+            dbg!(bytes_buf.clone());
+        } else {
+            // TODO more details
+            return Err(String::from("client_id too long"));
+        }
         let _result =
             client.transmit_tx.send((remote_addr, bytes_buf.to_owned()));
         dbg!(&qos);
@@ -286,16 +366,17 @@ impl Publish {
     /// send PUBLISH messages to subscribers
     pub fn send_msg_to_subscribers(
         subscriber_vec: Vec<Subscriber>,
-        publish: Publish,
+        publish: PublishBody,
         client: &MqttSnClient,
     ) -> Result<(), String> {
         // send PUBLISH messages to subscribers
         for subscriber in subscriber_vec {
             let socket_addr = subscriber.socket_addr;
             let qos = subscriber.qos;
-            // TODO use Bytes not BytesMut to eliminate clone/copy.
-            // TODO error for every subscriber/message
             // Can't return error, because not all subscribers will have error.
+            // TODO error for every subscriber/message
+            // TODO use Bytes not BytesMut to eliminate clone/copy.
+            // TODO new tx method to reduce have try_write() run once for every subscriber.
             let _result = Publish::tx(
                 publish.topic_id,
                 publish.msg_id,

@@ -1,8 +1,11 @@
-#[derive( Debug, Copy, Clone,)]
+use custom_debug::Debug;
+
+#[derive(Debug, Copy, Clone)]
 pub struct MsgHeader {
-    len: u16,
-    header_len: u8,
-    msg_type: u8,
+    pub len: u16,
+    pub header_len: u8,
+    #[debug(format = "0x{:x}")]
+    pub msg_type: u8,
 }
 
 macro_rules! function {
@@ -18,9 +21,9 @@ macro_rules! function {
 
 impl MsgHeader {
     pub fn try_read(buf: &[u8], size: usize) -> Result<MsgHeader, String> {
-        let mut len = 0;
+        let len;
+        let msg_type;
         let mut header_len = 2;
-        let mut msg_type = 0xff;
         if size >= 3 {
             // Determine 2 or 4 byte header.
             if buf[0] != 1 {
@@ -163,7 +166,7 @@ mod test {
         dbg!(msg_header);
         let msg_header = super::MsgHeader::try_read(&[4, 2, 3, 4], 4);
         dbg!(msg_header);
-        let mut bytes:[u8;1024] = [0; 1024];
+        let mut bytes: [u8; 1024] = [0; 1024];
         bytes[0] = 1;
         bytes[1] = 1;
         bytes[2] = 0;
