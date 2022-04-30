@@ -1,4 +1,8 @@
+use crate::{eformat, function};
 use custom_debug::Debug;
+
+// Variable length message type:
+// Connect, Publish, Subscribe, WillTopic, WillMsg, WillTopicUpd, WillMsgUpd, ForwardEncap,
 
 #[derive(Debug, Copy, Clone)]
 pub struct MsgHeader {
@@ -8,16 +12,19 @@ pub struct MsgHeader {
     pub msg_type: u8,
 }
 
-macro_rules! function {
-    () => {{
-        fn f() {}
-        fn type_name_of<T>(_: T) -> &'static str {
-            std::any::type_name::<T>()
-        }
-        let name = type_name_of(f);
-        &name[..name.len() - 3]
-    }};
-}
+/*
+From MQTT-SN v1.2 spec.
+The Length field is either 1- or 3-octet long and specifies the total number of octets contained in the message
+(including the Length field itself).
+If the first octet of the Length field is coded “0x01” then the Length field is 3-octet long; in this case, the two
+following octets specify the total number of octets of the message (most-significant octet first). Otherwise, the
+Length field is only 1-octet long and specifies itself the total number of octets contained in the message.
+The 3-octet format allows the encoding of message lengths up to 65535 octets. Messages with lengths smaller
+than 256 octets may use the shorter 1-octet format.
+Note that because MQTT-SN does not support message fragmentation and reassembly, the maximum message
+length that could be used in a network is governed by the maximum packet size that is supported by that network,
+and not by the maximum length that could be encoded by MQTT-SN.
+*/
 
 impl MsgHeader {
     pub fn try_read(buf: &[u8], size: usize) -> Result<MsgHeader, String> {
@@ -41,14 +48,12 @@ impl MsgHeader {
                     msg_type,
                 });
             }
-            return Err(format!(
-                "{}: Message length({}) doesn't match size({})",
-                function!(),
-                len,
-                size,
+            return Err(eformat!(
+                //" Message length doesn't match size",
+                len, size
             ));
         } else {
-            return Err(format!("{}: Message is too short", function!(),));
+            return Err(eformat!("Message is too short", size));
         }
     }
 }
@@ -101,10 +106,7 @@ impl Msg {
     }
     pub fn try_read(&mut self, buf: [u8], size: usize) -> Result<Msg, String> {
         if size < 3 {
-                return Err(format!(
-                    "{}: Message is too short",
-                    function!(),
-                ));
+                return Err(eformat!( "Message is too short"));
         }
         // Determine 2 or 4 byte header.
         let mut msg_type_index = 1;
@@ -118,8 +120,8 @@ impl Msg {
         }
         if size != self.header.len as usize {
             return Err(format!(
-                "{}: Message length({}) doesn't match size({})",
-                function!(), self.header.len, size,
+                " Message length doesn't match size",
+                self.header.len, size
             ));
         }
         self.buf = buf;

@@ -1,4 +1,4 @@
-use crate::Filter::Filter;
+use crate::{eformat, function};
 // use log::*;
 // use rand::Rng;
 use hashbrown::HashMap;
@@ -7,17 +7,6 @@ use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::v1::{Context, Timestamp};
 use uuid::Uuid;
-
-macro_rules! function {
-    () => {{
-        fn f() {}
-        fn type_name_of<T>(_: T) -> &'static str {
-            std::any::type_name::<T>()
-        }
-        let name = type_name_of(f);
-        &name[..name.len() - 3]
-    }};
-}
 
 pub type ConnId = Uuid;
 
@@ -122,16 +111,10 @@ impl Connection {
         let conn = Connection::new(socket_addr, flags, duration)?;
         let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
         let socket_addr = conn.socket_addr;
-        let _result = match conn_hashmap.try_insert(socket_addr, conn) {
-            Ok(_) => return Ok(()),
-            Err(e) => {
-                return Err(format!(
-                    "{}: socket_addr: {} already exists.",
-                    function!(),
-                    e.entry.key()
-                ))
-            }
-        };
+        match conn_hashmap.try_insert(socket_addr, conn) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(eformat!(e.entry.key(), "already exists.")),
+        }
     }
 }
 
@@ -144,7 +127,6 @@ pub fn connection_insert(conn: Connection) -> Result<(), String> {
         Err(e) => {
             return Err(format!(
                 "{}: socket_addr: {} already exists.",
-                function!(),
                 e.entry.key()
             ))
         }
@@ -168,7 +150,6 @@ pub fn connection_filter_insert(
         _ => {
             return Err(format!(
                 "{}: socket_addr: {} doesn't exist.",
-                function!(),
                 socket_addr
             ))
         }

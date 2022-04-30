@@ -17,11 +17,7 @@ pub mod Connect;
 pub mod Connection;
 // pub mod ConnectionDb;
 #[allow(non_snake_case)]
-pub mod DebugFunctions;
-#[allow(non_snake_case)]
 pub mod Disconnect;
-#[allow(non_snake_case)]
-pub mod Errors;
 // pub mod Functions;
 // pub mod MainMachineClient;
 #[allow(non_snake_case)]
@@ -138,3 +134,112 @@ const RETURN_CODE_ACCEPTED: ReturnCodeConst = 0;
 // const RETURN_CODE_CONGESTION: ReturnCodeConst = 1;
 // const RETURN_CODE_INVALID_TOPIC_ID: ReturnCodeConst = 2;
 // const RETURN_CODE_NOT_SUPPORTED: ReturnCodeConst = 3;
+
+#[macro_export]
+macro_rules! function {
+    () => {{
+        fn f() {}
+        fn type_name_of<T>(_: T) -> &'static str {
+            std::any::type_name::<T>()
+        }
+        let name = type_name_of(f);
+        &name[..name.len() - 3]
+    }};
+}
+
+// dbg macro that prints function name instead of file name.
+// https://stackoverflow.com/questions/65946195/understanding-the-dbg-macro-in-rust
+#[macro_export]
+macro_rules! dbg_fn2 {
+    () => {
+        $crate::eprintln!("[{}:{}]", function!(), line!());
+    };
+    ($val:expr $(,)?) => {
+        // Use of `match` here is intentional because it affects the lifetimes
+        // of temporaries - https://stackoverflow.com/a/48732525/1063961
+        match $val {
+            tmp => {
+                // replace file!() with function!()
+                eprintln!("[{}:{}] {} = {:#?}",
+                    function!(), line!(), stringify!($val), &tmp);
+                tmp
+            }
+        }
+    };
+    ($($val:expr),+ $(,)?) => {
+        ($($dbg_fn!($val)),+,)
+    };
+}
+#[macro_export]
+/// MUST ALSO IMPORT function!()
+macro_rules! eformat {
+    ($exp:expr,$exp2:expr) => {
+        format!("{}:{} {} {}", function!(), line!(), $exp, $exp2)
+    };
+    ($exp:expr) => {
+        format!("{}:{} {}", function!(), line!(), $exp)
+    };
+    ($exp:expr,$exp2:expr,$exp3:expr) => {
+        format!("{}:{} {} {} {}", function!(), line!(), $exp, $exp2, $exp3)
+    };
+    ($exp:expr,$exp2:expr,$exp3:expr,$exp4:expr) => {
+        format!(
+            "{}:{} {} {} {} {}",
+            function!(),
+            line!(),
+            $exp,
+            $exp2,
+            $exp3,
+            $exp4
+        )
+    };
+}
+
+// dbg macro that prints function name instead of file name.
+// https://stackoverflow.com/questions/65946195/understanding-the-dbg-macro-in-rust
+#[macro_export]
+macro_rules! dbg_fn {
+    () => {
+        $crate::eprintln!("[{}:{}]", function!(), line!());
+    };
+    ($val:expr $(,)?) => {
+        // Use of `match` here is intentional because it affects the lifetimes
+        // of temporaries - https://stackoverflow.com/a/48732525/1063961
+        match $val {
+            tmp => {
+
+                // Added the timestamp
+                let now = chrono::Local::now();
+                eprint!(
+                    "{:02}-{:02} {:02}:{:02}:{:02}.{:09}",
+                    now.month(),
+                    now.day(),
+                    now.hour(),
+                    now.minute(),
+                    now.second(),
+                    now.nanosecond(),
+                    );
+                // replace file!() with function!()
+                eprintln!("<{}:{}> {} = {:#?}",
+                          function!(), line!(), stringify!($val), &tmp);
+                tmp
+            }
+        }
+    };
+    ($($val:expr),+ $(,)?) => {
+        ($($dbg_fn!($val)),+,)
+    };
+}
+
+#[macro_export]
+macro_rules! dbg_buf {
+    ($buf:ident, $size:ident) => {
+        let mut i: usize = 0;
+        // TODO XXX eprint!("[{}:{}] ", function!(), line!());
+        while i < $size {
+            eprint!("{:#04X?} ", $buf[i]);
+            i += 1;
+        }
+        eprintln!("");
+    };
+}

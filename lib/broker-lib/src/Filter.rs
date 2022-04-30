@@ -10,18 +10,7 @@ use std::net::SocketAddr;
 //use uuid::v1::{Context, Timestamp};
 //use uuid::Uuid;
 
-use crate::flags::QoSConst;
-
-macro_rules! function {
-    () => {{
-        fn f() {}
-        fn type_name_of<T>(_: T) -> &'static str {
-            std::any::type_name::<T>()
-        }
-        let name = type_name_of(f);
-        &name[..name.len() - 3]
-    }};
-}
+use crate::{eformat, flags::QoSConst, function};
 
 /// Checks if a topic or topic filter has wildcards
 #[inline(always)]
@@ -147,12 +136,7 @@ impl Filter {
             return Ok(());
         } else {
             // duplicate entry
-            return Err(format!(
-                "{}: {} already subscribed to {}",
-                function!(),
-                socket_addr,
-                id
-            ));
+            return Err(eformat!(socket_addr, "already subscribed to", id));
         }
     }
     /// Insert a new filter/subscription string from a connection subscription.
@@ -173,12 +157,7 @@ impl Filter {
                     return Ok(());
                 } else {
                     // duplicate entry
-                    return Err(format!(
-                        "{}: {} already subscribed to {}",
-                        function!(),
-                        socket_addr,
-                        filter
-                    ));
+                    return Err(eformat!(socket_addr, "duplicate", filter));
                 }
             } else {
                 let conn_set = self
@@ -189,22 +168,11 @@ impl Filter {
                 if conn_set.insert(socket_addr) {
                     return Ok(());
                 } else {
-                    // duplicate entry
-                    return Err(format!(
-                        "{}: {} already subscribed to {}",
-                        function!(),
-                        socket_addr,
-                        filter
-                    ));
+                    return Err(eformat!(socket_addr, "duplicate", filter));
                 }
             }
         }
-        Err(format!(
-            "{} {}: invalid filter: {}.",
-            function!(),
-            socket_addr,
-            filter
-        ))
+        return Err(eformat!(socket_addr, "invalid", filter));
     }
 
     #[inline(always)]
@@ -396,12 +364,7 @@ pub fn insert_filter(
         }
         return Ok(());
     }
-    Err(format!(
-        "{}: {} invalid filter: {}.",
-        function!(),
-        socket_addr,
-        filter
-    ))
+    Err(eformat!(socket_addr, "invalid filter", filter))
 }
 
 /// Remove topics and filters from the bisetmaps using the rev_delete()

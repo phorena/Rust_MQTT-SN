@@ -3,8 +3,8 @@ use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters /* Setters */};
 
 use crate::{
+    eformat, function,
     BrokerLib::MqttSnClient,
-    Errors::ExoError,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_CONNACK,
 
@@ -66,24 +66,26 @@ impl ConnAck {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
-    ) -> Result<(), ExoError> {
+    ) -> Result<(), String> {
         let (conn_ack, read_len) = ConnAck::try_read(&buf, size).unwrap();
         dbg!(conn_ack.clone());
         if read_len == MSG_LEN_CONNACK as usize {
-            let _result = client.cancel_tx.send((
+            match client.cancel_tx.try_send((
                 client.remote_addr,
                 conn_ack.msg_type,
                 0,
                 0,
-            ));
-            Ok(())
+            )) {
+                Ok(()) => return Ok(()),
+                Err(err) => return Err(eformat!(client.remote_addr, err)),
+            }
         } else {
-            Err(ExoError::LenError(read_len, MSG_LEN_CONNACK as usize))
+            Err(eformat!("len err", read_len))
         }
     }
 
     // TODO error checking and return
-    pub fn tx(client: &MqttSnClient, return_code: u8) {
+    pub fn tx(client: &MqttSnClient, return_code: u8) -> Result<(), String> {
         let connack = ConnAck {
             len: MSG_LEN_CONNACK,
             msg_type: MSG_TYPE_CONNACK,
@@ -95,8 +97,12 @@ impl ConnAck {
         dbg!(bytes_buf.clone());
         dbg!(client.remote_addr);
         // transmit to network
-        let _result = client
+        match client
             .transmit_tx
-            .send((client.remote_addr, bytes_buf.to_owned()));
+            .try_send((client.remote_addr, bytes_buf.to_owned()))
+        {
+            Ok(()) => return Ok(()),
+            Err(err) => return Err(eformat!(client.remote_addr, err)),
+        }
     }
 }

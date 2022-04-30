@@ -8,6 +8,7 @@ extern crate trace_caller;
 use trace_caller::trace;
 
 use crate::{
+    eformat,
     //     StateMachine,
     flags::{
         flag_qos_level,
@@ -26,6 +27,7 @@ use crate::{
         // WILL_TRUE,
         WILL_FALSE,
     },
+    function,
     BrokerLib::MqttSnClient,
     // Connection::connection_filter_insert,
     Filter::{
@@ -196,10 +198,9 @@ impl Subscribe {
                             return Ok(());
                         }
                         Err(e) => {
-                            return Err(format!(
-                                "{}: error parsing topic_id: {} {} {}",
-                                function!(),
+                            return Err(eformat!(
                                 client.remote_addr,
+                                "error parsing topic_id",
                                 e,
                                 subscribe.topic_name
                             ));
@@ -207,24 +208,21 @@ impl Subscribe {
                     }
                 }
                 TOPIC_ID_TYPE_SHORT => {
-                    return Err(format!(
-                        "{}: topic Id short topic name not supported {}",
-                        function!(),
-                        client.remote_addr
+                    return Err(eformat!(
+                        client.remote_addr,
+                        "topic Id short topic name not supported"
                     ));
                 }
                 TOPIC_ID_TYPE_RESERVED => {
-                    return Err(format!(
-                        "{}: topic Id reserved type: {}",
-                        function!(),
-                        client.remote_addr
+                    return Err(eformat!(
+                        client.remote_addr,
+                        "topic Id reserved type"
                     ));
                 }
                 _ => {
-                    return Err(format!(
-                        "{}: topic Id unknown type: {}",
-                        function!(),
-                        client.remote_addr
+                    return Err(eformat!(
+                        client.remote_addr,
+                        "topic Id unknown type"
                     ));
                 }
             };

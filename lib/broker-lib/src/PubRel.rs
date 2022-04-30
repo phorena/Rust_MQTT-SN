@@ -4,7 +4,7 @@ use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
 use crate::{
-    pub_msg_cache::PubMsgCache,
+    eformat, function, pub_msg_cache::PubMsgCache,
     /*
     flags::{flags_set, flag_qos_level, },
     StateMachine,
@@ -33,22 +33,6 @@ use crate::{
     BrokerLib::MqttSnClient, PubComp::PubComp, Publish::Publish, MSG_LEN_PUBREL,
     MSG_TYPE_PUBREL,
 };
-
-macro_rules! function {
-    () => {{
-        fn f() {}
-        fn type_name_of<T>(_: T) -> &'static str {
-            std::any::type_name::<T>()
-        }
-        let name = type_name_of(f);
-
-        // Find and cut the rest of the path
-        match &name[..name.len() - 3].rfind(':') {
-            Some(pos) => &name[pos + 1..name.len() - 3],
-            None => &name[..name.len() - 3],
-        }
-    }};
-}
 
 #[derive(
     Debug, Clone, Getters, MutGetters, CopyGetters, Default, PartialEq,
@@ -112,12 +96,7 @@ impl PubRel {
             ));
             Ok(())
         } else {
-            return Err(format!(
-                "{}-{}: Length {}",
-                function!(),
-                client.remote_addr,
-                buf[0]
-            ));
+            return Err(eformat!(client.remote_addr, "Length", buf[0]));
         }
     }
     #[inline(always)]
@@ -140,8 +119,8 @@ impl PubRel {
         match client.transmit_tx.send((client.remote_addr, bytes)) {
             Ok(_) => Ok(()),
             Err(e) => Err(format!(
-                "{}-{}: {}",
-                function!(),
+                "{}-{}:",
+                //function!(),
                 client.remote_addr,
                 e.to_string()
             )),

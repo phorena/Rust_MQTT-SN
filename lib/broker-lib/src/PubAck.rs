@@ -4,8 +4,8 @@ use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
 use crate::{
+    eformat, function,
     BrokerLib::MqttSnClient,
-    Errors::ExoError,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_PUBACK,
     MSG_TYPE_PUBACK,
@@ -58,20 +58,22 @@ impl PubAck {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
-    ) -> Result<(u16, u16, u8), ExoError> {
+    ) -> Result<(u16, u16, u8), String> {
         let (pub_ack, read_len) = PubAck::try_read(&buf, size).unwrap();
         dbg!(pub_ack.clone());
         if read_len == MSG_LEN_PUBACK as usize {
-            let _result = client.cancel_tx.send((
+            match client.cancel_tx.try_send((
                 client.remote_addr,
                 pub_ack.msg_type,
                 pub_ack.topic_id,
                 pub_ack.msg_id,
-            ));
-            // TODO process return code?
-            Ok((pub_ack.topic_id, pub_ack.msg_id, pub_ack.return_code))
+            )){
+                // TODO process return code?
+                Ok(()) => return Ok((pub_ack.topic_id, pub_ack.msg_id, pub_ack.return_code)),
+                Err(err) => return Err(eformat!(client.remote_addr, err)),
+            }
         } else {
-            Err(ExoError::LenError(read_len, MSG_LEN_PUBACK as usize))
+            Err(eformat!(client.remote_addr, "len err", read_len))
         }
     }
     #[inline(always)]

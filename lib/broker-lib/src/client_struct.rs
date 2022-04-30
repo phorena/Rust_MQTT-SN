@@ -1,41 +1,6 @@
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::{net::SocketAddr, sync::Arc};
 
-// TODO move to utility lib
-macro_rules! function {
-    () => {{
-        fn f() {}
-        fn type_name_of<KEY>(_: KEY) -> &'static str {
-            std::any::type_name::<KEY>()
-        }
-        let name = type_name_of(f);
-        &name[..name.len() - 3]
-    }};
-}
-
-// dbg macro that prints function name instead of file name.
-// https://stackoverflow.com/questions/65946195/understanding-the-dbg-macro-in-rust
-macro_rules! dbg_fn {
-    () => {
-        $crate::eprintln!("[{}:{}]", function!(), line!());
-    };
-    ($val:expr $(,)?) => {
-        // Use of `match` here is intentional because it affects the lifetimes
-        // of temporaries - https://stackoverflow.com/a/48732525/1063961
-        match $val {
-            tmp => {
-                // replace file!() with function!()
-                eprintln!("[{}:{}] {} = {:#?}",
-                    function!(), line!(), stringify!($val), &tmp);
-                tmp
-            }
-        }
-    };
-    ($($val:expr),+ $(,)?) => {
-        ($($dbg_fn!($val)),+,)
-    };
-}
-
 /// Use of const u8 instead of enum:
 /// 1. Portability
 /// 2. In Rust converting from enum to number is simple,
@@ -156,7 +121,7 @@ impl ClientStruct {
         // get cur_state
         let cur_state = self.state.load(Ordering::SeqCst);
         // transition to new state
-        dbg_fn!((cur_state, msg_type));
+        // dbg_fn!((cur_state, msg_type));
         let result = state_machine.transition(cur_state, msg_type).unwrap();
         // Save new result, might fail because another thread changed
         // the value, but very unlikely.

@@ -12,6 +12,7 @@ use std::sync::Mutex;
 use trace_caller::trace;
 
 use crate::{
+    eformat,
     flags::{
         flag_qos_level, flags_set, CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE,
         DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2,
@@ -19,6 +20,7 @@ use crate::{
         TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
         WILL_FALSE, WILL_TRUE,
     },
+    function,
     message::MsgHeader,
     pub_msg_cache::PubMsgCache,
     BrokerLib::MqttSnClient,
@@ -204,13 +206,15 @@ impl Publish {
                 let bytes = PubRec::tx(publish_body.msg_id, client);
                 // PUBREL message doesn't have topic id.
                 // For the time wheel hash, default to 0.
-                let _result = client.schedule_tx.send((
+                if let Err(err) = client.schedule_tx.try_send((
                     client.remote_addr,
                     MSG_TYPE_PUBREL,
                     0,
                     publish_body.msg_id,
                     bytes,
-                ));
+                )) {
+                    return Err(eformat!(client.remote_addr, err));
+                }
                 // cache the publish message and the subscribers to send when PUBREL is received
                 // from the publisher. The remote_addr and msg_id are used as the key because they
                 // are part the message.
@@ -276,22 +280,21 @@ impl Publish {
             CLEAN_SESSION_FALSE, // not used
             TOPIC_ID_TYPE_NORMAL,
         ); // default for now
-           // TODO check for 250 & 1400
-        if len < 250 {
+        if len < 256 {
             let publish = Publish {
                 len: len as u8,
                 msg_type: MSG_TYPE_PUBLISH,
                 flags,
                 topic_id,
                 msg_id,
-                data: data.clone(),
+                data,
             };
             // serialize the con_ack struct into byte(u8) array for the network.
             // serialize the con_ack struct into byte(u8) array for the network.
             dbg!((bytes_buf.clone(), &publish));
             publish.try_write(&mut bytes_buf);
             dbg!(bytes_buf.clone());
-            // transmit to network
+            // TODO check for 1400
         } else if len < 1400 {
             let publish = Publish4 {
                 one: 1,
@@ -300,7 +303,7 @@ impl Publish {
                 flags,
                 topic_id,
                 msg_id,
-                data: data.clone(),
+                data,
             };
             // serialize the con_ack struct into byte(u8) array for the network.
             // serialize the con_ack struct into byte(u8) array for the network.
@@ -309,23 +312,31 @@ impl Publish {
             dbg!(bytes_buf.clone());
         } else {
             // TODO more details
-            return Err(String::from("client_id too long"));
+            return Err(eformat!(client.remote_addr, "len too long", len));
         }
-        let _result =
-            client.transmit_tx.send((remote_addr, bytes_buf.to_owned()));
+        // transmit message to remote address
+        if let Err(err) = client
+            .transmit_tx
+            .try_send((remote_addr, bytes_buf.to_owned()))
+        {
+            return Err(eformat!(remote_addr, err));
+        }
         dbg!(&qos);
         match qos {
             // For level 1, schedule a message for retransmit,
             // cancel it if receive a PUBACK message.
             QOS_LEVEL_1 => {
                 dbg!((&qos, QOS_LEVEL_1));
-                let _result = client.schedule_tx.send((
+                match client.schedule_tx.try_send((
                     remote_addr,
                     MSG_TYPE_PUBACK,
                     topic_id,
                     msg_id,
                     bytes_buf,
-                ));
+                )) {
+                    Ok(()) => return Ok(()),
+                    Err(err) => return Err(eformat!(remote_addr, err)),
+                }
             }
             QOS_LEVEL_2 => {
                 // 4-way handshake for QoS level 2 message for the SENDER.
@@ -342,24 +353,24 @@ impl Publish {
                 // PUBREC message doesn't have topic id.
                 // For the time wheel hash, default to 0.
                 dbg!(&qos);
-                let _result = client.schedule_tx.send((
+                match client.schedule_tx.try_send((
                     remote_addr,
                     MSG_TYPE_PUBREC,
                     0,
                     msg_id,
                     bytes_buf,
-                ));
+                )) {
+                    Ok(()) => return Ok(()),
+                    Err(err) => return Err(eformat!(remote_addr, err)),
+                }
             }
             // no restransmit for Level 0 & 3.
-            QOS_LEVEL_0 => {
-                ();
-            }
-            QOS_LEVEL_3 => {
+            QOS_LEVEL_0 | QOS_LEVEL_3 => {
                 ();
             }
             _ => {
                 // TODO return error
-                ()
+                ();
             }
         }
         Ok(())

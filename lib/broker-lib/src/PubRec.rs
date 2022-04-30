@@ -4,8 +4,8 @@ use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
 use crate::{
+    eformat, function,
     BrokerLib::MqttSnClient,
-    Errors::ExoError,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_PUBREC,
     MSG_TYPE_PUBREC,
@@ -47,7 +47,7 @@ impl PubRec {
         buf: &[u8],
         _size: usize,
         client: &MqttSnClient,
-    ) -> Result<u16, ExoError> {
+    ) -> Result<u16, String> {
         if buf[0] == MSG_LEN_PUBREC && buf[1] == MSG_TYPE_PUBREC {
             // TODO verify as Big Endian
             let msg_id = buf[2] as u16 + ((buf[3] as u16) << 8);
@@ -59,7 +59,7 @@ impl PubRec {
             ));
             Ok(msg_id)
         } else {
-            Err(ExoError::LenError(buf[0] as usize, MSG_LEN_PUBREC as usize))
+            Err(eformat!(client.remote_addr, "size", buf[0]))
         }
     }
     #[inline(always)]
