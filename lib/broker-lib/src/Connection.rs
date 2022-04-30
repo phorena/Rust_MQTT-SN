@@ -110,11 +110,21 @@ impl Connection {
     ) -> Result<(), String> {
         let conn = Connection::new(socket_addr, flags, duration)?;
         let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
-        let socket_addr = conn.socket_addr;
         match conn_hashmap.try_insert(socket_addr, conn) {
             Ok(_) => Ok(()),
             Err(e) => Err(eformat!(e.entry.key(), "already exists.")),
         }
+    }
+    pub fn remove(socket_addr: SocketAddr) -> Result<Connection, String> {
+        let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
+        match conn_hashmap.remove(&socket_addr) {
+            Some(val) => Ok(val),
+            None => Err(eformat!(socket_addr, "not found.")),
+        }
+    }
+    pub fn db() {
+        let conn_hashmap = CONN_HASHMAP.lock().unwrap();
+        dbg!(conn_hashmap);
     }
 }
 

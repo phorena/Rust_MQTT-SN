@@ -15,6 +15,7 @@ use crate::{
     // Channels::Channels,
     ConnAck::ConnAck,
     Connect::Connect,
+    Disconnect::Disconnect,
     // Connection::ConnHashMap,
     PubAck::PubAck,
     PubRel::PubRel,
@@ -25,6 +26,7 @@ use crate::{
     // TimingWheel2::{RetransmitData, RetransmitHeader},
     MSG_TYPE_CONNACK,
     MSG_TYPE_CONNECT,
+    MSG_TYPE_DISCONNECT,
     MSG_TYPE_PUBACK,
     MSG_TYPE_PUBLISH,
     MSG_TYPE_PUBREL,
@@ -127,8 +129,16 @@ impl MqttSnClient {
                     Ok((size, addr)) => {
                         self.remote_addr = addr;
                         // TODO process 3 bytes length
-                        let msg_header =
-                            MsgHeader::try_read(&buf, size).unwrap();
+                        let msg_header: MsgHeader;
+                        match MsgHeader::try_read(&buf, size) {
+                            Ok(header) => {
+                                msg_header = header;
+                            }
+                            Err(e) => {
+                                error!("{}", e);
+                                continue;
+                            }
+                        }
                         dbg!(&msg_header);
                         let msg_type = buf[1] as u8;
                         dbg_buf!(buf, size);
@@ -156,6 +166,10 @@ impl MqttSnClient {
                         };
                         if msg_type == MSG_TYPE_SUBSCRIBE {
                             let _result = Subscribe::rx(&buf, size, &self);
+                            continue;
+                        };
+                        if msg_type == MSG_TYPE_DISCONNECT {
+                            let _result = Disconnect::rx(&buf, size, &mut self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_CONNACK {

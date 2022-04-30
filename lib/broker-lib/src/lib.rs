@@ -80,7 +80,7 @@ pub mod WillTopicReq;
 pub mod WillTopicResp;
 #[allow(non_snake_case)]
 pub mod WillTopicUpd;
-pub mod client_struct;
+// pub mod client_struct;
 pub mod flags;
 pub mod message;
 pub mod pub_msg_cache;
@@ -104,6 +104,7 @@ pub const MSG_TYPE_PUBACK: MsgTypeConst = 0xD;
 pub const MSG_TYPE_PUBCOMP: MsgTypeConst = 0xE;
 pub const MSG_TYPE_PUBREC: MsgTypeConst = 0xF;
 pub const MSG_TYPE_PUBREL: MsgTypeConst = 0x10;
+pub const MSG_TYPE_DISCONNECT: MsgTypeConst = 0x18;
 
 // TODO fill in the rest
 pub const MSG_TYPE_WILLMSGRESP: MsgTypeConst = 0x1D; // 29
@@ -128,6 +129,8 @@ pub const MSG_LEN_PUBREL: MsgLenConst = 4;
 pub const MSG_LEN_PUBCOMP: MsgLenConst = 4;
 pub const MSG_LEN_SUBACK: MsgLenConst = 8;
 pub const MSG_LEN_CONNACK: MsgLenConst = 3;
+pub const MSG_LEN_DISCONNECT: MsgLenConst = 2;
+pub const MSG_LEN_DISCONNECT_DURATION: MsgLenConst = 4;
 
 type ReturnCodeConst = u8;
 const RETURN_CODE_ACCEPTED: ReturnCodeConst = 0;
@@ -235,7 +238,7 @@ macro_rules! dbg_fn {
 macro_rules! dbg_buf {
     ($buf:ident, $size:ident) => {
         let mut i: usize = 0;
-        // TODO XXX eprint!("[{}:{}] ", function!(), line!());
+        eprint!("[{}{}] ", file!(), line!());
         while i < $size {
             eprint!("{:#04X?} ", $buf[i]);
             i += 1;

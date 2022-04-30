@@ -31,7 +31,7 @@ impl MsgHeader {
         let len;
         let msg_type;
         let mut header_len = 2;
-        if size >= 3 {
+        if size >= 2 {
             // Determine 2 or 4 byte header.
             if buf[0] != 1 {
                 len = buf[0] as u16;
