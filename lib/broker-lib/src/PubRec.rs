@@ -4,7 +4,8 @@ use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
 use crate::{
-    eformat, function,
+    eformat,
+    function,
     BrokerLib::MqttSnClient,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_PUBREC,
@@ -51,19 +52,21 @@ impl PubRec {
         if buf[0] == MSG_LEN_PUBREC && buf[1] == MSG_TYPE_PUBREC {
             // TODO verify as Big Endian
             let msg_id = buf[2] as u16 + ((buf[3] as u16) << 8);
-            let _result = client.cancel_tx.send((
+            match client.cancel_tx.try_send((
                 client.remote_addr,
                 MSG_TYPE_PUBREC,
                 0,
                 msg_id,
-            ));
-            Ok(msg_id)
+            )) {
+                Ok(()) => Ok(msg_id),
+                Err(err) => return Err(eformat!(client.remote_addr, err)),
+            }
         } else {
             Err(eformat!(client.remote_addr, "size", buf[0]))
         }
     }
     #[inline(always)]
-    pub fn tx(msg_id: u16, client: &MqttSnClient) -> BytesMut {
+    pub fn tx(msg_id: u16, client: &MqttSnClient) -> Result<BytesMut, String> {
         // faster implementation
         // TODO verify big-endian or little-endian for u16 numbers
         // XXX order of statements performance
@@ -81,9 +84,13 @@ impl PubRec {
         dbg!(&buf);
         bytes.put(buf);
         // TODO replace BytesMut with Bytes to eliminate clone as copy
-        let _result =
-            client.transmit_tx.send((client.remote_addr, bytes.clone()));
         dbg!(&buf);
-        bytes
+        match client
+            .transmit_tx
+            .try_send((client.remote_addr, bytes.to_owned()))
+        {
+            Ok(()) => return Ok(bytes),
+            Err(err) => return Err(eformat!(client.remote_addr, err)),
+        }
     }
 }

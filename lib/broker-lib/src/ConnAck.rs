@@ -3,7 +3,8 @@ use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters /* Setters */};
 
 use crate::{
-    eformat, function,
+    eformat,
+    function,
     BrokerLib::MqttSnClient,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_CONNACK,

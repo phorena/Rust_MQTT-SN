@@ -71,16 +71,16 @@ impl PubRel {
             let msg_id = buf[2] as u16 + ((buf[3] as u16) << 8);
             // TODO use ?
             // Send PUBCOMP to publisher
-            let _result = PubComp::tx(msg_id, client);
+            PubComp::tx(msg_id, client)?;
             // Send publish message to subscribers.
             match PubMsgCache::remove((client.remote_addr, msg_id)) {
                 Some(pub_msg_cache) => {
                     dbg!(&pub_msg_cache);
-                    let _result = Publish::send_msg_to_subscribers(
+                    Publish::send_msg_to_subscribers(
                         pub_msg_cache.subscriber_vec,
                         pub_msg_cache.publish_body,
                         client,
-                    );
+                    )?;
                 }
                 None => {
                     // TODO return error or no subscribers?
@@ -88,13 +88,15 @@ impl PubRel {
                 }
             }
             // Cancel the timer for PUBREL
-            let _result = client.cancel_tx.send((
+            match client.cancel_tx.send((
                 client.remote_addr,
                 MSG_TYPE_PUBREL,
                 0,
                 msg_id,
-            ));
-            Ok(())
+            )) {
+                Ok(_) => Ok(()),
+                Err(err) => Err(eformat!(client.remote_addr, err)),
+            }
         } else {
             return Err(eformat!(client.remote_addr, "Length", buf[0]));
         }

@@ -4,7 +4,8 @@ use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
 use crate::{
-    eformat, function,
+    eformat,
+    function,
     BrokerLib::MqttSnClient,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_PUBACK,
@@ -67,9 +68,15 @@ impl PubAck {
                 pub_ack.msg_type,
                 pub_ack.topic_id,
                 pub_ack.msg_id,
-            )){
+            )) {
                 // TODO process return code?
-                Ok(()) => return Ok((pub_ack.topic_id, pub_ack.msg_id, pub_ack.return_code)),
+                Ok(()) => {
+                    return Ok((
+                        pub_ack.topic_id,
+                        pub_ack.msg_id,
+                        pub_ack.return_code,
+                    ))
+                }
                 Err(err) => return Err(eformat!(client.remote_addr, err)),
             }
         } else {
@@ -82,21 +89,7 @@ impl PubAck {
         msg_id: u16,
         return_code: u8,
         client: &MqttSnClient,
-    ) {
-        /* slow implementation
-           let mut bytes_buf = BytesMut::with_capacity(7);
-           let puback_bytes = PubAck {
-           len: 7,
-           msg_type: MsgType::PUBACK as u8,
-           topic_id: publish.topic_id,
-           msg_id: publish.msg_id,
-           return_code: RETURN_CODE_ACCEPTED
-           };
-           puback_bytes.try_write(&mut bytes_buf);
-           dbg!(&bytes_buf);
-        // let amt = socket.send(&bytes_buf[..]);
-        */
-
+    ) -> Result<(), String> {
         // faster implementation
         // TODO verify big-endian or little-endian for u16 numbers
         // XXX order of statements performance
@@ -119,8 +112,10 @@ impl PubAck {
             return_code,
         ];
         bytes.put(buf);
-        let _result = client.transmit_tx.send((client.remote_addr, bytes));
-        dbg!(&buf);
+        match client.transmit_tx.try_send((client.remote_addr, bytes)) {
+            Ok(()) => Ok(()),
+            Err(err) => return Err(eformat!(client.remote_addr, err)),
+        }
     }
 }
 // NOTE: puback_tx is inlined hard coded for performance.

@@ -9,7 +9,8 @@ use crate::{
         TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
     },
     */
-    eformat, function,
+    eformat,
+    function,
     BrokerLib::MqttSnClient,
     MSG_LEN_SUBACK,
     MSG_TYPE_SUBACK,
@@ -90,15 +91,17 @@ impl SubAck {
             //     No topic_id passing to send for now.
             //     because the subscribe message might not contain it.
             //     The retransmision was scheduled with 0.
-            let _result = client.cancel_tx.send((
+            match client.cancel_tx.try_send((
                 client.remote_addr,
                 sub_ack.msg_type,
                 0,
                 sub_ack.msg_id,
-            ));
+            )) {
+                Ok(_) => Ok(sub_ack.topic_id),
+                Err(err) => Err(eformat!(client.remote_addr, err)),
+            }
             // TODO check QoS in flags
             // TODO check flags
-            Ok(sub_ack.topic_id)
         } else {
             Err(eformat!(client.remote_addr, "size", buf[0]))
         }
@@ -111,7 +114,7 @@ impl SubAck {
         topic_id: u16,
         msg_id: u16,
         return_code: u8,
-    ) {
+    ) -> Result<(), String> {
         let sub_ack = SubAck {
             len: MSG_LEN_SUBACK,
             msg_type: MSG_TYPE_SUBACK,
@@ -126,8 +129,12 @@ impl SubAck {
         dbg!(bytes_buf.clone());
         dbg!(client.remote_addr);
         // transmit to network
-        let _result = client
+        match client
             .transmit_tx
-            .send((client.remote_addr, bytes_buf.to_owned()));
+            .try_send((client.remote_addr, bytes_buf.to_owned()))
+        {
+            Ok(_) => Ok(()),
+            Err(err) => Err(eformat!(client.remote_addr, err)),
+        }
     }
 }

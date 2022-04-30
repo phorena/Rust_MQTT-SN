@@ -115,22 +115,29 @@ impl Subscribe {
         qos: u8,
         retain: u8,
         client: &MqttSnClient,
-    ) {
+    ) -> Result<(), String> {
         let subscribe = Subscribe::new(topic, msg_id, qos, retain);
         dbg!(&subscribe);
         let mut bytes_buf = BytesMut::with_capacity(subscribe.len as usize);
         subscribe.try_write(&mut bytes_buf);
-        let _result = client
+        // transmit to network
+        if let Err(err) = client
             .transmit_tx
-            .send((client.remote_addr, bytes_buf.to_owned()));
-        let _result = client.schedule_tx.send((
+            .try_send((client.remote_addr, bytes_buf.to_owned()))
+        {
+            return Err(eformat!(client.remote_addr, err));
+        }
+        // schedule retransmit
+        match client.schedule_tx.try_send((
             client.remote_addr,
             MSG_TYPE_SUBACK,
             0,
             0,
             bytes_buf,
-        ));
-        // TODO return Result
+        )) {
+            Ok(_) => Ok(()),
+            Err(err) => Err(eformat!(client.remote_addr, err)),
+        }
     }
 
     #[inline(always)]
@@ -171,7 +178,7 @@ impl Subscribe {
                         topic_id,
                         subscribe.msg_id,
                         RETURN_CODE_ACCEPTED,
-                    );
+                    )?;
                     return Ok(());
                 }
                 TOPIC_ID_TYPE_PRE_DEFINED => {
@@ -194,7 +201,7 @@ impl Subscribe {
                                 topic_id,
                                 subscribe.msg_id,
                                 RETURN_CODE_ACCEPTED,
-                            );
+                            )?;
                             return Ok(());
                         }
                         Err(e) => {

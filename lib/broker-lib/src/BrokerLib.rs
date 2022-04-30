@@ -221,7 +221,7 @@ impl MqttSnClient {
         });
         dbg!(&client_id);
         let conn_duration = 5;
-        Connect::tx(client_id, conn_duration, &self);
+        let _result = Connect::tx(client_id, conn_duration, &self);
         dbg!(*self.state.lock().unwrap());
         let cur_state = *self.state.lock().unwrap();
         *self.state.lock().unwrap() = self

@@ -4,7 +4,8 @@ use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
 use crate::{
-    eformat, function,
+    eformat,
+    function,
     BrokerLib::MqttSnClient,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_PUBCOMP,
@@ -52,9 +53,10 @@ impl PubComp {
             msg_id_byte_0,
         ];
         bytes.put(buf);
-        let _result = client.transmit_tx.send((client.remote_addr, bytes));
-        dbg!(&buf);
-        Ok(())
+        match client.transmit_tx.try_send((client.remote_addr, bytes)) {
+            Ok(()) => Ok(()),
+            Err(err) => return Err(eformat!(client.remote_addr, err)),
+        }
     }
     #[inline(always)]
     pub fn rx(
@@ -62,16 +64,22 @@ impl PubComp {
         size: usize,
         client: &MqttSnClient,
     ) -> Result<u16, String> {
-        if buf[0] == MSG_LEN_PUBCOMP && buf[1] == MSG_TYPE_PUBCOMP {
+        if buf[0] == MSG_LEN_PUBCOMP
+            && buf[1] == MSG_TYPE_PUBCOMP
+            && size == MSG_LEN_PUBCOMP as usize
+        {
             // TODO verify as Big Endian
             let msg_id = buf[2] as u16 + ((buf[3] as u16) << 8);
-            let _result = client.cancel_tx.send((
+            match client.cancel_tx.try_send((
                 client.remote_addr,
                 MSG_TYPE_PUBCOMP,
                 0,
                 msg_id,
-            ));
-            Ok(msg_id)
+            )) {
+                // TODO process return code?
+                Ok(()) => return Ok(msg_id),
+                Err(err) => return Err(eformat!(client.remote_addr, err)),
+            }
         } else {
             Err(eformat!(client.remote_addr, "size", buf[0]))
         }

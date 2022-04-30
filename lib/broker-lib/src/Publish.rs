@@ -203,7 +203,7 @@ impl Publish {
                 // 4. Send PUBLISH message to subscribers from PUBREL.rx.
 
                 //dbg!(&client);
-                let bytes = PubRec::tx(publish_body.msg_id, client);
+                let bytes = PubRec::tx(publish_body.msg_id, client)?;
                 // PUBREL message doesn't have topic id.
                 // For the time wheel hash, default to 0.
                 if let Err(err) = client.schedule_tx.try_send((
@@ -233,7 +233,7 @@ impl Publish {
                     publish_body.msg_id,
                     RETURN_CODE_ACCEPTED,
                     client,
-                );
+                )?;
             }
             QOS_LEVEL_0 | QOS_LEVEL_3 => {}
             _ => {

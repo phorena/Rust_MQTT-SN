@@ -5,35 +5,9 @@ use std::mem;
 use std::str;
 
 use crate::{
-    /*
-    flags::{
-        flag_is_clean_session,
-        flag_is_will,
-        flag_qos_level, flags_set,
-        CleanSessionConst, DupConst, QoSConst, RetainConst, TopicIdTypeConst,
-        WillConst, CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE, DUP_FALSE,
-        DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
-        RETAIN_FALSE, RETAIN_TRUE, TOPIC_ID_TYPE_NORNAL,
-        TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
-        WILL_FALSE, WILL_TRUE,
-    },
-        */
+    eformat,
+    function,
     message::MsgHeader,
-    /*
-    Errors::ExoError,
-    MSG_LEN_PUBACK,
-    MSG_LEN_PUBREC,
-
-    MSG_TYPE_PUBACK,
-    MSG_TYPE_PUBCOMP,
-    MSG_TYPE_PUBLISH,
-    MSG_TYPE_PUBREC,
-    MSG_TYPE_PUBREL,
-    MSG_TYPE_SUBACK,
-
-    MSG_TYPE_SUBSCRIBE,
-    RETURN_CODE_ACCEPTED,
-    */
     BrokerLib::MqttSnClient,
     ConnAck::ConnAck,
     Connection::Connection,
@@ -122,6 +96,7 @@ impl Connect {
         duration: u16,
         client: &MqttSnClient,
     ) -> Result<(), String> {
+        // TODO check for value 6?
         let len = client_id.len() + 6;
         // TODO check for 250 & 1400
         if len < 250 {
@@ -141,18 +116,23 @@ impl Connect {
             connect.try_write(&mut bytes_buf);
             dbg!(bytes_buf.clone());
             // transmit to network
-            let _result = client
+            if let Err(err) = client
                 .transmit_tx
-                .send((client.remote_addr, bytes_buf.to_owned()));
+                .try_send((client.remote_addr, bytes_buf.to_owned()))
+            {
+                return Err(eformat!(client.remote_addr, err));
+            }
             // schedule retransmit
-            let _result = client.schedule_tx.send((
+            match client.schedule_tx.try_send((
                 client.remote_addr,
                 MSG_TYPE_CONNACK,
                 0,
                 0,
                 bytes_buf,
-            ));
-            return Ok(());
+            )) {
+                Ok(_) => Ok(()),
+                Err(err) => Err(eformat!(client.remote_addr, err)),
+            }
         } else if len < 1400 {
             let connect = Connect4 {
                 one: 1,
@@ -171,18 +151,23 @@ impl Connect {
             connect.try_write(&mut bytes_buf);
             dbg!(bytes_buf.clone());
             // transmit to network
-            let _result = client
+            if let Err(err) = client
                 .transmit_tx
-                .send((client.remote_addr, bytes_buf.to_owned()));
+                .try_send((client.remote_addr, bytes_buf.to_owned()))
+            {
+                return Err(eformat!(client.remote_addr, err));
+            }
             // schedule retransmit
-            let _result = client.schedule_tx.send((
+            match client.schedule_tx.try_send((
                 client.remote_addr,
                 MSG_TYPE_CONNACK,
                 0,
                 0,
                 bytes_buf,
-            ));
-            return Ok(());
+            )) {
+                Ok(_) => Ok(()),
+                Err(err) => Err(eformat!(client.remote_addr, err)),
+            }
         } else {
             return Err(String::from("client_id too long"));
         }
@@ -205,7 +190,7 @@ impl Connect {
         }
         dbg!(body.clone());
         Connection::try_insert(client.remote_addr, body.flags, body.duration)?;
-        ConnAck::tx(client, RETURN_CODE_ACCEPTED);
+        ConnAck::tx(client, RETURN_CODE_ACCEPTED)?;
         Ok(())
     }
 }
