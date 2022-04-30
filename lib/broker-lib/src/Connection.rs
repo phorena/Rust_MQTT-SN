@@ -118,45 +118,6 @@ impl Connection {
     }
 }
 
-/*
-pub fn connection_insert(conn: Connection) -> Result<(), String> {
-    let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
-    let socket_addr = conn.socket_addr;
-    let _result = match conn_hashmap.try_insert(socket_addr, conn) {
-        Ok(_) => return Ok(()),
-        Err(e) => {
-            return Err(format!(
-                "{}: socket_addr: {} already exists.",
-                e.entry.key()
-            ))
-        }
-    };
-}
-
-/// Insert a new filter to the connection.
-/// 1. Find the connection by socket_addr.
-/// 2. Insert the filter to the connection.
-pub fn connection_filter_insert(
-    filter: &str,
-    socket_addr: SocketAddr,
-) -> Result<(), String> {
-    let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
-    match conn_hashmap.get_mut(&socket_addr) {
-        Some(conn) => {
-            conn.filter.insert(filter, socket_addr)?;
-            // dbg!(conn_hashmap);
-            return Ok(());
-        }
-        _ => {
-            return Err(format!(
-                "{}: socket_addr: {} doesn't exist.",
-                socket_addr
-            ))
-        }
-    };
-}
-*/
-
 #[cfg(test)]
 mod test {
     #[test]

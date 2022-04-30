@@ -1,9 +1,11 @@
 // #![warn(rust_2018_idioms)]
+use crate::{eformat, function};
 use bytes::BytesMut;
 use chrono::{Datelike, Local, Timelike};
 use core::fmt::Debug;
 use core::hash::Hash;
 use crossbeam::channel::{Receiver, Sender};
+use log::*;
 use std::collections::HashMap;
 use std::thread;
 use std::time::Duration;
@@ -417,22 +419,18 @@ impl RetransTimeWheel {
                         };
                         dbg!(retrans_hdr);
                         {
-                            // XXX lock an entry in the array, instead of the wheel?
+                            // TODO XXX lock an entry in the array, instead of the wheel?
                             let mut cancel_wheel_lock =
                                 cancel_wheel.lock().unwrap();
-                            let _result = cancel_wheel_lock.cancel(retrans_hdr);
+                            if let Err(err) =
+                                cancel_wheel_lock.cancel(retrans_hdr)
+                            {
+                                error!("{}", eformat!(err));
+                            }
                         }
                     }
-                    Err(why) => {
-                        // XXX thread panic, but the rest still run
-                        // no more sender, nothing to recv
-                        // unlikely, but need to verify
-                        println!(
-                            "==============timing_wheel_rx_thread: {}",
-                            why
-                        );
-                        panic!("panic");
-                        // break;
+                    Err(err) => {
+                        error!("{}", eformat!(err));
                     }
                 }
             }
@@ -457,23 +455,17 @@ impl RetransTimeWheel {
                         {
                             // XXX lock an entry in the array, instead of the wheel?
                             let mut rx_wheel_lock = rx_wheel.lock().unwrap();
-                            let _result = rx_wheel_lock.schedule(
+                            if let Err(err) = rx_wheel_lock.schedule(
                                 retrans_hdr,
                                 data,
                                 default_duration,
-                            );
+                            ) {
+                                error!("{}", eformat!(err));
+                            }
                         }
                     }
-                    Err(why) => {
-                        // XXX thread panic, but the rest still run
-                        // no more sender, nothing to recv
-                        // unlikely, but need to verify
-                        println!(
-                            "==============timing_wheel_rx_thread: {}",
-                            why
-                        );
-                        panic!("panic");
-                        // break;
+                    Err(err) => {
+                        error!("{}", eformat!(err));
                     }
                 }
             }
@@ -492,8 +484,11 @@ impl RetransTimeWheel {
                         // dbg!(ack.clone());
                         let (retrans_hdr, data) = ack;
                         dbg!((retrans_hdr.addr, data.bytes.clone()));
-                        let _result =
-                            transmit_tx.send((retrans_hdr.addr, data.bytes));
+                        if let Err(err) =
+                            transmit_tx.send((retrans_hdr.addr, data.bytes))
+                        {
+                            error!("{}", eformat!(err));
+                        }
                     }
                     // let len = socket_tx3.send_to(b"hello", remote_addr);
                 }

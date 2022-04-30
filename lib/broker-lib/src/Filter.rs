@@ -452,7 +452,7 @@ mod test {
     #[test]
     fn test_topic_id() {
         use crate::flags::{
-            QoSConst, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
+            QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
         };
         use std::net::SocketAddr;
 
@@ -468,6 +468,7 @@ mod test {
         super::insert_subscriber_with_topic_id(socket, 2, QOS_LEVEL_2);
         super::insert_subscriber_with_topic_id(socket2, 2, QOS_LEVEL_1);
         super::insert_subscriber_with_topic_id(socket3, 3, QOS_LEVEL_0);
+        super::insert_subscriber_with_topic_id(socket3, 3, QOS_LEVEL_3);
         dbg!(super::GLOBAL_TOPIC_IDS.lock().unwrap());
         dbg!(super::GLOBAL_TOPIC_IDS_QOS.lock().unwrap());
         let result = super::get_subscribers_with_topic_id(1);
@@ -597,7 +598,7 @@ mod test {
     }
     #[test]
     fn test_insert() {
-        use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+        use std::net::{IpAddr, SocketAddr};
 
         let socket = "127.0.0.1:1200".parse::<SocketAddr>().unwrap();
         let socket_str = socket.to_string();

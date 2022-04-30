@@ -176,7 +176,6 @@ mod test {
         dbg!(bytes.len());
         let msg_header = super::MsgHeader::try_read(&bytes, 256).unwrap();
         dbg!(msg_header);
-        let len = msg_header.len as usize;
         dbg!(&bytes[3..]);
         dbg!(&bytes[5..]);
     }
