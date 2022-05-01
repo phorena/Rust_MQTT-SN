@@ -27,9 +27,10 @@ use crate::{
     Filter::{get_subscribers_with_topic_id, Subscriber},
     PubAck::PubAck,
     PubRec::PubRec,
-    MSG_LEN_PUBACK, MSG_LEN_PUBREC, MSG_TYPE_CONNACK, MSG_TYPE_CONNECT,
-    MSG_TYPE_PUBACK, MSG_TYPE_PUBCOMP, MSG_TYPE_PUBLISH, MSG_TYPE_PUBREC,
-    MSG_TYPE_PUBREL, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE, RETURN_CODE_ACCEPTED,
+    MSG_LEN_PUBACK, MSG_LEN_PUBLISH_HEADER, MSG_LEN_PUBREC, MSG_TYPE_CONNACK,
+    MSG_TYPE_CONNECT, MSG_TYPE_PUBACK, MSG_TYPE_PUBCOMP, MSG_TYPE_PUBLISH,
+    MSG_TYPE_PUBREC, MSG_TYPE_PUBREL, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE,
+    RETURN_CODE_ACCEPTED,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -95,7 +96,9 @@ struct Publish4 {
 )]
 #[getset(get, set)]
 pub struct PublishBody {
-    pub msg_type: u8,
+    #[debug(format = "0x{:x}")]
+    msg_type: u8,
+    #[debug(format = "0b{:08b}")]
     pub flags: u8,
     pub topic_id: u16,
     pub msg_id: u16,
@@ -175,14 +178,16 @@ impl Publish {
 
         let publish_body: PublishBody;
         let _read_fixed_len;
+
         if header.header_len == 2 {
             // TODO replace unwrap
             (publish_body, _read_fixed_len) =
-                PublishBody::try_read(&buf[2..], size).unwrap();
+                PublishBody::try_read(&buf[1..], size).unwrap();
         } else {
             (publish_body, _read_fixed_len) =
-                PublishBody::try_read(&buf[4..], size).unwrap();
+                PublishBody::try_read(&buf[3..], size).unwrap();
         }
+        dbg!((size, _read_fixed_len));
 
         dbg!(publish_body.clone());
         let subscriber_vec =
@@ -268,8 +273,7 @@ impl Publish {
         client: &MqttSnClient,
         remote_addr: SocketAddr,
     ) -> Result<(), String> {
-        // TODO check for value 6?
-        let len = data.len() + 6;
+        let len = data.len() + MSG_LEN_PUBLISH_HEADER as usize;
         let mut bytes_buf = BytesMut::with_capacity(len);
         // TODO verify that this is correct
         let flags = flags_set(

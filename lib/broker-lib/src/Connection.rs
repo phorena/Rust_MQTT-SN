@@ -1,6 +1,7 @@
 use crate::{eformat, function};
 // use log::*;
 // use rand::Rng;
+use bytes::Bytes;
 use hashbrown::HashMap;
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Mutex;
@@ -86,6 +87,8 @@ pub struct Connection {
     _will: u8,
     _state: u8,
     duration: u16,
+    will_topic: Bytes, // NOTE: this is a Bytes, not a BytesMut.
+    will_message: Bytes,
 }
 
 impl Connection {
@@ -100,6 +103,8 @@ impl Connection {
             _will: 0,
             _state: 0,
             duration,
+            will_topic: Bytes::new(),
+            will_message: Bytes::new(),
         };
         Ok(conn)
     }
@@ -119,6 +124,32 @@ impl Connection {
         let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
         match conn_hashmap.remove(&socket_addr) {
             Some(val) => Ok(val),
+            None => Err(eformat!(socket_addr, "not found.")),
+        }
+    }
+    pub fn update_will_topic(
+        socket_addr: SocketAddr,
+        topic: String,
+    ) -> Result<(), String> {
+        let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
+        match conn_hashmap.get_mut(&socket_addr) {
+            Some(conn) => {
+                conn.will_topic = Bytes::from(topic.to_owned());
+                Ok(())
+            }
+            None => Err(eformat!(socket_addr, "not found.")),
+        }
+    }
+    pub fn update_will_msg(
+        socket_addr: SocketAddr,
+        message: String,
+    ) -> Result<(), String> {
+        let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
+        match conn_hashmap.get_mut(&socket_addr) {
+            Some(conn) => {
+                conn.will_message = Bytes::from(message.to_owned());
+                Ok(())
+            }
             None => Err(eformat!(socket_addr, "not found.")),
         }
     }

@@ -23,8 +23,6 @@ pub mod Disconnect;
 #[allow(non_snake_case)]
 pub mod Filter;
 #[allow(non_snake_case)]
-pub mod MessageDb;
-#[allow(non_snake_case)]
 pub mod MsgType;
 #[allow(non_snake_case)]
 pub mod PingReq;
@@ -58,8 +56,6 @@ pub mod SubscriberDb;
 pub mod TimingWheel2;
 #[allow(non_snake_case)]
 pub mod TopicDb;
-#[allow(non_snake_case)]
-pub mod Transfer;
 #[allow(non_snake_case)]
 pub mod UnsubAck;
 #[allow(non_snake_case)]
@@ -105,6 +101,14 @@ pub const MSG_TYPE_PUBCOMP: MsgTypeConst = 0xE;
 pub const MSG_TYPE_PUBREC: MsgTypeConst = 0xF;
 pub const MSG_TYPE_PUBREL: MsgTypeConst = 0x10;
 pub const MSG_TYPE_DISCONNECT: MsgTypeConst = 0x18;
+pub const MSG_TYPE_WILL_TOPIC_REQ: MsgTypeConst = 0x06;
+pub const MSG_TYPE_WILL_TOPIC: MsgTypeConst = 0x07;
+pub const MSG_TYPE_WILL_MSG_REQ: MsgTypeConst = 0x08;
+pub const MSG_TYPE_WILL_MSG: MsgTypeConst = 0x09;
+pub const MSG_TYPE_WILL_TOPIC_RESP: MsgTypeConst = 0x1B;
+pub const MSG_TYPE_WILL_MSG_RESP: MsgTypeConst = 0x1D;
+pub const MSG_TYPE_WILL_TOPIC_UPD: MsgTypeConst = 0x1A;
+pub const MSG_TYPE_WILL_MSG_UPD: MsgTypeConst = 0x1C;
 
 // TODO fill in the rest
 pub const MSG_TYPE_WILLMSGRESP: MsgTypeConst = 0x1D; // 29
@@ -131,6 +135,15 @@ pub const MSG_LEN_SUBACK: MsgLenConst = 8;
 pub const MSG_LEN_CONNACK: MsgLenConst = 3;
 pub const MSG_LEN_DISCONNECT: MsgLenConst = 2;
 pub const MSG_LEN_DISCONNECT_DURATION: MsgLenConst = 4;
+pub const MSG_LEN_WILL_TOPIC_REQ: MsgLenConst = 2;
+pub const MSG_LEN_WILL_MSG_REQ: MsgLenConst = 2;
+pub const MSG_LEN_WILL_TOPIC_RESP: MsgLenConst = 3;
+pub const MSG_LEN_WILL_MSG_RESP: MsgLenConst = 3;
+pub const MSG_LEN_WILL_TOPIC_HEADER: MsgLenConst = 3;
+pub const MSG_LEN_WILL_MSG_HEADER: MsgLenConst = 2;
+pub const MSG_LEN_WILL_TOPIC_UPD_HEADER: MsgLenConst = 3;
+pub const MSG_LEN_WILL_MSG_UPD_HEADER: MsgLenConst = 2;
+pub const MSG_LEN_PUBLISH_HEADER: MsgLenConst = 6;
 
 type ReturnCodeConst = u8;
 const RETURN_CODE_ACCEPTED: ReturnCodeConst = 0;

@@ -79,9 +79,8 @@ impl Disconnect {
             Connection::db();
             Disconnect::tx(client)?;
             return Ok(());
-        }
-        // TODO: implement DisconnectDuration
-        if size == MSG_LEN_DISCONNECT_DURATION as usize {
+        } else if size == MSG_LEN_DISCONNECT_DURATION as usize {
+            // TODO: implement DisconnectDuration
             let (disconnect_duration, _read_len) =
                 DisconnectDuration::try_read(&buf, size).unwrap();
             dbg!(disconnect_duration.clone());
