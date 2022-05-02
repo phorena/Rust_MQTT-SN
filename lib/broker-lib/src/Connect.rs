@@ -11,6 +11,7 @@ use crate::{
     BrokerLib::MqttSnClient,
     ConnAck::ConnAck,
     Connection::Connection,
+    MSG_LEN_CONNECT_HEADER,
     // flags::{flags_set, flag_qos_level, },
     MSG_TYPE_CONNACK,
     MSG_TYPE_CONNECT,
@@ -38,7 +39,8 @@ pub struct Connect {
 )]
 #[getset(get, set)]
 /// Connect message type with 4 bytes header.
-pub struct Connect4 {
+struct Connect4 {
+    // NOTE: no pub
     pub one: u8,
     pub len: u16,
     #[debug(format = "0x{:x}")]
@@ -96,8 +98,7 @@ impl Connect {
         duration: u16,
         client: &MqttSnClient,
     ) -> Result<(), String> {
-        // TODO check for value 6?
-        let len = client_id.len() + 6;
+        let len = client_id.len() + MSG_LEN_CONNECT_HEADER as usize;
         // TODO check for 250 & 1400
         if len < 250 {
             let connect = Connect {

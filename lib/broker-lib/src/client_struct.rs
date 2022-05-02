@@ -18,7 +18,7 @@ const STATE_CONNECT_SENT: StateTypeConst = 2;
 
 const STATE_MAX: usize = 6;
 
-type MsgTypeConst = u8;
+// type MsgTypeConst = u8;
 // const MSG_TYPE_CONNECT: MsgTypeConst = 0x4;
 // const MSG_TYPE_CONNACK: MsgTypeConst = 0x5;
 // const MSG_TYPE_PUBLISH: MsgTypeConst = 0xC; // should be 0, most popular

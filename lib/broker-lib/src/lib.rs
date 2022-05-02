@@ -109,6 +109,8 @@ pub const MSG_TYPE_WILL_TOPIC_RESP: MsgTypeConst = 0x1B;
 pub const MSG_TYPE_WILL_MSG_RESP: MsgTypeConst = 0x1D;
 pub const MSG_TYPE_WILL_TOPIC_UPD: MsgTypeConst = 0x1A;
 pub const MSG_TYPE_WILL_MSG_UPD: MsgTypeConst = 0x1C;
+pub const MSG_TYPE_PINGREQ: MsgTypeConst = 0x16;
+pub const MSG_TYPE_PINGRESP: MsgTypeConst = 0x17;
 
 // TODO fill in the rest
 pub const MSG_TYPE_WILLMSGRESP: MsgTypeConst = 0x1D; // 29
@@ -144,6 +146,9 @@ pub const MSG_LEN_WILL_MSG_HEADER: MsgLenConst = 2;
 pub const MSG_LEN_WILL_TOPIC_UPD_HEADER: MsgLenConst = 3;
 pub const MSG_LEN_WILL_MSG_UPD_HEADER: MsgLenConst = 2;
 pub const MSG_LEN_PUBLISH_HEADER: MsgLenConst = 6;
+pub const MSG_LEN_CONNECT_HEADER: MsgLenConst = 6;
+pub const MSG_LEN_PINGREQ_HEADER: MsgLenConst = 2;
+pub const MSG_LEN_PINGRESP: MsgLenConst = 2;
 
 type ReturnCodeConst = u8;
 const RETURN_CODE_ACCEPTED: ReturnCodeConst = 0;

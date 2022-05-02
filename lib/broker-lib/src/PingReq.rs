@@ -2,30 +2,74 @@ use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
+use std::str; // NOTE: needed for MutGetters
 
-#[derive(Debug, Clone, Copy, Getters, MutGetters, CopyGetters, Default)]
+use crate::{
+    eformat, function, message::MsgHeader, BrokerLib::MqttSnClient,
+    PingResp::PingResp, MSG_LEN_PINGREQ_HEADER, MSG_TYPE_PINGREQ,
+};
+
+#[derive(Debug, Clone, Getters, MutGetters, CopyGetters, Default)]
 #[getset(get, set)]
 pub struct PingReq {
     len: u8,
     #[debug(format = "0x{:x}")]
     msg_type: u8,
-    client_id: u64,
+    client_id: String,
 }
 
-/*
+#[derive(Debug, Clone, Getters, MutGetters, CopyGetters, Default)]
+#[getset(get, set)]
+struct PingReq4 {
+    // NOTE: no pub
+    one: u8,
+    len: u16,
+    #[debug(format = "0x{:x}")]
+    msg_type: u8,
+    client_id: String,
+}
+
 impl PingReq {
-    fn constraint_len(_val: &u8) -> bool {
-        //dbg!(_val);
-        true
+    #[inline(always)]
+    pub fn rx(
+        buf: &[u8],
+        size: usize,
+        client: &mut MqttSnClient,
+        header: MsgHeader,
+    ) -> Result<(), String> {
+        let client_id: String;
+        if header.header_len == 2 {
+            // TODO replace unwrap
+            client_id = str::from_utf8(&buf[2..size]).unwrap().to_string();
+        } else {
+            client_id = str::from_utf8(&buf[4..size]).unwrap().to_string();
+        }
+        dbg!(&client_id);
+        PingResp::tx(client)?;
+        Ok(())
     }
-    fn constraint_msg_type(_val: &u8) -> bool {
-        //dbg!(_val);
-        true
-    }
-    fn constraint_client_id(_val: &u64) -> bool {
-        //dbg!(_val);
-        true
+    pub fn tx(
+        client_id: String,
+        client: &mut MqttSnClient,
+    ) -> Result<(), String> {
+        let len = client_id.len() + MSG_LEN_PINGREQ_HEADER as usize;
+        let mut bytes = BytesMut::with_capacity(len);
+        if len < 256 {
+            let ping_req = PingReq {
+                len: len as u8,
+                msg_type: MSG_TYPE_PINGREQ,
+                client_id,
+            };
+            ping_req.try_write(&mut bytes);
+            match client
+                .transmit_tx
+                .try_send((client.remote_addr, bytes.to_owned()))
+            {
+                Ok(_) => Ok(()),
+                Err(err) => Err(eformat!(client.remote_addr, err)),
+            }
+        } else {
+            Err(eformat!(client.remote_addr, "len too long", len))
+        }
     }
 }
-
-*/

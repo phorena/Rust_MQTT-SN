@@ -1,3 +1,7 @@
+use crate::{
+    eformat, function, BrokerLib::MqttSnClient, ReturnCodeConst,
+    MSG_LEN_PINGRESP, MSG_TYPE_PINGRESP,
+};
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
@@ -20,15 +24,36 @@ pub struct PingResp {
     pub msg_type: u8,
 }
 
-/*
 impl PingResp {
-    fn constraint_len(_val: &u8) -> bool {
-        //dbg!(_val);
-        true
+    pub fn rx(
+        buf: &[u8],
+        size: usize,
+        client: &mut MqttSnClient,
+    ) -> Result<(), String> {
+        if size == MSG_LEN_PINGRESP as usize && buf[0] == MSG_LEN_PINGRESP {
+            // TODO update ping timer.
+            return Ok(());
+        } else {
+            return Err(eformat!(client.remote_addr, "len err", size));
+        }
     }
-    fn constraint_msg_type(_val: &u8) -> bool {
-        //dbg!(_val);
-        true
+    pub fn tx(client: &mut MqttSnClient) -> Result<(), String> {
+        let ping = PingResp {
+            len: MSG_LEN_PINGRESP as u8,
+            msg_type: MSG_TYPE_PINGRESP,
+        };
+        let mut bytes = BytesMut::with_capacity(MSG_LEN_PINGRESP as usize);
+        dbg!(ping.clone());
+        ping.try_write(&mut bytes);
+        dbg!(bytes.clone());
+        dbg!(client.remote_addr);
+        // transmit to network
+        match client
+            .transmit_tx
+            .try_send((client.remote_addr, bytes.to_owned()))
+        {
+            Ok(()) => return Ok(()),
+            Err(err) => return Err(eformat!(client.remote_addr, err)),
+        }
     }
 }
-*/
