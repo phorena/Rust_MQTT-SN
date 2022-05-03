@@ -100,7 +100,7 @@ impl Connect {
     ) -> Result<(), String> {
         let len = client_id.len() + MSG_LEN_CONNECT_HEADER as usize;
         // TODO check for 250 & 1400
-        if len < 250 {
+        if len < 256 {
             let connect = Connect {
                 len: len as u8,
                 msg_type: MSG_TYPE_CONNECT,
@@ -190,7 +190,13 @@ impl Connect {
             (body, _read_fixed_len) = Body::try_read(&buf[4..], size).unwrap();
         }
         dbg!(body.clone());
-        Connection::try_insert(client.remote_addr, body.flags, body.duration)?;
+        Connection::try_insert(
+            client.remote_addr,
+            body.flags,
+            body.protocol_id,
+            body.duration,
+            body.client_id,
+        )?;
         ConnAck::tx(client, RETURN_CODE_ACCEPTED)?;
         Ok(())
     }

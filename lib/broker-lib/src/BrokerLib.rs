@@ -11,10 +11,13 @@ use log::*;
 
 use crate::{
     dbg_buf,
+    eformat,
+    function,
     message::MsgHeader,
     // Channels::Channels,
     ConnAck::ConnAck,
     Connect::Connect,
+    Connection::Connection,
     Disconnect::Disconnect,
     // Connection::ConnHashMap,
     PubAck::PubAck,
@@ -128,7 +131,7 @@ impl MqttSnClient {
                 match socket.recv_from(&mut buf) {
                     Ok((size, addr)) => {
                         self.remote_addr = addr;
-                        // TODO process 3 bytes length
+                        // Decode message header
                         let msg_header: MsgHeader;
                         match MsgHeader::try_read(&buf, size) {
                             Ok(header) => {
@@ -139,16 +142,45 @@ impl MqttSnClient {
                                 continue;
                             }
                         }
+                        let msg_type = msg_header.msg_type;
+                        if Connection::contains_key(addr) == false {
+                            // New connection, not in the connection hashmap.
+                            if msg_type == MSG_TYPE_CONNECT {
+                                if let Err(err) = Connect::rx(
+                                    &buf, size, &mut self, msg_header,
+                                ) {
+                                    error!("{}", err);
+                                }
+                                continue;
+                            } else {
+                                error!(
+                                    "{}",
+                                    eformat!(
+                                        addr,
+                                        "Not in connection map",
+                                        msg_type
+                                    )
+                                );
+                                continue;
+                            }
+                        }
+                        // Existing connection
                         dbg!(&msg_header);
-                        let msg_type = buf[1] as u8;
                         dbg_buf!(buf, size);
                         if msg_type == MSG_TYPE_PUBLISH {
-                            let _result =
-                                Publish::rx(&buf, size, &self, msg_header);
+                            if let Err(err) =
+                                Publish::rx(&buf, size, &mut self, msg_header)
+                            {
+                                error!("{}", err);
+                            }
                             continue;
                         };
                         if msg_type == MSG_TYPE_PUBREL {
-                            let _result = PubRel::rx(&buf, size, &self);
+                            if let Err(err) =
+                                PubRel::rx(&buf, size, &mut self)
+                            {
+                                error!("{}", err);
+                            }
                             continue;
                         };
                         if msg_type == MSG_TYPE_PUBACK {
@@ -157,11 +189,6 @@ impl MqttSnClient {
                         };
                         if msg_type == MSG_TYPE_SUBACK {
                             let _result = SubAck::rx(&buf, size, &self);
-                            continue;
-                        };
-                        if msg_type == MSG_TYPE_CONNECT {
-                            let _result =
-                                Connect::rx(&buf, size, &mut self, msg_header);
                             continue;
                         };
                         if msg_type == MSG_TYPE_SUBSCRIBE {
@@ -174,9 +201,9 @@ impl MqttSnClient {
                         };
                         if msg_type == MSG_TYPE_CONNACK {
                             match ConnAck::rx(&buf, size, &self) {
+                                // Broker shouldn't receive ConnAck
+                                // because it doesn't send Connect for now.
                                 Ok(_) => {
-                                    // Broker shouldn't receive ConnAck
-                                    // because it doesn't send Connect for now.
                                     error!("Broker ConnAck {:?}", addr);
                                 }
                                 Err(why) => error!("ConnAck {:?}", why),

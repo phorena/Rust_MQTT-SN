@@ -83,10 +83,12 @@ lazy_static! {
 pub struct Connection {
     socket_addr: SocketAddr,
     flags: u8,
+    protocol_id: u8,
+    duration: u16,
+    client_id: String,
     // TODO Struct Will
     _will: u8,
     _state: u8,
-    duration: u16,
     will_topic: Bytes, // NOTE: this is a Bytes, not a BytesMut.
     will_message: Bytes,
 }
@@ -95,14 +97,18 @@ impl Connection {
     pub fn new(
         socket_addr: SocketAddr,
         flags: u8,
+        protocol_id: u8,
         duration: u16,
+        client_id: String,
     ) -> Result<Self, String> {
         let conn = Connection {
             socket_addr,
             flags,
             _will: 0,
             _state: 0,
+            protocol_id,
             duration,
+            client_id,
             will_topic: Bytes::new(),
             will_message: Bytes::new(),
         };
@@ -111,14 +117,30 @@ impl Connection {
     pub fn try_insert(
         socket_addr: SocketAddr,
         flags: u8,
+        protocol_id: u8,
         duration: u16,
+        client_id: String,
     ) -> Result<(), String> {
-        let conn = Connection::new(socket_addr, flags, duration)?;
         let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
+        let conn = Connection {
+            socket_addr,
+            flags,
+            protocol_id,
+            duration,
+            client_id,
+            _will: 0,
+            _state: 0,
+            will_topic: Bytes::new(),
+            will_message: Bytes::new(),
+        };
         match conn_hashmap.try_insert(socket_addr, conn) {
             Ok(_) => Ok(()),
             Err(e) => Err(eformat!(e.entry.key(), "already exists.")),
         }
+    }
+    pub fn contains_key(socket_addr: SocketAddr) -> bool {
+        let conn_hashmap = CONN_HASHMAP.lock().unwrap();
+        conn_hashmap.contains_key(&socket_addr)
     }
     pub fn remove(socket_addr: SocketAddr) -> Result<Connection, String> {
         let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();

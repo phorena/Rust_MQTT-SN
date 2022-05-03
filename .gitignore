@@ -12,5 +12,7 @@ Cargo.lock
 
 .*un~
 .vscode/
+.cargo
+fleet.toml
 
 out*

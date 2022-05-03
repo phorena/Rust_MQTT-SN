@@ -5,8 +5,9 @@ use chrono::{Datelike, Local, Timelike};
 use core::fmt::Debug;
 use core::hash::Hash;
 use crossbeam::channel::{Receiver, Sender};
+use hashbrown::HashMap;
 use log::*;
-use std::collections::HashMap;
+
 use std::thread;
 use std::time::Duration;
 use std::{net::SocketAddr, sync::Arc, sync::Mutex};

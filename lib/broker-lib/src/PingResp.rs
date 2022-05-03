@@ -38,16 +38,8 @@ impl PingResp {
         }
     }
     pub fn tx(client: &mut MqttSnClient) -> Result<(), String> {
-        let ping = PingResp {
-            len: MSG_LEN_PINGRESP as u8,
-            msg_type: MSG_TYPE_PINGRESP,
-        };
-        let mut bytes = BytesMut::with_capacity(MSG_LEN_PINGRESP as usize);
-        dbg!(ping.clone());
-        ping.try_write(&mut bytes);
-        dbg!(bytes.clone());
-        dbg!(client.remote_addr);
-        // transmit to network
+        let buf: &[u8] = &[MSG_LEN_PINGRESP, MSG_TYPE_PINGRESP];
+        let bytes = BytesMut::from(buf);
         match client
             .transmit_tx
             .try_send((client.remote_addr, bytes.to_owned()))

@@ -14,6 +14,18 @@ use crate::{
     MSG_TYPE_DISCONNECT,
 };
 
+/*
+As with MQTT, the DISCONNECT message is sent by a client to indicate that it wants to close the connection.
+The gateway will acknowledge the receipt of that message by returning a DISCONNECT to the client. A server or
+gateway may also sends a DISCONNECT to a client, e.g. in case a gateway, due to an error, cannot map a received
+message to a client. Upon receiving such a DISCONNECT message, a client should try to setup the connection
+again by sending a CONNECT message to the gateway or server. In all these cases the DISCONNECT message
+does not contain the Duration field.
+A DISCONNECT message with a Duration field is sent by a client when it wants to go to the “asleep” state.
+The receipt of this message is also acknowledged by the gateway by means of a DISCONNECT message (without
+a duration field).
+*/
+
 #[derive(
     Debug,
     Clone,
@@ -46,24 +58,6 @@ pub struct DisconnectDuration {
     msg_type: u8,
     duration: u16,
 }
-
-/*
-impl Disconnect {
-    fn constraint_len(_val: &u8) -> bool {
-        //dbg!(_val);
-        true
-    }
-    fn constraint_msg_type(_val: &u8) -> bool {
-        //dbg!(_val);
-        true
-    }
-    fn constraint_duration(_val: &u16) -> bool {
-        //dbg!(_val);
-        true
-    }
-}
-*/
-
 impl Disconnect {
     pub fn rx(
         buf: &[u8],
