@@ -85,7 +85,7 @@ pub struct Connection {
     flags: u8,
     protocol_id: u8,
     duration: u16,
-    client_id: String,
+    client_id: Bytes,
     // TODO Struct Will
     _will: u8,
     _state: u8,
@@ -99,7 +99,7 @@ impl Connection {
         flags: u8,
         protocol_id: u8,
         duration: u16,
-        client_id: String,
+        client_id: Bytes,
     ) -> Result<Self, String> {
         let conn = Connection {
             socket_addr,
@@ -119,7 +119,7 @@ impl Connection {
         flags: u8,
         protocol_id: u8,
         duration: u16,
-        client_id: String,
+        client_id: Bytes,
     ) -> Result<(), String> {
         let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
         let conn = Connection {

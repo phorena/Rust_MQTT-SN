@@ -1,4 +1,4 @@
-use bytes::{BufMut, BytesMut};
+use bytes::{BufMut, BytesMut, Bytes};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
 use std::mem;
@@ -62,7 +62,7 @@ struct Body {
     pub flags: u8,
     pub protocol_id: u8,
     pub duration: u16,
-    pub client_id: String,
+    pub client_id: Bytes,
 }
 
 // TODO
@@ -99,7 +99,6 @@ impl Connect {
         client: &MqttSnClient,
     ) -> Result<(), String> {
         let len = client_id.len() + MSG_LEN_CONNECT_HEADER as usize;
-        // TODO check for 250 & 1400
         if len < 256 {
             let connect = Connect {
                 len: len as u8,
@@ -186,17 +185,12 @@ impl Connect {
         if header.header_len == 2 {
             // TODO replace unwrap
             (body, _read_fixed_len) = Body::try_read(&buf[2..], size).unwrap();
+            dbg!(&body);
         } else {
             (body, _read_fixed_len) = Body::try_read(&buf[4..], size).unwrap();
         }
         dbg!(body.clone());
-        Connection::try_insert(
-            client.remote_addr,
-            body.flags,
-            body.protocol_id,
-            body.duration,
-            body.client_id,
-        )?;
+        Connection::try_insert(client.remote_addr, body.flags, body.protocol_id, body.duration, body.client_id)?;
         ConnAck::tx(client, RETURN_CODE_ACCEPTED)?;
         Ok(())
     }

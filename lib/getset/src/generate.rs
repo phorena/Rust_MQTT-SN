@@ -279,9 +279,18 @@ pub fn read_functions(_name: &Ident, field: &Field, _params: &GenParams) -> Toke
                 // It converts struct to Bytes from BytesMut.
                 ret = quote! {
                     let #field_name: BytesMut = {
-                        let mut bytes_mut = BytesMut::with_capacity(1024);
+                        // let mut bytes_mut = BytesMut::with_capacity(1024);
+                        let mut bytes_mut = BytesMut::new();
                         bytes_mut.put_slice(&bytes[__offset__ .. size]);
                         bytes_mut
+                    };
+                };
+            }
+            "Bytes" => {
+                ret = quote! {
+                    let #field_name: Bytes = {
+                        let buf = Bytes::copy_from_slice(&bytes[__offset__ .. size]);
+                        buf
                     };
                 };
             }
@@ -308,7 +317,7 @@ pub fn read_fields(_name: &Ident, field: &Field, _params: &GenParams) -> TokenSt
         // dbg!(&p.path.segments[0].ident);
         // use this expression to get the type string for comparision
         match &p.path.segments[0].ident.to_string()[..] {
-            "String"| "BytesMut"|
+            "String"| "BytesMut"| "Bytes" |
             "u8"|"u16"|"u32"|"u64"|"u128"|"i8"|"i16"|"i32"|"i64"|"i128" => {
                 // dbg!(field_name.clone());
                 ret = quote! {
@@ -354,6 +363,11 @@ pub fn write_functions(_name: &Ident, field: &Field, _params: &GenParams) -> Tok
                 };
             }
             "BytesMut" => {
+                ret = quote! {
+                    bytes_buf.put(&self.#field_name[..]);
+                };
+            }
+            "Bytes" => {
                 ret = quote! {
                     bytes_buf.put(&self.#field_name[..]);
                 };
