@@ -65,21 +65,14 @@ impl WillMsg {
     pub fn tx(will_msg: String, client: &MqttSnClient) -> Result<(), String> {
         let len: usize =
             MSG_LEN_WILL_MSG_HEADER as usize + will_msg.len() as usize;
+        let mut bytes = BytesMut::with_capacity(len);
         if len < 256 {
             let will = WillMsg {
                 len: len as u8,
                 msg_type: MSG_TYPE_WILL_MSG,
                 will_msg,
             };
-            let mut bytes = BytesMut::with_capacity(len);
             will.try_write(&mut bytes);
-            match client
-                .transmit_tx
-                .try_send((client.remote_addr, bytes.to_owned()))
-            {
-                Ok(()) => return Ok(()),
-                Err(err) => return Err(eformat!(client.remote_addr, err)),
-            }
         } else if len < 1400 {
             let will = WillMsg4 {
                 one: 1,
@@ -87,17 +80,16 @@ impl WillMsg {
                 msg_type: MSG_TYPE_WILL_MSG,
                 will_msg,
             };
-            let mut bytes = BytesMut::with_capacity(len);
             will.try_write(&mut bytes);
-            match client
-                .transmit_tx
-                .try_send((client.remote_addr, bytes.to_owned()))
-            {
-                Ok(()) => return Ok(()),
-                Err(err) => return Err(eformat!(client.remote_addr, err)),
-            }
         } else {
             return Err(eformat!(client.remote_addr, "len err", len));
+        }
+        match client
+            .transmit_tx
+            .try_send((client.remote_addr, bytes.to_owned()))
+        {
+            Ok(()) => return Ok(()),
+            Err(err) => return Err(eformat!(client.remote_addr, err)),
         }
     }
 }

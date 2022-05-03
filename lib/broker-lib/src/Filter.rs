@@ -272,8 +272,8 @@ lazy_static! {
         Mutex::new(BisetMap::new());
     pub static ref GLOBAL_TOPIC_IDS: Mutex<BisetMap<TopicIdType, SocketAddr>> =
         Mutex::new(BisetMap::new());
-    pub static ref GLOBAL_TOPIC_IDS_QOS: Mutex<BisetMap<(TopicIdType, SocketAddr), QoSConst>> =
-        Mutex::new(BisetMap::new());
+    pub static ref GLOBAL_TOPIC_IDS_QOS: Mutex<HashMap<(TopicIdType, SocketAddr), QoSConst>> =
+        Mutex::new(HashMap::new());
     /// Topic name to topic id map is 1:1. Using a BisetMap to allow access from both sides.
     pub static ref GLOBAL_TOPIC_NAME_TO_IDS: Mutex<BisetMap<String, TopicIdType>> =
         Mutex::new(BisetMap::new());
@@ -314,6 +314,32 @@ pub fn insert_subscriber_with_topic_id(
     Ok(())
 }
 
+#[inline(always)]
+pub fn unsubscribe_with_topic_name(
+    socket_addr: SocketAddr,
+    topic_name: String,
+) -> Result<(), String> {
+    // Get the topic id from the topic name.
+    let topic_ids = GLOBAL_TOPIC_NAME_TO_IDS.lock().unwrap().get(&topic_name);
+    if topic_ids.len() > 0 {
+        // Remove socket_addr from the topic id map.
+        let topic_id = topic_ids[0];
+        unsubscribe_with_topic_id(socket_addr, topic_id)?;
+        return Ok(());
+    } else {
+        return Err("bad".to_string());
+    }
+}
+
+#[inline(always)]
+pub fn unsubscribe_with_topic_id(
+    socket_addr: SocketAddr,
+    id: TopicIdType,
+) -> Result<(), String> {
+    GLOBAL_TOPIC_IDS.lock().unwrap().remove(&id, &socket_addr);
+    Ok(())
+}
+
 #[derive(Clone, Debug)]
 pub struct Subscriber {
     pub socket_addr: SocketAddr,
@@ -328,12 +354,11 @@ pub fn get_subscribers_with_topic_id(id: u16) -> Vec<Subscriber> {
     let mut return_vec: Vec<Subscriber> = Vec::new();
     // Get the QoS of each socket_addr subscribed to the topic_id.
     for socket_addr in sock_vec {
-        let qos_vec =
-            GLOBAL_TOPIC_IDS_QOS.lock().unwrap().get(&(id, socket_addr));
-        for qos in qos_vec {
+        for qos in GLOBAL_TOPIC_IDS_QOS.lock().unwrap().get(&(id, socket_addr))
+        {
             return_vec.push(Subscriber {
                 socket_addr: socket_addr,
-                qos: qos,
+                qos: *qos,
             });
         }
     }

@@ -4,6 +4,7 @@ use getset::{CopyGetters, Getters, Setters};
 pub struct Foo
 {
     pri: u32,
+    
 }
 impl Default for Foo {
     fn default() -> Foo {

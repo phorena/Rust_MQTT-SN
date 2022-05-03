@@ -37,14 +37,14 @@ impl PingReq {
         client: &mut MqttSnClient,
         header: MsgHeader,
     ) -> Result<(), String> {
-        let client_id: String;
         if header.header_len == 2 {
-            // TODO replace unwrap
-            client_id = str::from_utf8(&buf[2..size]).unwrap().to_string();
+            // TODO update ping timer.
+            let (_ping_req, _read_fixed_len) =
+                PingReq::try_read(&buf, size).unwrap();
         } else {
-            client_id = str::from_utf8(&buf[4..size]).unwrap().to_string();
+            let (_ping_req, _read_fixed_len) =
+                PingReq4::try_read(&buf, size).unwrap();
         }
-        dbg!(&client_id);
         PingResp::tx(client)?;
         Ok(())
     }

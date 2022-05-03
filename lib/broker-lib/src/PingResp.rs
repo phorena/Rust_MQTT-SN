@@ -1,6 +1,6 @@
 use crate::{
-    eformat, function, BrokerLib::MqttSnClient,
-    MSG_LEN_PINGRESP, MSG_TYPE_PINGRESP,
+    eformat, function, BrokerLib::MqttSnClient, MSG_LEN_PINGRESP,
+    MSG_TYPE_PINGRESP,
 };
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;

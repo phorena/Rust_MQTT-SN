@@ -1,3 +1,7 @@
+use crate::{
+    eformat, function, BrokerLib::MqttSnClient, MSG_LEN_UNSUBACK,
+    MSG_TYPE_UNSUBACK,
+};
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
@@ -14,18 +18,48 @@ pub struct UnsubAck {
 }
 
 impl UnsubAck {
-    /*
-    fn constraint_len(_val: &u8) -> bool {
-        //dbg!(_val);
-        true
+    pub fn rx(
+        buf: &[u8],
+        size: usize,
+        client: &MqttSnClient,
+    ) -> Result<u16, String> {
+        let (unsub_ack, read_len) = UnsubAck::try_read(&buf, size).unwrap();
+        dbg!(unsub_ack.clone());
+
+        if read_len == MSG_LEN_UNSUBACK as usize {
+            // XXX Cancel the retransmision scheduled.
+            //     No topic_id in unsuback message.
+            match client.cancel_tx.try_send((
+                client.remote_addr,
+                unsub_ack.msg_type,
+                0,
+                unsub_ack.msg_id,
+            )) {
+                Ok(_) => Ok(unsub_ack.msg_id),
+                Err(err) => Err(eformat!(client.remote_addr, err)),
+            }
+        } else {
+            Err(eformat!(client.remote_addr, "size", buf[0]))
+        }
     }
-    fn constraint_msg_type(_val: &u8) -> bool {
-        //dbg!(_val);
-        true
+    pub fn tx(client: &MqttSnClient, msg_id: u16) -> Result<(), String> {
+        let mut bytes_buf = BytesMut::with_capacity(MSG_LEN_UNSUBACK as usize);
+        let unsub_ack = UnsubAck {
+            len: MSG_LEN_UNSUBACK,
+            msg_type: MSG_TYPE_UNSUBACK,
+            msg_id,
+        };
+        dbg!(unsub_ack.clone());
+        unsub_ack.try_write(&mut bytes_buf);
+        dbg!(bytes_buf.clone());
+        dbg!(client.remote_addr);
+        // transmit to network
+        match client
+            .transmit_tx
+            .try_send((client.remote_addr, bytes_buf.to_owned()))
+        {
+            Ok(_) => Ok(()),
+            Err(err) => Err(eformat!(client.remote_addr, err)),
+        }
     }
-    fn constraint_msg_id(_val: &u16) -> bool {
-        //dbg!(_val);
-        true
-    }
-    */
 }

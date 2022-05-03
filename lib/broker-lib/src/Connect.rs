@@ -1,6 +1,6 @@
 use bytes::{BufMut, Bytes, BytesMut};
 use custom_debug::Debug;
-use getset::{CopyGetters, Getters, MutGetters, };
+use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 use std::str;
 
@@ -52,22 +52,8 @@ struct Connect4 {
     pub client_id: Bytes,
 }
 
-/// Body is for parsing the body of a CONNECT message, length is parsed be the caller.
-#[derive(
-    Debug, Clone, Getters, MutGetters, CopyGetters, Default, PartialEq,
-)]
-#[getset(get, set)]
-struct Body {
-    #[debug(format = "0b{:08b}")]
-    pub flags: u8,
-    pub protocol_id: u8,
-    pub duration: u16,
-    pub client_id: Bytes,
-}
-
-// TODO
 impl Connect {
-    // TODO error checking and return
+    #[inline(always)]
     pub fn tx(
         flags: u8,
         protocol_id: u8,
@@ -110,6 +96,7 @@ impl Connect {
                 Ok(_) => Ok(()),
                 Err(err) => Err(eformat!(client.remote_addr, err)),
             }
+        // TODO check size 1400
         } else if len < 1400 {
             let connect = Connect4 {
                 one: 1,
@@ -157,23 +144,29 @@ impl Connect {
         client: &mut MqttSnClient,
         header: MsgHeader,
     ) -> Result<(), String> {
-        let body: Body;
-        let _read_fixed_len;
         if header.header_len == 2 {
-            // TODO replace unwrap
-            (body, _read_fixed_len) = Body::try_read(&buf[2..], size).unwrap();
-            dbg!(&body);
+            let (connect, _read_fixed_len) =
+                Connect::try_read(&buf, size).unwrap();
+            dbg!(&connect);
+            Connection::try_insert(
+                client.remote_addr,
+                connect.flags,
+                connect.protocol_id,
+                connect.duration,
+                connect.client_id,
+            )?;
         } else {
-            (body, _read_fixed_len) = Body::try_read(&buf[4..], size).unwrap();
+            let (connect, _read_fixed_len) =
+                Connect4::try_read(&buf, size).unwrap();
+            dbg!(&connect);
+            Connection::try_insert(
+                client.remote_addr,
+                connect.flags,
+                connect.protocol_id,
+                connect.duration,
+                connect.client_id,
+            )?;
         }
-        dbg!(body.clone());
-        Connection::try_insert(
-            client.remote_addr,
-            body.flags,
-            body.protocol_id,
-            body.duration,
-            body.client_id,
-        )?;
         ConnAck::tx(client, RETURN_CODE_ACCEPTED)?;
         Ok(())
     }

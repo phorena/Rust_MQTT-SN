@@ -1,3 +1,25 @@
+/*
+
+The SUBSCRIBE message is used by a client to subscribe to a certain topic name. Its format is illustrated in
+Table 19:
+• Length and MsgType: see Section 5.2.
+• Flags:
+– DUP: same as MQTT, indicates whether message is sent for first time or not.
+– QoS: same as MQTT, contains the requested QoS level for this topic.
+– Retain: not used
+– Will: not used
+– CleanSession: not used
+– TopicIdType: indicates the type of information included at the end of the message, namely “0b00”
+topic name, “0b01” pre-defined topic id, “0b10” short topic name, and “0b11” reserved.
+• MsgId: should be coded such that it can be used to identify the corresponding SUBACK message.
+• TopicName or TopicId: contains topic name, topic id, or short topic name as indicated in the TopicIdType
+field.
+
+Length    MsgType Flags MsgId TopicName or TopicId
+(octet 0) (1)     (2)   (3-4) (5:n) or (5-6)
+Table 19: SUBSCRIBE and UNSUBSCRIBE Messages
+
+*/
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
@@ -57,7 +79,7 @@ pub struct Subscribe {
 }
 
 impl Subscribe {
-    pub fn new(topic_name: String, msg_id: u16, qos: u8, retain: u8) -> Self {
+    pub fn new(qos: u8, retain: u8, msg_id: u16, topic_name: String) -> Self {
         let len = (topic_name.len() + 5) as u8;
         let mut bb = BytesMut::new();
         bb.put_slice(topic_name.as_bytes());
@@ -116,7 +138,7 @@ impl Subscribe {
         retain: u8,
         client: &MqttSnClient,
     ) -> Result<(), String> {
-        let subscribe = Subscribe::new(topic, msg_id, qos, retain);
+        let subscribe = Subscribe::new(qos, retain, msg_id, topic);
         dbg!(&subscribe);
         let mut bytes_buf = BytesMut::with_capacity(subscribe.len as usize);
         subscribe.try_write(&mut bytes_buf);

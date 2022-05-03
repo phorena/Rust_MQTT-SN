@@ -8,7 +8,6 @@ use crate::{
     BrokerLib::MqttSnClient,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_CONNACK,
-
     MSG_TYPE_CONNACK,
 };
 
@@ -63,6 +62,7 @@ impl ConnAck {
         true
     }
     */
+    #[inline(always)]
     pub fn rx(
         buf: &[u8],
         size: usize,
@@ -85,7 +85,7 @@ impl ConnAck {
         }
     }
 
-    // TODO error checking and return
+    #[inline(always)]
     pub fn tx(client: &MqttSnClient, return_code: u8) -> Result<(), String> {
         let connack = ConnAck {
             len: MSG_LEN_CONNACK,
@@ -96,7 +96,6 @@ impl ConnAck {
         dbg!(connack.clone());
         connack.try_write(&mut bytes_buf);
         dbg!(bytes_buf.clone());
-        dbg!(client.remote_addr);
         // transmit to network
         match client
             .transmit_tx

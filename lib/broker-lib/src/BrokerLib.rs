@@ -3,7 +3,7 @@ use std::thread;
 use std::{net::SocketAddr, sync::Arc, sync::Mutex};
 
 use crate::TimingWheel2::RetransTimeWheel;
-use bytes::{BytesMut, Bytes};
+use bytes::{Bytes, BytesMut};
 use core::fmt::Debug;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 
@@ -262,14 +262,7 @@ impl MqttSnClient {
         dbg!(&client_id);
         let duration = 5;
         let client_id = Bytes::from(client_id);
-        let _result = Connect::tx(
-            flags,
-            1,
-            duration,
-            client_id,
-            &self
-        );
-        // let _result = Connect::tx(client_id, conn_duration, &self);
+        let _result = Connect::tx(flags, 1, duration, client_id, &self);
         dbg!(*self.state.lock().unwrap());
         let cur_state = *self.state.lock().unwrap();
         *self.state.lock().unwrap() = self
