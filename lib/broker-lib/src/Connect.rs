@@ -1,6 +1,6 @@
 use bytes::{BufMut, Bytes, BytesMut};
 use custom_debug::Debug;
-use getset::{CopyGetters, Getters, MutGetters, Setters};
+use getset::{CopyGetters, Getters, MutGetters, };
 use std::mem;
 use std::str;
 
@@ -20,7 +20,7 @@ use crate::{
 
 /// Connect and Connect4 are for sending CONNECT messages with different header lengths.
 #[derive(
-    Debug, Clone, Getters, Setters, MutGetters, CopyGetters, Default, PartialEq,
+    Debug, Clone, Getters, MutGetters, CopyGetters, Default, PartialEq,
 )]
 #[getset(get, set)]
 pub struct Connect {
@@ -31,7 +31,7 @@ pub struct Connect {
     pub flags: u8,
     pub protocol_id: u8,
     pub duration: u16,
-    pub client_id: String,
+    pub client_id: Bytes,
 }
 
 #[derive(
@@ -49,7 +49,7 @@ struct Connect4 {
     pub flags: u8,
     pub protocol_id: u8,
     pub duration: u16,
-    pub client_id: String,
+    pub client_id: Bytes,
 }
 
 /// Body is for parsing the body of a CONNECT message, length is parsed be the caller.
@@ -67,35 +67,12 @@ struct Body {
 
 // TODO
 impl Connect {
-    pub fn constraint_len(_val: &u8) -> bool {
-        //dbg!(_val);
-        true
-    }
-    pub fn constraint_msg_type(_val: &u8) -> bool {
-        //dbg!(_val);
-        true
-    }
-    pub fn constraint_flags(_val: &u8) -> bool {
-        //dbg!(_val);
-        true
-    }
-    pub fn constraint_protocol_id(_val: &u8) -> bool {
-        //dbg!(_val);
-        true
-    }
-    pub fn constraint_duration(_val: &u16) -> bool {
-        //dbg!(_val);
-        true
-    }
-    pub fn constraint_client_id(_val: &String) -> bool {
-        // dbg!(_val);
-        true
-    }
-
     // TODO error checking and return
     pub fn tx(
-        client_id: String,
+        flags: u8,
+        protocol_id: u8,
         duration: u16,
+        client_id: Bytes,
         client: &MqttSnClient,
     ) -> Result<(), String> {
         let len = client_id.len() + MSG_LEN_CONNECT_HEADER as usize;
@@ -103,8 +80,8 @@ impl Connect {
             let connect = Connect {
                 len: len as u8,
                 msg_type: MSG_TYPE_CONNECT,
-                flags: 0b00000100,
-                protocol_id: 1,
+                flags,
+                protocol_id,
                 duration,
                 client_id,
             };

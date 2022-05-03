@@ -3,7 +3,7 @@ use std::thread;
 use std::{net::SocketAddr, sync::Arc, sync::Mutex};
 
 use crate::TimingWheel2::RetransTimeWheel;
-use bytes::BytesMut;
+use bytes::{BytesMut, Bytes};
 use core::fmt::Debug;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 
@@ -240,7 +240,7 @@ impl MqttSnClient {
     ///    3.2. change state
     /// 4. run the rx_loop to process rx messages
     // TODO return errors
-    pub fn connect(mut self, client_id: String, socket: UdpSocket) {
+    pub fn connect(mut self, flags: u8, client_id: String, socket: UdpSocket) {
         let self_time_wheel = self.clone();
         let self_transmit = self.clone();
         let socket_tx = socket.try_clone().expect("couldn't clone the socket");
@@ -260,8 +260,16 @@ impl MqttSnClient {
             }
         });
         dbg!(&client_id);
-        let conn_duration = 5;
-        let _result = Connect::tx(client_id, conn_duration, &self);
+        let duration = 5;
+        let client_id = Bytes::from(client_id);
+        let _result = Connect::tx(
+            flags,
+            1,
+            duration,
+            client_id,
+            &self
+        );
+        // let _result = Connect::tx(client_id, conn_duration, &self);
         dbg!(*self.state.lock().unwrap());
         let cur_state = *self.state.lock().unwrap();
         *self.state.lock().unwrap() = self

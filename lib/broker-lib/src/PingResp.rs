@@ -1,5 +1,5 @@
 use crate::{
-    eformat, function, BrokerLib::MqttSnClient, ReturnCodeConst,
+    eformat, function, BrokerLib::MqttSnClient,
     MSG_LEN_PINGRESP, MSG_TYPE_PINGRESP,
 };
 use bytes::{BufMut, BytesMut};
