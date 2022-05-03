@@ -176,8 +176,7 @@ impl MqttSnClient {
                             continue;
                         };
                         if msg_type == MSG_TYPE_PUBREL {
-                            if let Err(err) =
-                                PubRel::rx(&buf, size, &mut self)
+                            if let Err(err) = PubRel::rx(&buf, size, &mut self)
                             {
                                 error!("{}", err);
                             }

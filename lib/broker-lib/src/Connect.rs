@@ -1,4 +1,4 @@
-use bytes::{BufMut, BytesMut, Bytes};
+use bytes::{BufMut, Bytes, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
 use std::mem;
@@ -190,7 +190,13 @@ impl Connect {
             (body, _read_fixed_len) = Body::try_read(&buf[4..], size).unwrap();
         }
         dbg!(body.clone());
-        Connection::try_insert(client.remote_addr, body.flags, body.protocol_id, body.duration, body.client_id)?;
+        Connection::try_insert(
+            client.remote_addr,
+            body.flags,
+            body.protocol_id,
+            body.duration,
+            body.client_id,
+        )?;
         ConnAck::tx(client, RETURN_CODE_ACCEPTED)?;
         Ok(())
     }

@@ -274,12 +274,8 @@ pub fn read_functions(_name: &Ident, field: &Field, _params: &GenParams) -> Toke
                 };
             }
             "BytesMut" => {
-                // TODO use freeze ByteMut for sharing. 
-                // https://docs.rs/bytes/latest/bytes/struct.BytesMut.html
-                // It converts struct to Bytes from BytesMut.
                 ret = quote! {
                     let #field_name: BytesMut = {
-                        // let mut bytes_mut = BytesMut::with_capacity(1024);
                         let mut bytes_mut = BytesMut::new();
                         bytes_mut.put_slice(&bytes[__offset__ .. size]);
                         bytes_mut
@@ -290,6 +286,8 @@ pub fn read_functions(_name: &Ident, field: &Field, _params: &GenParams) -> Toke
                 ret = quote! {
                     let #field_name: Bytes = {
                         let buf = Bytes::copy_from_slice(&bytes[__offset__ .. size]);
+                        // TODO try not to copy
+                        // let buf = Bytes::from_static(&'static bytes[__offset__ .. size]);
                         buf
                     };
                 };
