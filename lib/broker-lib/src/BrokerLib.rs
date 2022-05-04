@@ -176,7 +176,8 @@ impl MqttSnClient {
                             continue;
                         };
                         if msg_type == MSG_TYPE_PUBREL {
-                            if let Err(err) = PubRel::recv(&buf, size, &mut self)
+                            if let Err(err) =
+                                PubRel::recv(&buf, size, &mut self)
                             {
                                 error!("{}", err);
                             }
@@ -195,7 +196,8 @@ impl MqttSnClient {
                             continue;
                         };
                         if msg_type == MSG_TYPE_DISCONNECT {
-                            let _result = Disconnect::recv(&buf, size, &mut self);
+                            let _result =
+                                Disconnect::recv(&buf, size, &mut self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_CONNACK {

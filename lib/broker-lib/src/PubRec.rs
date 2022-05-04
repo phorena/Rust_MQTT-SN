@@ -66,7 +66,10 @@ impl PubRec {
         }
     }
     #[inline(always)]
-    pub fn send(msg_id: u16, client: &MqttSnClient) -> Result<BytesMut, String> {
+    pub fn send(
+        msg_id: u16,
+        client: &MqttSnClient,
+    ) -> Result<BytesMut, String> {
         // faster implementation
         // TODO verify big-endian or little-endian for u16 numbers
         // XXX order of statements performance

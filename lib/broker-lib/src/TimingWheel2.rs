@@ -14,73 +14,6 @@ use std::{net::SocketAddr, sync::Arc, sync::Mutex};
 
 use trace_var::trace_var;
 
-// TODO move to utility lib
-
-// #[allow(dead_code)]
-macro_rules! function {
-    () => {{
-        fn f() {}
-        fn type_name_of<T>(_: T) -> &'static str {
-            std::any::type_name::<T>()
-        }
-        let name = type_name_of(f);
-        &name[..name.len() - 3]
-    }};
-}
-/*
-macro_rules! function {
-    () => {{
-        fn f() {}
-        fn type_name_of<T>(_: T) -> &'static str {
-            std::any::type_name::<T>()
-        }
-        let name = type_name_of(f);
-
-        // Find and cut the rest of the path
-        match &name[..name.len() - 3].rfind(':') {
-            Some(pos) => &name[pos + 1..name.len() - 3],
-            None => &name[..name.len() - 3],
-        }
-    }};
-}
-*/
-// dbg macro that prints function name instead of file name.
-// https://stackoverflow.com/questions/65946195/understanding-the-dbg-macro-in-rust
-/*
-macro_rules! dbg2 {
-    () => {
-        $crate::eprintln!("[{}:{}]", function!(), line!());
-    };
-    ($val:expr $(,)?) => {
-        // Use of `match` here is intentional because it affects the lifetimes
-        // of temporaries - https://stackoverflow.com/a/48732525/1063961
-        match $val {
-            tmp => {
-
-                // Added the timestamp
-                let now = chrono::Local::now();
-                eprint!(
-                    "{:02}-{:02} {:02}:{:02}:{:02}.{:09}",
-                    now.month(),
-                    now.day(),
-                    now.hour(),
-                    now.minute(),
-                    now.second(),
-                    now.nanosecond(),
-                    );
-                // replace file!() with function!()
-                eprintln!("<{}:{}> {} = {:#?}",
-                          function!(), line!(), stringify!($val), &tmp);
-                tmp
-            }
-        }
-    };
-    ($($val:expr),+ $(,)?) => {
-        ($($dbg!($val)),+,)
-    };
-}
-*/
-
 #[derive(Debug, Clone)]
 struct Slot<KEY: Debug + Clone> {
     pub entries: Arc<Mutex<Vec<(KEY, usize)>>>,
@@ -94,9 +27,9 @@ impl<KEY: Debug + Clone> Slot<KEY> {
     }
 }
 
-// clients use 100 milli seconds
-// brokers use 10 milli seconds
-/// static TIME_WHEEL_SLEEP_DURATION:usize = 100; // in milli seconds
+// clients use 100 milliseconds
+// brokers use 10 milliseconds
+/// static TIME_WHEEL_SLEEP_DURATION:usize = 100; // in milliseconds
 // For 64 seconds at 100 ms sleeping interval, we need 10 * 64 slots, (1000/100 = 10)
 // For 64 seconds at 10 ms sleeping interval, we need 100 * 64 slots, (1000/10 = 100)
 
@@ -110,7 +43,7 @@ impl<KEY: Debug + Clone> Slot<KEY> {
 #[derive(Debug, Clone)]
 pub struct TimingWheel2<KEY: Debug + Clone, VAL: Debug + Clone> {
     max_slot: usize,       // (1000 / sleep_duration) * 64 * 2;
-    sleep_duration: usize, // in milli seconds
+    sleep_duration: usize, // in milliseconds
     default_duration: usize,
     cur_counter: usize,
     slot_vec: Vec<Slot<KEY>>,
@@ -123,10 +56,10 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
     #[trace_var(max_slot, slot_vec, default_duration)]
     pub fn new(sleep_duration: usize, default_duration_ms: usize) -> Self {
         dbg!((sleep_duration, default_duration_ms));
-        // verify sleep_duration (milli seconds) 1..1000.
+        // verify sleep_duration (milliseconds) 1..1000.
         let max_slot = (1000 / sleep_duration) * 64 * 2;
         let mut slot_vec: Vec<Slot<KEY>> = Vec::with_capacity(max_slot);
-        // verify default_duration (milli seconds) 1..1000.
+        // verify default_duration (milliseconds) 1..1000.
         let default_duration = default_duration_ms / sleep_duration;
 
         // Must use for loop to initialize

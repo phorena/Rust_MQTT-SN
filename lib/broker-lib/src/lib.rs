@@ -80,6 +80,8 @@ pub mod WillTopicUpd;
 pub mod flags;
 pub mod message;
 pub mod pub_msg_cache;
+pub mod gw_info;
+pub mod search_gw;
 
 // pub mod BrokerLib;
 #[allow(non_snake_case)]
@@ -91,6 +93,9 @@ pub type TopicIdType = u16;
 pub type MsgIdType = u16;
 
 pub type MsgTypeConst = u8;
+pub const MSG_TYPE_ADVERTISE: MsgTypeConst = 0x0;
+pub const MSG_TYPE_SEARCH_GW: MsgTypeConst = 0x1;
+pub const MSG_TYPE_GW_INFO: MsgTypeConst = 0x2;
 pub const MSG_TYPE_CONNECT: MsgTypeConst = 0x4;
 pub const MSG_TYPE_CONNACK: MsgTypeConst = 0x5;
 pub const MSG_TYPE_SUBSCRIBE: MsgTypeConst = 0x12;
@@ -133,6 +138,8 @@ pub const MSG_TYPE_MAX: usize = 256;
 pub const STATE_ENUM_LEN: usize = 5;
 
 pub type MsgLenConst = u8;
+pub const MSG_LEN_ADVERTISE: MsgLenConst = 5;
+pub const MSG_LEN_SEARCH_GW: MsgLenConst = 3;
 pub const MSG_LEN_PUBACK: MsgLenConst = 7;
 pub const MSG_LEN_PUBREC: MsgLenConst = 4;
 pub const MSG_LEN_PUBREL: MsgLenConst = 4;
@@ -149,6 +156,7 @@ pub const MSG_LEN_WILL_MSG_RESP: MsgLenConst = 3;
 pub const MSG_LEN_PINGRESP: MsgLenConst = 2;
 pub const MSG_LEN_UNSUBACK: MsgLenConst = 4;
 
+pub const MSG_LEN_GW_INFO_HEADER: MsgLenConst = 3;
 pub const MSG_LEN_WILL_TOPIC_HEADER: MsgLenConst = 3;
 pub const MSG_LEN_WILL_MSG_HEADER: MsgLenConst = 2;
 pub const MSG_LEN_WILL_TOPIC_UPD_HEADER: MsgLenConst = 3;
