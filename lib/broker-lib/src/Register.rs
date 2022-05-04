@@ -26,6 +26,7 @@ use crate::{
     BrokerLib::MqttSnClient,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_REGISTER_HEADER,
+    MSG_TYPE_REGACK,
     MSG_TYPE_REGISTER,
 };
 #[derive(Debug, Clone, Getters, MutGetters, CopyGetters, Default)]
@@ -85,5 +86,47 @@ impl Register {
             }
         }
         Ok(())
+    }
+    pub fn tx(
+        topic_id: u16,
+        msg_id: u16,
+        topic_name: String,
+        client: &MqttSnClient,
+    ) -> Result<(), String> {
+        // new way to format a message
+        let len = MSG_LEN_REGISTER_HEADER as usize + topic_name.len() as usize;
+        let mut buf = BytesMut::with_capacity(len);
+        if len < 256 {
+            // 2-byte header
+            buf.put_u8(len as u8);
+        } else if len < 1400 {
+            // 4-byte header
+            buf.put_u8(1);
+            buf.put_u16(len as u16);
+        } else {
+            return Err(eformat!("len is too big", len));
+        }
+        buf.put_u8(MSG_TYPE_REGISTER);
+        buf.put_u16(topic_id);
+        buf.put_u16(msg_id);
+        buf.put_slice(topic_name.as_bytes());
+        // transmit to network
+        // transmit message to remote address
+        if let Err(err) = client
+            .transmit_tx
+            .try_send((client.remote_addr, buf.to_owned()))
+        {
+            return Err(eformat!(client.remote_addr, err));
+        }
+        match client.schedule_tx.try_send((
+            client.remote_addr,
+            MSG_TYPE_REGACK,
+            topic_id,
+            msg_id,
+            buf,
+        )) {
+            Ok(()) => return Ok(()),
+            Err(err) => return Err(eformat!(client.remote_addr, err)),
+        }
     }
 }

@@ -130,6 +130,7 @@ impl Subscribe {
     */
 
     // TODO error checking and return
+    #[inline(always)]
     #[trace]
     pub fn tx(
         topic: String,

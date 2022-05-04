@@ -114,6 +114,7 @@ pub const MSG_TYPE_WILL_MSG_UPD: MsgTypeConst = 0x1C;
 pub const MSG_TYPE_PINGREQ: MsgTypeConst = 0x16;
 pub const MSG_TYPE_PINGRESP: MsgTypeConst = 0x17;
 pub const MSG_TYPE_REGISTER: MsgTypeConst = 0x0A;
+pub const MSG_TYPE_REGACK: MsgTypeConst = 0x0B;
 
 // TODO fill in the rest
 pub const MSG_TYPE_WILLMSGRESP: MsgTypeConst = 0x1D; // 29
@@ -137,6 +138,7 @@ pub const MSG_LEN_PUBREC: MsgLenConst = 4;
 pub const MSG_LEN_PUBREL: MsgLenConst = 4;
 pub const MSG_LEN_PUBCOMP: MsgLenConst = 4;
 pub const MSG_LEN_SUBACK: MsgLenConst = 8;
+pub const MSG_LEN_REGACK: MsgLenConst = 7;
 pub const MSG_LEN_CONNACK: MsgLenConst = 3;
 pub const MSG_LEN_DISCONNECT: MsgLenConst = 2;
 pub const MSG_LEN_DISCONNECT_DURATION: MsgLenConst = 4;
