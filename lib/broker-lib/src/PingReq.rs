@@ -5,8 +5,11 @@ use std::mem;
 use std::str; // NOTE: needed for MutGetters
 
 use crate::{
-    eformat, function, message::MsgHeader, BrokerLib::MqttSnClient,
-    PingResp::PingResp, MSG_LEN_PINGREQ_HEADER, MSG_TYPE_PINGREQ,
+    eformat, function,
+    message::{MsgHeader, MsgHeaderEnum},
+    BrokerLib::MqttSnClient,
+    PingResp::PingResp,
+    MSG_LEN_PINGREQ_HEADER, MSG_TYPE_PINGREQ,
 };
 
 #[derive(Debug, Clone, Getters, MutGetters, CopyGetters, Default)]
@@ -37,13 +40,17 @@ impl PingReq {
         client: &mut MqttSnClient,
         header: MsgHeader,
     ) -> Result<(), String> {
-        if header.header_len == 2 {
-            // TODO update ping timer.
-            let (_ping_req, _read_fixed_len) =
-                PingReq::try_read(&buf, size).unwrap();
-        } else {
-            let (_ping_req, _read_fixed_len) =
-                PingReq4::try_read(&buf, size).unwrap();
+        match header.header_len {
+            MsgHeaderEnum::Short => {
+                // TODO update ping timer.
+                let (_ping_req, _read_fixed_len) =
+                    PingReq::try_read(&buf, size).unwrap();
+            }
+            MsgHeaderEnum::Long => {
+                // TODO update ping timer.
+                let (_ping_req, _read_fixed_len) =
+                    PingReq4::try_read(&buf, size).unwrap();
+            }
         }
         PingResp::tx(client)?;
         Ok(())

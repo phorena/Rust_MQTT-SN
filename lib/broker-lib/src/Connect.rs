@@ -7,7 +7,7 @@ use std::str;
 use crate::{
     eformat,
     function,
-    message::MsgHeader,
+    message::{MsgHeader, MsgHeaderEnum},
     BrokerLib::MqttSnClient,
     ConnAck::ConnAck,
     Connection::Connection,
@@ -144,28 +144,32 @@ impl Connect {
         client: &mut MqttSnClient,
         header: MsgHeader,
     ) -> Result<(), String> {
-        if header.header_len == 2 {
-            let (connect, _read_fixed_len) =
-                Connect::try_read(&buf, size).unwrap();
-            dbg!(&connect);
-            Connection::try_insert(
-                client.remote_addr,
-                connect.flags,
-                connect.protocol_id,
-                connect.duration,
-                connect.client_id,
-            )?;
-        } else {
-            let (connect, _read_fixed_len) =
-                Connect4::try_read(&buf, size).unwrap();
-            dbg!(&connect);
-            Connection::try_insert(
-                client.remote_addr,
-                connect.flags,
-                connect.protocol_id,
-                connect.duration,
-                connect.client_id,
-            )?;
+        match header.header_len {
+            MsgHeaderEnum::Short => {
+                // TODO check size vs len
+                let (connect, _read_fixed_len) =
+                    Connect::try_read(&buf, size).unwrap();
+                dbg!(&connect);
+                Connection::try_insert(
+                    client.remote_addr,
+                    connect.flags,
+                    connect.protocol_id,
+                    connect.duration,
+                    connect.client_id,
+                )?;
+            }
+            MsgHeaderEnum::Long => {
+                let (connect, _read_fixed_len) =
+                    Connect4::try_read(&buf, size).unwrap();
+                dbg!(&connect);
+                Connection::try_insert(
+                    client.remote_addr,
+                    connect.flags,
+                    connect.protocol_id,
+                    connect.duration,
+                    connect.client_id,
+                )?;
+            }
         }
         ConnAck::tx(client, RETURN_CODE_ACCEPTED)?;
         Ok(())

@@ -21,7 +21,7 @@ use crate::{
         WILL_FALSE, WILL_TRUE,
     },
     function,
-    message::MsgHeader,
+    message::{MsgHeader, MsgHeaderEnum},
     pub_msg_cache::PubMsgCache,
     BrokerLib::MqttSnClient,
     Filter::{get_subscribers_with_topic_id, Subscriber},
@@ -91,20 +91,6 @@ struct Publish4 {
     data: BytesMut,
 }
 
-#[derive(
-    Debug, Clone, Getters, MutGetters, CopyGetters, Default, PartialEq, Hash, Eq,
-)]
-#[getset(get, set)]
-pub struct PublishBody {
-    #[debug(format = "0x{:x}")]
-    msg_type: u8,
-    #[debug(format = "0b{:08b}")]
-    pub flags: u8,
-    pub topic_id: u16,
-    pub msg_id: u16,
-    pub data: BytesMut,
-}
-
 impl Publish {
     pub fn new(
         topic_id: u16,
@@ -165,7 +151,7 @@ impl Publish {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
-        header: MsgHeader,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
         /*
         let (publish, read_fixed_len) = Publish::try_read(&buf, size).unwrap();
@@ -176,26 +162,33 @@ impl Publish {
         dbg!((size, read_len));
         */
 
-        let publish_body: PublishBody;
+        let publish: Publish;
         let _read_fixed_len;
 
-        if header.header_len == 2 {
+        match msg_header.header_len {
+            MsgHeaderEnum::Short =>
             // TODO replace unwrap
-            (publish_body, _read_fixed_len) =
-                PublishBody::try_read(&buf[1..], size).unwrap();
-        } else {
-            (publish_body, _read_fixed_len) =
-                PublishBody::try_read(&buf[3..], size).unwrap();
+            {
+                (publish, _read_fixed_len) =
+                    Publish::try_read(buf, size).unwrap();
+            }
+            MsgHeaderEnum::Long =>
+            // TODO replace unwrap
+            // For the 4-byte header, parse the body ignoring the first 2 bytes and
+            // don't use the length field for the unsubscribe struct.
+            // Use the length field from the msg_header.
+            {
+                (publish, _read_fixed_len) =
+                    Publish::try_read(&buf[3..], size).unwrap();
+            }
         }
         dbg!((size, _read_fixed_len));
-
-        dbg!(publish_body.clone());
-        let subscriber_vec =
-            get_subscribers_with_topic_id(publish_body.topic_id);
+        dbg!(publish.clone());
+        let subscriber_vec = get_subscribers_with_topic_id(publish.topic_id);
         dbg!(&subscriber_vec);
         // TODO check QoS, https://www.hivemq.com/blog/mqtt-essentials-
         // part-6-mqtt-quality-of-service-levels/
-        match flag_qos_level(publish_body.flags) {
+        match flag_qos_level(publish.flags) {
             QOS_LEVEL_2 => {
                 // 4-way handshake for QoS level 2 message for the RECEIVER.
                 // 1. Received PUBLISH message.
@@ -208,14 +201,14 @@ impl Publish {
                 // 4. Send PUBLISH message to subscribers from PUBREL.rx.
 
                 //dbg!(&client);
-                let bytes = PubRec::tx(publish_body.msg_id, client)?;
+                let bytes = PubRec::tx(publish.msg_id, client)?;
                 // PUBREL message doesn't have topic id.
                 // For the time wheel hash, default to 0.
                 if let Err(err) = client.schedule_tx.try_send((
                     client.remote_addr,
                     MSG_TYPE_PUBREL,
                     0,
-                    publish_body.msg_id,
+                    publish.msg_id,
                     bytes,
                 )) {
                     return Err(eformat!(client.remote_addr, err));
@@ -223,9 +216,9 @@ impl Publish {
                 // cache the publish message and the subscribers to send when PUBREL is received
                 // from the publisher. The remote_addr and msg_id are used as the key because they
                 // are part the message.
-                let msg_id = publish_body.msg_id; // copy the msg_id so publish can be used in the hash
+                let msg_id = publish.msg_id; // copy the msg_id so publish can be used in the hash
                 let cache = PubMsgCache {
-                    publish_body,
+                    publish,
                     subscriber_vec,
                 };
                 PubMsgCache::try_insert((client.remote_addr, msg_id), cache)?;
@@ -234,8 +227,8 @@ impl Publish {
             QOS_LEVEL_1 => {
                 // send PUBACK to PUBLISH client
                 PubAck::tx(
-                    publish_body.topic_id,
-                    publish_body.msg_id,
+                    publish.topic_id,
+                    publish.msg_id,
                     RETURN_CODE_ACCEPTED,
                     client,
                 )?;
@@ -246,7 +239,7 @@ impl Publish {
                 {}
             }
         }
-        Publish::send_msg_to_subscribers(subscriber_vec, publish_body, client)?;
+        Publish::send_msg_to_subscribers(subscriber_vec, publish, client)?;
 
         // TODO check dup, likely not dup
         //
@@ -382,7 +375,7 @@ impl Publish {
     /// send PUBLISH messages to subscribers
     pub fn send_msg_to_subscribers(
         subscriber_vec: Vec<Subscriber>,
-        publish: PublishBody,
+        publish: Publish,
         client: &MqttSnClient,
     ) -> Result<(), String> {
         // send PUBLISH messages to subscribers

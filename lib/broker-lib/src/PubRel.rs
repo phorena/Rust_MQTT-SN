@@ -78,7 +78,7 @@ impl PubRel {
                     dbg!(&pub_msg_cache);
                     Publish::send_msg_to_subscribers(
                         pub_msg_cache.subscriber_vec,
-                        pub_msg_cache.publish_body,
+                        pub_msg_cache.publish,
                         client,
                     )?;
                 }

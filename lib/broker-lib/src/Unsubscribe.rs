@@ -48,7 +48,7 @@ use crate::{
         WILL_FALSE,
     },
     function,
-    message::MsgHeader,
+    message::{MsgHeader, MsgHeaderEnum},
     BrokerLib::MqttSnClient,
     // Connection::connection_filter_insert,
     Filter::{
@@ -124,16 +124,22 @@ impl Unsubscribe {
     ) -> Result<(), String> {
         let unsubscribe: Unsubscribe;
         let _read_fixed_len: usize;
-        if msg_header.header_len == 1 {
+        match msg_header.header_len {
+            MsgHeaderEnum::Short =>
             // TODO replace unwrap
-            (unsubscribe, _read_fixed_len) =
-                Unsubscribe::try_read(&buf, size).unwrap();
-        } else {
+            {
+                (unsubscribe, _read_fixed_len) =
+                    Unsubscribe::try_read(&buf, size).unwrap()
+            }
+            MsgHeaderEnum::Long =>
+            // TODO replace unwrap
             // For the 4-byte header, parse the body ignoring the first 2 bytes and
             // don't use the length field for the unsubscribe struct.
             // Use the length field from the msg_header.
-            (unsubscribe, _read_fixed_len) =
-                Unsubscribe::try_read(&buf[3..], size).unwrap();
+            {
+                (unsubscribe, _read_fixed_len) =
+                    Unsubscribe::try_read(&buf[3..], size).unwrap()
+            }
         }
         dbg!(unsubscribe.clone());
         match flag_topic_id_type(unsubscribe.flags) {
@@ -207,6 +213,7 @@ impl Unsubscribe {
                 return Err(eformat!(client.remote_addr, err));
             }
             // schedule retransmit
+            // Unsuback returns the msg_id, but not topic_id.
             match client.schedule_tx.try_send((
                 client.remote_addr,
                 MSG_TYPE_UNSUBACK,
