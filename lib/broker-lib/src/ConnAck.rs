@@ -63,7 +63,7 @@ impl ConnAck {
     }
     */
     #[inline(always)]
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
@@ -86,7 +86,7 @@ impl ConnAck {
     }
 
     #[inline(always)]
-    pub fn tx(client: &MqttSnClient, return_code: u8) -> Result<(), String> {
+    pub fn send(client: &MqttSnClient, return_code: u8) -> Result<(), String> {
         let connack = ConnAck {
             len: MSG_LEN_CONNACK,
             msg_type: MSG_TYPE_CONNACK,

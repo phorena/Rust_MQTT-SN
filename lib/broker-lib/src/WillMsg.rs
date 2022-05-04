@@ -29,7 +29,7 @@ struct WillMsg4 {
 }
 
 impl WillMsg {
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
@@ -62,7 +62,7 @@ impl WillMsg {
             return Err(eformat!(client.remote_addr, "msg too long", size));
         }
     }
-    pub fn tx(will_msg: String, client: &MqttSnClient) -> Result<(), String> {
+    pub fn send(will_msg: String, client: &MqttSnClient) -> Result<(), String> {
         let len: usize =
             MSG_LEN_WILL_MSG_HEADER as usize + will_msg.len() as usize;
         let mut bytes = BytesMut::with_capacity(len);

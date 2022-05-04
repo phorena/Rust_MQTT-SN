@@ -33,7 +33,7 @@ struct WillTopic4 {
 }
 
 impl WillTopic {
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
@@ -73,7 +73,7 @@ impl WillTopic {
         }
     }
 
-    pub fn tx(
+    pub fn send(
         flags: u8,
         will_topic: String,
         client: &MqttSnClient,

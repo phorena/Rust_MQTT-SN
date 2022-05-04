@@ -48,7 +48,7 @@ impl SubAck {
             true
         }
     */
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
@@ -78,7 +78,7 @@ impl SubAck {
     }
 
     // TODO error checking and return
-    pub fn tx(
+    pub fn send(
         client: &MqttSnClient,
         flags: u8,
         topic_id: u16,

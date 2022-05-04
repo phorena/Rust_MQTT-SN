@@ -146,7 +146,7 @@ impl MqttSnClient {
                         if Connection::contains_key(addr) == false {
                             // New connection, not in the connection hashmap.
                             if msg_type == MSG_TYPE_CONNECT {
-                                if let Err(err) = Connect::rx(
+                                if let Err(err) = Connect::recv(
                                     &buf, size, &mut self, msg_header,
                                 ) {
                                     error!("{}", err);
@@ -169,37 +169,37 @@ impl MqttSnClient {
                         dbg_buf!(buf, size);
                         if msg_type == MSG_TYPE_PUBLISH {
                             if let Err(err) =
-                                Publish::rx(&buf, size, &mut self, msg_header)
+                                Publish::recv(&buf, size, &mut self, msg_header)
                             {
                                 error!("{}", err);
                             }
                             continue;
                         };
                         if msg_type == MSG_TYPE_PUBREL {
-                            if let Err(err) = PubRel::rx(&buf, size, &mut self)
+                            if let Err(err) = PubRel::recv(&buf, size, &mut self)
                             {
                                 error!("{}", err);
                             }
                             continue;
                         };
                         if msg_type == MSG_TYPE_PUBACK {
-                            let _result = PubAck::rx(&buf, size, &self);
+                            let _result = PubAck::recv(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_SUBACK {
-                            let _result = SubAck::rx(&buf, size, &self);
+                            let _result = SubAck::recv(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_SUBSCRIBE {
-                            let _result = Subscribe::rx(&buf, size, &self);
+                            let _result = Subscribe::recv(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_DISCONNECT {
-                            let _result = Disconnect::rx(&buf, size, &mut self);
+                            let _result = Disconnect::recv(&buf, size, &mut self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_CONNACK {
-                            match ConnAck::rx(&buf, size, &self) {
+                            match ConnAck::recv(&buf, size, &self) {
                                 // Broker shouldn't receive ConnAck
                                 // because it doesn't send Connect for now.
                                 Ok(_) => {
@@ -262,7 +262,7 @@ impl MqttSnClient {
         dbg!(&client_id);
         let duration = 5;
         let client_id = Bytes::from(client_id);
-        let _result = Connect::tx(flags, 1, duration, client_id, &self);
+        let _result = Connect::send(flags, 1, duration, client_id, &self);
         dbg!(*self.state.lock().unwrap());
         let cur_state = *self.state.lock().unwrap();
         *self.state.lock().unwrap() = self
@@ -279,7 +279,7 @@ impl MqttSnClient {
                     // TODO process 3 bytes length
                     let msg_type = buf[1] as u8;
                     if msg_type == MSG_TYPE_CONNACK {
-                        match ConnAck::rx(&buf, size, &self) {
+                        match ConnAck::recv(&buf, size, &self) {
                             Ok(_) => {
                                 dbg!(*self.state.lock().unwrap());
                                 let cur_state = *self.state.lock().unwrap();
@@ -308,7 +308,7 @@ impl MqttSnClient {
         qos: u8,
         retain: u8,
     ) -> &Receiver<Publish> {
-        let _result = Subscribe::tx(topic, msg_id, qos, retain, &self);
+        let _result = Subscribe::send(topic, msg_id, qos, retain, &self);
         &self.subscribe_rx
     }
     /* XXX TODO client code.
@@ -320,7 +320,7 @@ impl MqttSnClient {
         retain: u8,
         data: String,
     ) {
-        let _result = Publish::tx(topic_id, msg_id, qos, retain, data, &self);
+        let _result = Publish::send(topic_id, msg_id, qos, retain, data, &self);
     }
     */
 }

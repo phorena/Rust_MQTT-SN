@@ -15,7 +15,7 @@ pub struct WillTopicResp {
 }
 
 impl WillTopicResp {
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
@@ -30,7 +30,7 @@ impl WillTopicResp {
         }
     }
 
-    pub fn tx(
+    pub fn send(
         return_code: ReturnCodeConst,
         client: &MqttSnClient,
     ) -> Result<(), String> {

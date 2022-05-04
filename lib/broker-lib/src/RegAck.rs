@@ -31,7 +31,7 @@ pub struct RegAck {
     pub return_code: u8,
 }
 impl RegAck {
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
@@ -54,7 +54,7 @@ impl RegAck {
             Err(eformat!(client.remote_addr, "size", buf[0]))
         }
     }
-    pub fn tx(
+    pub fn send(
         topic_id: u16,
         msg_id: u16,
         return_code: u8,

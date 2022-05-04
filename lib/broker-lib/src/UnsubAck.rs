@@ -18,7 +18,7 @@ pub struct UnsubAck {
 }
 
 impl UnsubAck {
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
@@ -42,7 +42,7 @@ impl UnsubAck {
             Err(eformat!(client.remote_addr, "size", buf[0]))
         }
     }
-    pub fn tx(client: &MqttSnClient, msg_id: u16) -> Result<(), String> {
+    pub fn send(client: &MqttSnClient, msg_id: u16) -> Result<(), String> {
         let mut bytes_buf = BytesMut::with_capacity(MSG_LEN_UNSUBACK as usize);
         let unsub_ack = UnsubAck {
             len: MSG_LEN_UNSUBACK,

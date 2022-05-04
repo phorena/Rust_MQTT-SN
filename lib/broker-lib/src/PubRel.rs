@@ -61,7 +61,7 @@ impl PubRel {
     }
     */
     #[inline(always)]
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         _size: usize,
         client: &MqttSnClient,
@@ -71,7 +71,7 @@ impl PubRel {
             let msg_id = buf[2] as u16 + ((buf[3] as u16) << 8);
             // TODO use ?
             // Send PUBCOMP to publisher
-            PubComp::tx(msg_id, client)?;
+            PubComp::send(msg_id, client)?;
             // Send publish message to subscribers.
             match PubMsgCache::remove((client.remote_addr, msg_id)) {
                 Some(pub_msg_cache) => {
@@ -102,7 +102,7 @@ impl PubRel {
         }
     }
     #[inline(always)]
-    pub fn tx(msg_id: u16, client: &MqttSnClient) -> Result<(), String> {
+    pub fn send(msg_id: u16, client: &MqttSnClient) -> Result<(), String> {
         // faster implementation
         // TODO verify big-endian or little-endian for u16 numbers
         // XXX order of statements performance

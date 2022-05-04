@@ -55,7 +55,7 @@ impl PubAck {
     */
 
     #[inline(always)]
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
@@ -84,7 +84,7 @@ impl PubAck {
         }
     }
     #[inline(always)]
-    pub fn tx(
+    pub fn send(
         topic_id: u16,
         msg_id: u16,
         return_code: u8,

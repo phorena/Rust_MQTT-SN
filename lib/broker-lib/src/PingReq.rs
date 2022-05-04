@@ -34,7 +34,7 @@ struct PingReq4 {
 
 impl PingReq {
     #[inline(always)]
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &mut MqttSnClient,
@@ -52,10 +52,10 @@ impl PingReq {
                     PingReq4::try_read(&buf, size).unwrap();
             }
         }
-        PingResp::tx(client)?;
+        PingResp::send(client)?;
         Ok(())
     }
-    pub fn tx(
+    pub fn send(
         client_id: String,
         client: &mut MqttSnClient,
     ) -> Result<(), String> {

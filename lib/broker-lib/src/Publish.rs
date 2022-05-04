@@ -147,7 +147,7 @@ impl Publish {
     */
 
     #[inline(always)]
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
@@ -201,7 +201,7 @@ impl Publish {
                 // 4. Send PUBLISH message to subscribers from PUBREL.rx.
 
                 //dbg!(&client);
-                let bytes = PubRec::tx(publish.msg_id, client)?;
+                let bytes = PubRec::send(publish.msg_id, client)?;
                 // PUBREL message doesn't have topic id.
                 // For the time wheel hash, default to 0.
                 if let Err(err) = client.schedule_tx.try_send((
@@ -226,7 +226,7 @@ impl Publish {
             }
             QOS_LEVEL_1 => {
                 // send PUBACK to PUBLISH client
-                PubAck::tx(
+                PubAck::send(
                     publish.topic_id,
                     publish.msg_id,
                     RETURN_CODE_ACCEPTED,
@@ -257,7 +257,7 @@ impl Publish {
     /// 4. Schedule retransmit for QoS Level 1 & 2.
     #[inline(always)]
     #[trace]
-    pub fn tx(
+    pub fn send(
         topic_id: u16,
         msg_id: u16,
         qos: u8,
@@ -386,7 +386,7 @@ impl Publish {
             // TODO error for every subscriber/message
             // TODO use Bytes not BytesMut to eliminate clone/copy.
             // TODO new tx method to reduce have try_write() run once for every subscriber.
-            Publish::tx(
+            Publish::send(
                 publish.topic_id,
                 publish.msg_id,
                 qos,

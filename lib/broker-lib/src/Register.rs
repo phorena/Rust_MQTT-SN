@@ -16,6 +16,7 @@ Table 14: REGISTER Message
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
+use log::*;
 use std::mem;
 use std::str;
 
@@ -24,6 +25,7 @@ use crate::{
     function,
     message::{MsgHeader, MsgHeaderEnum},
     BrokerLib::MqttSnClient,
+    Filter::try_register_topic_name,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_REGISTER_HEADER,
     MSG_TYPE_REGACK,
@@ -63,7 +65,7 @@ impl Register {
         true
     }
     */
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
@@ -73,21 +75,25 @@ impl Register {
         let _read_fixed_len: usize;
         match msg_header.header_len {
             MsgHeaderEnum::Short => {
-                let (register, _read_fixed_len) =
+                (register, _read_fixed_len) =
                     Register::try_read(&buf, size).unwrap();
-                // TODO verify
-                // client.register_topic_id(register.topic_name, register.topic_id)?;
             }
             MsgHeaderEnum::Long => {
-                let (register, _read_fixed_len) =
+                (register, _read_fixed_len) =
                     Register::try_read(&buf[3..], size).unwrap();
-                // TODO verify
-                // client.register_topic_id(register.topic_name, register.topic_id)?;
             }
         }
+        try_register_topic_name(
+            register.topic_name.clone(),
+            register.topic_id,
+        )?;
+        info!(
+            "{}: register {} with {} id",
+            client.remote_addr, register.topic_name, register.topic_id
+        );
         Ok(())
     }
-    pub fn tx(
+    pub fn send(
         topic_id: u16,
         msg_id: u16,
         topic_name: String,
@@ -96,6 +102,8 @@ impl Register {
         // new way to format a message
         let len = MSG_LEN_REGISTER_HEADER as usize + topic_name.len() as usize;
         let mut buf = BytesMut::with_capacity(len);
+        // TODO optimize by initializing an array of header fields
+        // then buf.put_slice().
         if len < 256 {
             // 2-byte header
             buf.put_u8(len as u8);

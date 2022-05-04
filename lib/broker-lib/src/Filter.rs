@@ -280,6 +280,25 @@ lazy_static! {
     pub static ref GLOBAL_TOPIC_ID: Mutex<TopicIdType> = Mutex::new(0);
 }
 
+pub fn try_register_topic_name(
+    topic_name: String,
+    topic_id: TopicIdType,
+) -> Result<TopicIdType, String> {
+    let topic_ids = GLOBAL_TOPIC_NAME_TO_IDS.lock().unwrap().get(&topic_name);
+    // If topic name is already in the map, return the existing topic id,
+    // otherwise insert the topic name and topic id into the map.
+    if topic_ids.len() == 0 {
+        GLOBAL_TOPIC_NAME_TO_IDS
+            .lock()
+            .unwrap()
+            .insert(topic_name, topic_id);
+        return Ok(topic_id);
+    } else {
+        // Topic name is already in the map with one topic id.
+        return Ok(topic_ids[0]);
+    }
+}
+
 pub fn try_insert_topic_name(
     topic_name: String,
 ) -> Result<TopicIdType, String> {

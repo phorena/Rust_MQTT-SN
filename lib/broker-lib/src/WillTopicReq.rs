@@ -24,7 +24,7 @@ impl WillTopicReq {
         true
     }
     */
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
@@ -38,7 +38,7 @@ impl WillTopicReq {
         }
     }
 
-    pub fn tx(client: &MqttSnClient) -> Result<(), String> {
+    pub fn send(client: &MqttSnClient) -> Result<(), String> {
         let will = WillTopicReq {
             len: MSG_LEN_WILL_TOPIC_REQ as u8,
             msg_type: MSG_TYPE_WILL_TOPIC_REQ,

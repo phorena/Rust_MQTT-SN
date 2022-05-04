@@ -30,7 +30,7 @@ struct WillMsgUpd4 {
 }
 
 impl WillMsgUpd {
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
@@ -39,7 +39,7 @@ impl WillMsgUpd {
             let (will, len) = WillMsgUpd::try_read(buf, size).unwrap();
             if size == len as usize {
                 Connection::update_will_msg(client.remote_addr, will.will_msg)?;
-                WillMsgResp::tx(RETURN_CODE_ACCEPTED, client)?;
+                WillMsgResp::send(RETURN_CODE_ACCEPTED, client)?;
                 return Ok(());
             } else {
                 return Err(eformat!(
@@ -52,7 +52,7 @@ impl WillMsgUpd {
             let (will, len) = WillMsgUpd4::try_read(buf, size).unwrap();
             if size == len as usize && will.one == 1 {
                 Connection::update_will_msg(client.remote_addr, will.will_msg)?;
-                WillMsgResp::tx(RETURN_CODE_ACCEPTED, client)?;
+                WillMsgResp::send(RETURN_CODE_ACCEPTED, client)?;
                 return Ok(());
             } else {
                 return Err(eformat!(
@@ -69,7 +69,7 @@ impl WillMsgUpd {
             ));
         }
     }
-    pub fn tx(will_msg: String, client: &MqttSnClient) -> Result<(), String> {
+    pub fn send(will_msg: String, client: &MqttSnClient) -> Result<(), String> {
         let len: usize =
             MSG_LEN_WILL_MSG_HEADER as usize + will_msg.len() as usize;
         if len < 256 {

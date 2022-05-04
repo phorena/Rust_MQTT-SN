@@ -25,7 +25,7 @@ pub struct PingResp {
 }
 
 impl PingResp {
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &mut MqttSnClient,
@@ -37,7 +37,7 @@ impl PingResp {
             return Err(eformat!(client.remote_addr, "len err", size));
         }
     }
-    pub fn tx(client: &mut MqttSnClient) -> Result<(), String> {
+    pub fn send(client: &mut MqttSnClient) -> Result<(), String> {
         let buf: &[u8] = &[MSG_LEN_PINGRESP, MSG_TYPE_PINGRESP];
         let bytes = BytesMut::from(buf);
         match client

@@ -54,7 +54,7 @@ struct Connect4 {
 
 impl Connect {
     #[inline(always)]
-    pub fn tx(
+    pub fn send(
         flags: u8,
         protocol_id: u8,
         duration: u16,
@@ -138,7 +138,7 @@ impl Connect {
     }
 
     #[inline(always)]
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &mut MqttSnClient,
@@ -171,7 +171,7 @@ impl Connect {
                 )?;
             }
         }
-        ConnAck::tx(client, RETURN_CODE_ACCEPTED)?;
+        ConnAck::send(client, RETURN_CODE_ACCEPTED)?;
         Ok(())
     }
 }

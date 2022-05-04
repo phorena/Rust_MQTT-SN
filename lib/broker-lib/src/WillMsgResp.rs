@@ -16,7 +16,7 @@ pub struct WillMsgResp {
 }
 
 impl WillMsgResp {
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
@@ -29,7 +29,7 @@ impl WillMsgResp {
             return Err(eformat!(client.remote_addr, "len err", size));
         }
     }
-    pub fn tx(
+    pub fn send(
         return_code: ReturnCodeConst,
         client: &MqttSnClient,
     ) -> Result<(), String> {

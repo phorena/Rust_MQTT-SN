@@ -37,7 +37,7 @@ impl PubComp {
     }
     */
     #[inline(always)]
-    pub fn tx(msg_id: u16, client: &MqttSnClient) -> Result<(), String> {
+    pub fn send(msg_id: u16, client: &MqttSnClient) -> Result<(), String> {
         // faster implementation
         // TODO verify big-endian or little-endian for u16 numbers
         // XXX order of statements performance
@@ -59,7 +59,7 @@ impl PubComp {
         }
     }
     #[inline(always)]
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,

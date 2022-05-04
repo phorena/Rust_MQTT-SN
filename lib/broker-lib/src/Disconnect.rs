@@ -59,7 +59,7 @@ pub struct DisconnectDuration {
     duration: u16,
 }
 impl Disconnect {
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
@@ -71,7 +71,7 @@ impl Disconnect {
             Connection::db();
             Connection::remove(client.remote_addr)?;
             Connection::db();
-            Disconnect::tx(client)?;
+            Disconnect::send(client)?;
             return Ok(());
         } else if size == MSG_LEN_DISCONNECT_DURATION as usize {
             // TODO: implement DisconnectDuration
@@ -79,14 +79,14 @@ impl Disconnect {
                 DisconnectDuration::try_read(&buf, size).unwrap();
             dbg!(disconnect_duration.clone());
             Connection::remove(client.remote_addr)?;
-            Disconnect::tx(client)?;
+            Disconnect::send(client)?;
             return Ok(());
         } else {
             return Err(eformat!("len err", size));
         }
     }
 
-    pub fn tx(client: &MqttSnClient) -> Result<(), String> {
+    pub fn send(client: &MqttSnClient) -> Result<(), String> {
         let disconnect = Disconnect {
             len: MSG_LEN_DISCONNECT as u8,
             msg_type: MSG_TYPE_DISCONNECT,

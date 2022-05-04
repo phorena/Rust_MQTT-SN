@@ -116,7 +116,7 @@ impl Unsubscribe {
             topic_name, // TODO use enum for topic_name or topic_id
         }
     }
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
@@ -192,7 +192,7 @@ impl Unsubscribe {
     }
     #[inline(always)]
     #[trace]
-    pub fn tx(
+    pub fn send(
         topic: String,
         msg_id: u16,
         qos: u8,

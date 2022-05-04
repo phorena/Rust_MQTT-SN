@@ -33,7 +33,7 @@ struct WillTopicUpd4 {
 }
 
 impl WillTopicUpd {
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
@@ -45,7 +45,7 @@ impl WillTopicUpd {
                     client.remote_addr,
                     will.will_topic,
                 )?;
-                WillTopicResp::tx(RETURN_CODE_ACCEPTED, client)?;
+                WillTopicResp::send(RETURN_CODE_ACCEPTED, client)?;
                 return Ok(());
             } else {
                 return Err(eformat!(
@@ -61,7 +61,7 @@ impl WillTopicUpd {
                     client.remote_addr,
                     will.will_topic,
                 )?;
-                WillTopicResp::tx(RETURN_CODE_ACCEPTED, client)?;
+                WillTopicResp::send(RETURN_CODE_ACCEPTED, client)?;
                 return Ok(());
             } else {
                 return Err(eformat!(
@@ -74,7 +74,7 @@ impl WillTopicUpd {
             return Err(eformat!(client.remote_addr, "len too big", size));
         }
     }
-    pub fn tx(
+    pub fn send(
         flags: u8,
         will_topic: String,
         client: &MqttSnClient,

@@ -132,7 +132,7 @@ impl Subscribe {
     // TODO error checking and return
     #[inline(always)]
     #[trace]
-    pub fn tx(
+    pub fn send(
         topic: String,
         msg_id: u16,
         qos: u8,
@@ -165,7 +165,7 @@ impl Subscribe {
 
     #[inline(always)]
     #[trace]
-    pub fn rx(
+    pub fn recv(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
@@ -195,7 +195,7 @@ impl Subscribe {
                     dbg!(topic_id);
                     // Because only QoS flag is used and other flags are not used,
                     // return the same flags as received.
-                    SubAck::tx(
+                    SubAck::send(
                         client,
                         subscribe.flags,
                         topic_id,
@@ -218,7 +218,7 @@ impl Subscribe {
                             dbg!(topic_id);
                             // Because only QoS flag is used and other flags are not used,
                             // return the same flags as received.
-                            SubAck::tx(
+                            SubAck::send(
                                 client,
                                 subscribe.flags,
                                 topic_id,
