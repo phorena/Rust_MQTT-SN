@@ -1,5 +1,5 @@
 use crate::{
-    eformat, function, BrokerLib::MqttSnClient, connection::Connection,
+    connection::Connection, eformat, function, BrokerLib::MqttSnClient,
     MSG_LEN_WILL_MSG_HEADER, MSG_TYPE_WILL_MSG,
 };
 use bytes::{BufMut, BytesMut};
@@ -38,28 +38,28 @@ impl WillMsg {
             let (will, len) = WillMsg::try_read(buf, size).unwrap();
             if size == len as usize {
                 Connection::update_will_msg(client.remote_addr, will.will_msg)?;
-                return Ok(());
+                Ok(())
             } else {
-                return Err(eformat!(
+                Err(eformat!(
                     client.remote_addr,
                     "2-bytes len not supported",
                     size
-                ));
+                ))
             }
         } else if size < 1400 {
             let (will, len) = WillMsg4::try_read(buf, size).unwrap();
             if size == len as usize && will.one == 1 {
                 Connection::update_will_msg(client.remote_addr, will.will_msg)?;
-                return Ok(());
+                Ok(())
             } else {
-                return Err(eformat!(
+                Err(eformat!(
                     client.remote_addr,
                     "4-bytes len not supported",
                     size
-                ));
+                ))
             }
         } else {
-            return Err(eformat!(client.remote_addr, "msg too long", size));
+            Err(eformat!(client.remote_addr, "msg too long", size))
         }
     }
     pub fn send(will_msg: String, client: &MqttSnClient) -> Result<(), String> {
@@ -88,8 +88,8 @@ impl WillMsg {
             .transmit_tx
             .try_send((client.remote_addr, bytes.to_owned()))
         {
-            Ok(()) => return Ok(()),
-            Err(err) => return Err(eformat!(client.remote_addr, err)),
+            Ok(()) => Ok(()),
+            Err(err) => Err(eformat!(client.remote_addr, err)),
         }
     }
 }

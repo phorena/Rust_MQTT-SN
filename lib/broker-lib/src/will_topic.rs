@@ -1,5 +1,5 @@
 use crate::{
-    eformat, function, BrokerLib::MqttSnClient, connection::Connection,
+    connection::Connection, eformat, function, BrokerLib::MqttSnClient,
     MSG_LEN_WILL_TOPIC_HEADER, MSG_TYPE_WILL_TOPIC,
 };
 use bytes::{BufMut, BytesMut};
@@ -45,13 +45,13 @@ impl WillTopic {
                     client.remote_addr,
                     will.will_topic,
                 )?;
-                return Ok(());
+                Ok(())
             } else {
-                return Err(eformat!(
+                Err(eformat!(
                     client.remote_addr,
                     "2-bytes len not supported",
                     size
-                ));
+                ))
             }
         } else if size < 1400 {
             let (will, len) = WillTopic4::try_read(buf, size).unwrap();
@@ -60,16 +60,16 @@ impl WillTopic {
                     client.remote_addr,
                     will.will_topic,
                 )?;
-                return Ok(());
+                Ok(())
             } else {
-                return Err(eformat!(
+                Err(eformat!(
                     client.remote_addr,
                     "2-bytes len not supported",
                     size
-                ));
+                ))
             }
         } else {
-            return Err(eformat!(client.remote_addr, "len err", size));
+            Err(eformat!(client.remote_addr, "len err", size))
         }
     }
 
@@ -93,8 +93,8 @@ impl WillTopic {
                 .transmit_tx
                 .try_send((client.remote_addr, bytes.to_owned()))
             {
-                Ok(()) => return Ok(()),
-                Err(err) => return Err(eformat!(client.remote_addr, err)),
+                Ok(()) => Ok(()),
+                Err(err) => Err(eformat!(client.remote_addr, err)),
             }
         } else if len < 1400 {
             let will = WillTopic4 {
@@ -110,11 +110,11 @@ impl WillTopic {
                 .transmit_tx
                 .try_send((client.remote_addr, bytes.to_owned()))
             {
-                Ok(()) => return Ok(()),
-                Err(err) => return Err(eformat!(client.remote_addr, err)),
+                Ok(()) => Ok(()),
+                Err(err) => Err(eformat!(client.remote_addr, err)),
             }
         } else {
-            return Err(eformat!(client.remote_addr, "len err", len));
+            Err(eformat!(client.remote_addr, "len err", len))
         }
     }
 }

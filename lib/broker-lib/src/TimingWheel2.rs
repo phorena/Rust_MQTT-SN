@@ -99,7 +99,7 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
         let mut vec = slot.entries.lock().unwrap();
         hash.insert(key.clone(), val);
         vec.push((key, duration));
-        return Ok(());
+        Ok(())
     }
 
     // Reschedule for later expiration, but not changes to the hashmap.
@@ -113,7 +113,7 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
         // TODO replace unwrap
         let mut vec = slot.entries.lock().unwrap();
         vec.push((key, duration));
-        return Ok(());
+        Ok(())
     }
 
     #[inline(always)]
@@ -244,7 +244,7 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
             }
         }
         // next slot with overflow back to 0
-        self.cur_counter = self.cur_counter + 1;
+        self.cur_counter += 1;
         // TODO test preload this slot in CPU cache?
         result_vec
     }
@@ -258,7 +258,7 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
     fn _keep_alive_expire(&mut self) -> &Slot<KEY> {
         // select and lock the current time slot in the Vec
         let cur_slot = &self.slot_vec[self.cur_counter % self.max_slot];
-        self.cur_counter = self.cur_counter + 1;
+        self.cur_counter += 1;
         return cur_slot;
     }
 }

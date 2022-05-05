@@ -13,6 +13,7 @@ use trace_caller::trace;
 
 use crate::{
     eformat,
+    filter::{get_subscribers_with_topic_id, Subscriber},
     flags::{
         flag_qos_level, flags_set, CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE,
         DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2,
@@ -22,11 +23,10 @@ use crate::{
     },
     function,
     message::{MsgHeader, MsgHeaderEnum},
-    pub_msg_cache::PubMsgCache,
-    BrokerLib::MqttSnClient,
-    filter::{get_subscribers_with_topic_id, Subscriber},
     pub_ack::PubAck,
+    pub_msg_cache::PubMsgCache,
     pub_rec::PubRec,
+    BrokerLib::MqttSnClient,
     MSG_LEN_PUBACK, MSG_LEN_PUBLISH_HEADER, MSG_LEN_PUBREC, MSG_TYPE_CONNACK,
     MSG_TYPE_CONNECT, MSG_TYPE_PUBACK, MSG_TYPE_PUBCOMP, MSG_TYPE_PUBLISH,
     MSG_TYPE_PUBREC, MSG_TYPE_PUBREL, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE,
@@ -108,15 +108,14 @@ impl Publish {
             CLEAN_SESSION_FALSE, // not used
             TOPIC_ID_TYPE_NORMAL,
         ); // default for now
-        let publish = Publish {
+        Publish {
             len,
             msg_type: MSG_TYPE_PUBLISH,
             flags,
             topic_id,
             msg_id,
             data: BytesMut::new(),
-        };
-        publish
+        }
     }
 
     /*
@@ -362,12 +361,9 @@ impl Publish {
                 }
             }
             // no restransmit for Level 0 & 3.
-            QOS_LEVEL_0 | QOS_LEVEL_3 => {
-                ();
-            }
+            QOS_LEVEL_0 | QOS_LEVEL_3 => {}
             _ => {
                 // TODO return error
-                ();
             }
         }
         Ok(())

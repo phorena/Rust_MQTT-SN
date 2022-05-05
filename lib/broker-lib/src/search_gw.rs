@@ -11,10 +11,7 @@ Table 6:
 • Duration: time interval until the next ADVERTISE is broadcasted by this gateway
 */
 use crate::{
-    eformat,
-    function,
-    BrokerLib::MqttSnClient,
-    MSG_LEN_SEARCH_GW,
+    eformat, function, BrokerLib::MqttSnClient, MSG_LEN_SEARCH_GW,
     MSG_TYPE_SEARCH_GW,
 };
 use bytes::{BufMut, BytesMut};
@@ -34,16 +31,9 @@ pub struct SearchGw {
     pub radius: u8,
 }
 impl SearchGw {
-    pub fn send(
-        radius: u8,
-        client: &MqttSnClient,
-    ) -> Result<(), String> {
+    pub fn send(radius: u8, client: &MqttSnClient) -> Result<(), String> {
         let mut bytes = BytesMut::with_capacity(MSG_LEN_SEARCH_GW as usize);
-        let buf: &[u8] = &[
-            MSG_LEN_SEARCH_GW,
-            MSG_TYPE_SEARCH_GW,
-            radius
-        ];
+        let buf: &[u8] = &[MSG_LEN_SEARCH_GW, MSG_TYPE_SEARCH_GW, radius];
         bytes.put(buf);
         // TODO replace BytesMut with Bytes to eliminate clone as copy
         dbg!(&buf);
@@ -62,10 +52,7 @@ impl SearchGw {
     ) -> Result<(), String> {
         let (search_gw, _read_fixed_len) =
             SearchGw::try_read(buf, size).unwrap();
-        info!(
-            "{}: search gw {} ",
-            client.remote_addr, search_gw.radius
-        );
+        info!("{}: search gw {} ", client.remote_addr, search_gw.radius);
         Ok(())
     }
 }

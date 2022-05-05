@@ -5,9 +5,9 @@ extern crate arrayref;
 extern crate lazy_static;
 
 // TODO fix non_snake_case.
-pub mod advertise;
 #[allow(non_snake_case)]
 pub mod BrokerLib;
+pub mod advertise;
 pub mod conn_ack;
 pub mod connect;
 pub mod connection;
@@ -15,9 +15,19 @@ pub mod connection;
 pub mod disconnect;
 // pub mod Functions;
 // pub mod MainMachineClient;
-pub mod filter;
 #[allow(non_snake_case)]
 pub mod MsgType;
+#[allow(non_snake_case)]
+pub mod StateEnum;
+#[allow(non_snake_case)]
+pub mod StateMachine;
+#[allow(non_snake_case)]
+pub mod SubscriberDb;
+#[allow(non_snake_case)]
+pub mod TimingWheel2;
+#[allow(non_snake_case)]
+pub mod TopicDb;
+pub mod filter;
 pub mod ping_req;
 pub mod ping_resp;
 pub mod pub_ack;
@@ -28,18 +38,8 @@ pub mod publish;
 #[allow(non_snake_case)]
 pub mod reg_ack;
 pub mod register;
-#[allow(non_snake_case)]
-pub mod StateEnum;
-#[allow(non_snake_case)]
-pub mod StateMachine;
 pub mod sub_ack;
 pub mod subscribe;
-#[allow(non_snake_case)]
-pub mod SubscriberDb;
-#[allow(non_snake_case)]
-pub mod TimingWheel2;
-#[allow(non_snake_case)]
-pub mod TopicDb;
 pub mod unsub_ack;
 pub mod unsubscribe;
 pub mod will_msg;
@@ -52,9 +52,9 @@ pub mod will_topic_resp;
 pub mod will_topic_upd;
 // pub mod client_struct;
 pub mod flags;
+pub mod gw_info;
 pub mod message;
 pub mod pub_msg_cache;
-pub mod gw_info;
 pub mod search_gw;
 
 // pub mod BrokerLib;

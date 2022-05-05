@@ -23,7 +23,7 @@ impl UnsubAck {
         size: usize,
         client: &MqttSnClient,
     ) -> Result<u16, String> {
-        let (unsub_ack, read_len) = UnsubAck::try_read(&buf, size).unwrap();
+        let (unsub_ack, read_len) = UnsubAck::try_read(buf, size).unwrap();
         dbg!(unsub_ack.clone());
 
         if read_len == MSG_LEN_UNSUBACK as usize {

@@ -248,10 +248,10 @@ fn produce2(ast: &DeriveInput, params: &GenParams) -> TokenStream2 {
                             let mut __offset__ = 0usize;
                             // let __len__ = 0;
                             #(#generated_reads)*
-                            let foo = #name {
+                            let __name__ = #name {
                                 #(#generated_fields)*
                             };
-                            Some((foo, __offset__))
+                            Some((__name__, __offset__))
                         }
                         // TODO return buf or param &mut? Use
                         // let mut bytes_buf = BytesMut::with_capacity(1500);

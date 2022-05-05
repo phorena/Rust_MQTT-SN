@@ -87,8 +87,8 @@ impl ConnAck {
                 0,
                 0,
             )) {
-                Ok(()) => return Ok(()),
-                Err(err) => return Err(eformat!(client.remote_addr, err)),
+                Ok(()) => Ok(()),
+                Err(err) => Err(eformat!(client.remote_addr, err)),
             }
         } else {
             Err(eformat!("len err", read_len))
@@ -111,8 +111,8 @@ impl ConnAck {
             .transmit_tx
             .try_send((client.remote_addr, bytes_buf.to_owned()))
         {
-            Ok(()) => return Ok(()),
-            Err(err) => return Err(eformat!(client.remote_addr, err)),
+            Ok(()) => Ok(()),
+            Err(err) => Err(eformat!(client.remote_addr, err)),
         }
     }
 }

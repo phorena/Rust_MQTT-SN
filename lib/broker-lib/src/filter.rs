@@ -133,10 +133,10 @@ impl Filter {
             .or_insert(Arc::new(Mutex::new(HashSet::new())));
         let mut conn_set = conn_set.lock().unwrap();
         if conn_set.insert(socket_addr) {
-            return Ok(());
+            Ok(())
         } else {
             // duplicate entry
-            return Err(eformat!(socket_addr, "already subscribed to", id));
+            Err(eformat!(socket_addr, "already subscribed to", id))
         }
     }
     /// Insert a new filter/subscription string from a connection subscription.
@@ -292,10 +292,10 @@ pub fn try_register_topic_name(
             .lock()
             .unwrap()
             .insert(topic_name, topic_id);
-        return Ok(topic_id);
+        Ok(topic_id)
     } else {
         // Topic name is already in the map with one topic id.
-        return Ok(topic_ids[0]);
+        Ok(topic_ids[0])
     }
 }
 
@@ -312,10 +312,10 @@ pub fn try_insert_topic_name(
             .unwrap()
             .insert(topic_name, topic_id);
         *GLOBAL_TOPIC_ID.lock().unwrap() = topic_id + 1;
-        return Ok(topic_id);
+        Ok(topic_id)
     } else {
         // Topic name is already in the map with only one topic id.
-        return Ok(topic_ids[0]);
+        Ok(topic_ids[0])
     }
 }
 
@@ -344,9 +344,9 @@ pub fn unsubscribe_with_topic_name(
         // Remove socket_addr from the topic id map.
         let topic_id = topic_ids[0];
         unsubscribe_with_topic_id(socket_addr, topic_id)?;
-        return Ok(());
+        Ok(())
     } else {
-        return Err("bad".to_string());
+        Err(eformat!(socket_addr, "not empty"))
     }
 }
 

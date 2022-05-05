@@ -1,6 +1,6 @@
 use crate::{
-    eformat, function, BrokerLib::MqttSnClient, connection::Connection,
-    will_topic_resp::WillTopicResp, MSG_LEN_WILL_TOPIC_UPD_HEADER,
+    connection::Connection, eformat, function, will_topic_resp::WillTopicResp,
+    BrokerLib::MqttSnClient, MSG_LEN_WILL_TOPIC_UPD_HEADER,
     MSG_TYPE_WILL_TOPIC_UPD, RETURN_CODE_ACCEPTED,
 };
 use bytes::{BufMut, BytesMut};
@@ -46,13 +46,13 @@ impl WillTopicUpd {
                     will.will_topic,
                 )?;
                 WillTopicResp::send(RETURN_CODE_ACCEPTED, client)?;
-                return Ok(());
+                Ok(())
             } else {
-                return Err(eformat!(
+                Err(eformat!(
                     client.remote_addr,
                     "2-bytes len not supported",
                     size
-                ));
+                ))
             }
         } else if size < 1400 {
             let (will, len) = WillTopicUpd4::try_read(buf, size).unwrap();
@@ -62,16 +62,16 @@ impl WillTopicUpd {
                     will.will_topic,
                 )?;
                 WillTopicResp::send(RETURN_CODE_ACCEPTED, client)?;
-                return Ok(());
+                Ok(())
             } else {
-                return Err(eformat!(
+                Err(eformat!(
                     client.remote_addr,
                     "4-bytes len not supported",
                     size
-                ));
+                ))
             }
         } else {
-            return Err(eformat!(client.remote_addr, "len too big", size));
+            Err(eformat!(client.remote_addr, "len too big", size))
         }
     }
     pub fn send(
@@ -94,8 +94,8 @@ impl WillTopicUpd {
                 .transmit_tx
                 .try_send((client.remote_addr, bytes.to_owned()))
             {
-                Ok(()) => return Ok(()),
-                Err(err) => return Err(eformat!(client.remote_addr, err)),
+                Ok(()) => Ok(()),
+                Err(err) => Err(eformat!(client.remote_addr, err)),
             }
         } else if len < 1400 {
             let will = WillTopicUpd4 {
@@ -111,11 +111,11 @@ impl WillTopicUpd {
                 .transmit_tx
                 .try_send((client.remote_addr, bytes.to_owned()))
             {
-                Ok(()) => return Ok(()),
-                Err(err) => return Err(eformat!(client.remote_addr, err)),
+                Ok(()) => Ok(()),
+                Err(err) => Err(eformat!(client.remote_addr, err)),
             }
         } else {
-            return Err(eformat!(client.remote_addr, "len err", len));
+            Err(eformat!(client.remote_addr, "len err", len))
         }
     }
 }

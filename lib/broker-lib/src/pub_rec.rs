@@ -92,8 +92,8 @@ impl PubRec {
             .transmit_tx
             .try_send((client.remote_addr, bytes.to_owned()))
         {
-            Ok(()) => return Ok(bytes),
-            Err(err) => return Err(eformat!(client.remote_addr, err)),
+            Ok(()) => Ok(bytes),
+            Err(err) => Err(eformat!(client.remote_addr, err)),
         }
     }
 }

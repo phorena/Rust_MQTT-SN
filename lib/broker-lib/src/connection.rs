@@ -39,7 +39,7 @@ pub fn generate_conn_id(
                 ip6,
                 ip6.segments()
             );
-            return Err(msg.to_string());
+            return Err(msg);
         }
     }
     let socket_addr_bytes: [u8; 6] = [
@@ -156,7 +156,7 @@ impl Connection {
         let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
         match conn_hashmap.get_mut(&socket_addr) {
             Some(conn) => {
-                conn.will_topic = Bytes::from(topic.to_owned());
+                conn.will_topic = Bytes::from(topic);
                 Ok(())
             }
             None => Err(eformat!(socket_addr, "not found.")),
@@ -169,7 +169,7 @@ impl Connection {
         let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
         match conn_hashmap.get_mut(&socket_addr) {
             Some(conn) => {
-                conn.will_message = Bytes::from(message.to_owned());
+                conn.will_message = Bytes::from(message);
                 Ok(())
             }
             None => Err(eformat!(socket_addr, "not found.")),

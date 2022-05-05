@@ -60,7 +60,7 @@ impl PubAck {
         size: usize,
         client: &MqttSnClient,
     ) -> Result<(u16, u16, u8), String> {
-        let (pub_ack, read_len) = PubAck::try_read(&buf, size).unwrap();
+        let (pub_ack, read_len) = PubAck::try_read(buf, size).unwrap();
         dbg!(pub_ack.clone());
         if read_len == MSG_LEN_PUBACK as usize {
             match client.cancel_tx.try_send((
@@ -71,13 +71,9 @@ impl PubAck {
             )) {
                 // TODO process return code?
                 Ok(()) => {
-                    return Ok((
-                        pub_ack.topic_id,
-                        pub_ack.msg_id,
-                        pub_ack.return_code,
-                    ))
+                    Ok((pub_ack.topic_id, pub_ack.msg_id, pub_ack.return_code))
                 }
-                Err(err) => return Err(eformat!(client.remote_addr, err)),
+                Err(err) => Err(eformat!(client.remote_addr, err)),
             }
         } else {
             Err(eformat!(client.remote_addr, "len err", read_len))

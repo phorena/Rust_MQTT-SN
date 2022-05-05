@@ -36,7 +36,7 @@ impl RegAck {
         size: usize,
         client: &MqttSnClient,
     ) -> Result<(), String> {
-        let (reg_ack, read_len) = RegAck::try_read(&buf, size).unwrap();
+        let (reg_ack, read_len) = RegAck::try_read(buf, size).unwrap();
         dbg!(reg_ack.clone());
 
         if read_len == MSG_LEN_REGACK as usize {

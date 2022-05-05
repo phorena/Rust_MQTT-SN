@@ -53,7 +53,7 @@ impl SubAck {
         size: usize,
         client: &MqttSnClient,
     ) -> Result<u16, String> {
-        let (sub_ack, read_len) = SubAck::try_read(&buf, size).unwrap();
+        let (sub_ack, read_len) = SubAck::try_read(buf, size).unwrap();
         dbg!(sub_ack.clone());
 
         if read_len == MSG_LEN_SUBACK as usize {

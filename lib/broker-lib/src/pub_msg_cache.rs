@@ -34,9 +34,9 @@ impl PubMsgCache {
     ) -> Result<(), String> {
         let mut pub_cache = PUB_MSG_CACHE.lock().unwrap();
         match pub_cache.try_insert(key, value) {
-            Ok(_) => return Ok(()),
-            Err(_e) => return Err(eformat!(key.0, key.1, "already exists.")),
-        };
+            Ok(_) => Ok(()),
+            Err(_e) => Err(eformat!(key.0, key.1, "already exists.")),
+        }
     }
 
     pub fn remove(key: (SocketAddr, MsgIdType)) -> Option<PubMsgCache> {

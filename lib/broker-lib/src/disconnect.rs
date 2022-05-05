@@ -4,10 +4,10 @@ use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
 use crate::{
+    connection::Connection,
     eformat,
     function,
     BrokerLib::MqttSnClient,
-    connection::Connection,
     MSG_LEN_DISCONNECT,
     MSG_LEN_DISCONNECT_DURATION,
     // flags::{flags_set, flag_qos_level, },
@@ -66,23 +66,23 @@ impl Disconnect {
     ) -> Result<(), String> {
         if size == MSG_LEN_DISCONNECT as usize {
             let (disconnect, _read_len) =
-                Disconnect::try_read(&buf, size).unwrap();
+                Disconnect::try_read(buf, size).unwrap();
             dbg!(disconnect.clone());
             Connection::db();
             Connection::remove(client.remote_addr)?;
             Connection::db();
             Disconnect::send(client)?;
-            return Ok(());
+            Ok(())
         } else if size == MSG_LEN_DISCONNECT_DURATION as usize {
             // TODO: implement DisconnectDuration
             let (disconnect_duration, _read_len) =
-                DisconnectDuration::try_read(&buf, size).unwrap();
+                DisconnectDuration::try_read(buf, size).unwrap();
             dbg!(disconnect_duration.clone());
             Connection::remove(client.remote_addr)?;
             Disconnect::send(client)?;
-            return Ok(());
+            Ok(())
         } else {
-            return Err(eformat!("len err", size));
+            Err(eformat!("len err", size))
         }
     }
 
@@ -102,8 +102,8 @@ impl Disconnect {
             .transmit_tx
             .try_send((client.remote_addr, bytes_buf.to_owned()))
         {
-            Ok(()) => return Ok(()),
-            Err(err) => return Err(eformat!(client.remote_addr, err)),
+            Ok(()) => Ok(()),
+            Err(err) => Err(eformat!(client.remote_addr, err)),
         }
     }
 }

@@ -14,10 +14,7 @@ Like the SEARCHGW message the broadcast radius for this message is also indicate
 network layer when MQTT-SN gives this message for transmission.
 */
 use crate::{
-    eformat,
-    function,
-    BrokerLib::MqttSnClient,
-    MSG_LEN_GW_INFO_HEADER,
+    eformat, function, BrokerLib::MqttSnClient, MSG_LEN_GW_INFO_HEADER,
     MSG_TYPE_GW_INFO,
 };
 use bytes::{BufMut, BytesMut};
@@ -26,8 +23,17 @@ use getset::{CopyGetters, Getters, MutGetters};
 use log::*;
 use std::str; // NOTE: needed for MutGetters
 
-#[derive( // NOTE: must include std::str for MutGetters
-    Debug, Clone, Getters, CopyGetters, MutGetters, Default, PartialEq, Hash, Eq,
+#[derive(
+    // NOTE: must include std::str for MutGetters
+    Debug,
+    Clone,
+    Getters,
+    CopyGetters,
+    MutGetters,
+    Default,
+    PartialEq,
+    Hash,
+    Eq,
 )]
 #[getset(get, set)]
 pub struct GwInfo {
@@ -48,11 +54,7 @@ impl GwInfo {
             return Err(format!("gw_addr too long: {}", len));
         }
         let mut bytes = BytesMut::with_capacity(len);
-        let buf: &[u8] = &[
-            len as u8,
-            MSG_TYPE_GW_INFO,
-            gw_id,
-        ];
+        let buf: &[u8] = &[len as u8, MSG_TYPE_GW_INFO, gw_id];
         bytes.put(buf);
         bytes.put(gw_addr.as_bytes());
         dbg!(&bytes);
@@ -69,8 +71,7 @@ impl GwInfo {
         size: usize,
         client: &MqttSnClient,
     ) -> Result<(), String> {
-        let (gw_info, read_fixed_len) =
-            GwInfo::try_read(buf, size).unwrap();
+        let (gw_info, read_fixed_len) = GwInfo::try_read(buf, size).unwrap();
         info!(
             "{}: {} with {}",
             client.remote_addr, gw_info.gw_id, gw_info.gw_addr

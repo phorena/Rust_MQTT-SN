@@ -55,7 +55,7 @@ impl PubComp {
         bytes.put(buf);
         match client.transmit_tx.try_send((client.remote_addr, bytes)) {
             Ok(()) => Ok(()),
-            Err(err) => return Err(eformat!(client.remote_addr, err)),
+            Err(err) => Err(eformat!(client.remote_addr, err)),
         }
     }
     #[inline(always)]
@@ -77,8 +77,8 @@ impl PubComp {
                 msg_id,
             )) {
                 // TODO process return code?
-                Ok(()) => return Ok(msg_id),
-                Err(err) => return Err(eformat!(client.remote_addr, err)),
+                Ok(()) => Ok(msg_id),
+                Err(err) => Err(eformat!(client.remote_addr, err)),
             }
         } else {
             Err(eformat!(client.remote_addr, "size", buf[0]))

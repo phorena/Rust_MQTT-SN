@@ -23,12 +23,12 @@ use std::mem;
 use std::str;
 
 use crate::{
+    conn_ack::ConnAck,
+    connection::Connection,
     eformat,
     function,
     message::{MsgHeader, MsgHeaderEnum},
     BrokerLib::MqttSnClient,
-    conn_ack::ConnAck,
-    connection::Connection,
     MSG_LEN_CONNECT_HEADER,
     // flags::{flags_set, flag_qos_level, },
     MSG_TYPE_CONNACK,
@@ -151,7 +151,7 @@ impl Connect {
                 Err(err) => Err(eformat!(client.remote_addr, err)),
             }
         } else {
-            return Err(String::from("client_id too long"));
+            Err(eformat!(client.remote_addr, "client_id too long"))
         }
     }
 
@@ -166,7 +166,7 @@ impl Connect {
             MsgHeaderEnum::Short => {
                 // TODO check size vs len
                 let (connect, _read_fixed_len) =
-                    Connect::try_read(&buf, size).unwrap();
+                    Connect::try_read(buf, size).unwrap();
                 dbg!(&connect);
                 Connection::try_insert(
                     client.remote_addr,
@@ -178,7 +178,7 @@ impl Connect {
             }
             MsgHeaderEnum::Long => {
                 let (connect, _read_fixed_len) =
-                    Connect4::try_read(&buf, size).unwrap();
+                    Connect4::try_read(buf, size).unwrap();
                 dbg!(&connect);
                 Connection::try_insert(
                     client.remote_addr,

@@ -4,7 +4,8 @@ use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
 use crate::{
-    eformat, function, pub_msg_cache::PubMsgCache,
+    eformat, function, pub_comp::PubComp, pub_msg_cache::PubMsgCache,
+    publish::Publish,
     /*
     flags::{flags_set, flag_qos_level, },
     StateMachine,
@@ -30,8 +31,7 @@ use crate::{
         TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
     },
     */
-    BrokerLib::MqttSnClient, pub_comp::PubComp, publish::Publish, MSG_LEN_PUBREL,
-    MSG_TYPE_PUBREL,
+    BrokerLib::MqttSnClient, MSG_LEN_PUBREL, MSG_TYPE_PUBREL,
 };
 
 #[derive(
@@ -124,7 +124,7 @@ impl PubRel {
                 "{}-{}:",
                 //function!(),
                 client.remote_addr,
-                e.to_string()
+                e
             )),
         }
     }

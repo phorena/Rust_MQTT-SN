@@ -7,8 +7,8 @@ use std::str; // NOTE: needed for MutGetters
 use crate::{
     eformat, function,
     message::{MsgHeader, MsgHeaderEnum},
-    BrokerLib::MqttSnClient,
     ping_resp::PingResp,
+    BrokerLib::MqttSnClient,
     MSG_LEN_PINGREQ_HEADER, MSG_TYPE_PINGREQ,
 };
 
@@ -44,12 +44,12 @@ impl PingReq {
             MsgHeaderEnum::Short => {
                 // TODO update ping timer.
                 let (_ping_req, _read_fixed_len) =
-                    PingReq::try_read(&buf, size).unwrap();
+                    PingReq::try_read(buf, size).unwrap();
             }
             MsgHeaderEnum::Long => {
                 // TODO update ping timer.
                 let (_ping_req, _read_fixed_len) =
-                    PingReq4::try_read(&buf, size).unwrap();
+                    PingReq4::try_read(buf, size).unwrap();
             }
         }
         PingResp::send(client)?;

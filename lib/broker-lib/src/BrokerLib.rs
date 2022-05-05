@@ -10,22 +10,22 @@ use crossbeam::channel::{unbounded, Receiver, Sender};
 use log::*;
 
 use crate::{
-    dbg_buf,
-    eformat,
-    function,
-    message::MsgHeader,
     // Channels::Channels,
     conn_ack::ConnAck,
     connect::Connect,
     connection::Connection,
+    dbg_buf,
     disconnect::Disconnect,
+    eformat,
+    function,
+    message::MsgHeader,
     // Connection::ConnHashMap,
     pub_ack::PubAck,
     pub_rel::PubRel,
     publish::Publish,
-    StateMachine::{StateMachine, STATE_DISCONNECT},
     sub_ack::SubAck,
     subscribe::Subscribe,
+    StateMachine::{StateMachine, STATE_DISCONNECT},
     // TimingWheel2::{RetransmitData, RetransmitHeader},
     MSG_TYPE_CONNACK,
     MSG_TYPE_CONNECT,
@@ -133,9 +133,7 @@ impl MqttSnClient {
                         self.remote_addr = addr;
                         // Decode message header
                         let msg_header = match MsgHeader::try_read(&buf, size) {
-                            Ok(header) => {
-                                header
-                            }
+                            Ok(header) => header,
                             Err(e) => {
                                 error!("{}", e);
                                 continue;
@@ -175,9 +173,7 @@ impl MqttSnClient {
                             continue;
                         };
                         if msg_type == MSG_TYPE_PUBREL {
-                            if let Err(err) =
-                                PubRel::recv(&buf, size, &self)
-                            {
+                            if let Err(err) = PubRel::recv(&buf, size, &self) {
                                 error!("{}", err);
                             }
                             continue;
@@ -195,8 +191,7 @@ impl MqttSnClient {
                             continue;
                         };
                         if msg_type == MSG_TYPE_DISCONNECT {
-                            let _result =
-                                Disconnect::recv(&buf, size, &self);
+                            let _result = Disconnect::recv(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_CONNACK {

@@ -22,10 +22,10 @@ use std::str;
 
 use crate::{
     eformat,
+    filter::try_register_topic_name,
     function,
     message::{MsgHeader, MsgHeaderEnum},
     BrokerLib::MqttSnClient,
-    filter::try_register_topic_name,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_REGISTER_HEADER,
     MSG_TYPE_REGACK,
@@ -76,7 +76,7 @@ impl Register {
         match msg_header.header_len {
             MsgHeaderEnum::Short => {
                 (register, _read_fixed_len) =
-                    Register::try_read(&buf, size).unwrap();
+                    Register::try_read(buf, size).unwrap();
             }
             MsgHeaderEnum::Long => {
                 (register, _read_fixed_len) =
@@ -133,8 +133,8 @@ impl Register {
             msg_id,
             buf,
         )) {
-            Ok(()) => return Ok(()),
-            Err(err) => return Err(eformat!(client.remote_addr, err)),
+            Ok(()) => Ok(()),
+            Err(err) => Err(eformat!(client.remote_addr, err)),
         }
     }
 }

@@ -31,6 +31,12 @@ use trace_caller::trace;
 
 use crate::{
     eformat,
+    // Connection::connection_filter_insert,
+    filter::{
+        // global_filter_insert,
+        insert_subscriber_with_topic_id,
+        try_insert_topic_name,
+    },
     //     StateMachine,
     flags::{
         flag_qos_level,
@@ -50,14 +56,8 @@ use crate::{
         WILL_FALSE,
     },
     function,
-    BrokerLib::MqttSnClient,
-    // Connection::connection_filter_insert,
-    filter::{
-        // global_filter_insert,
-        insert_subscriber_with_topic_id,
-        try_insert_topic_name,
-    },
     sub_ack::SubAck,
+    BrokerLib::MqttSnClient,
     MSG_TYPE_SUBACK,
     MSG_TYPE_SUBSCRIBE,
     RETURN_CODE_ACCEPTED,
@@ -91,15 +91,14 @@ impl Subscribe {
             CLEAN_SESSION_FALSE, // not used
             TOPIC_ID_TYPE_NORMAL,
         ); // default for now
-        let subscribe = Subscribe {
+        Subscribe {
             len,
             msg_type: MSG_TYPE_SUBSCRIBE,
             flags,
             msg_id,
             topic_name, // TODO use enum for topic_name or topic_id
                         //          bb,
-        };
-        subscribe
+        }
     }
 
     /*
@@ -172,7 +171,7 @@ impl Subscribe {
     ) -> Result<(), String> {
         // TODO replace unwrap
         let (subscribe, read_fixed_len) =
-            Subscribe::try_read(&buf, size).unwrap();
+            Subscribe::try_read(buf, size).unwrap();
         dbg!(subscribe.clone());
         dbg!(subscribe.clone().topic_name);
         let read_len = read_fixed_len + subscribe.topic_name.len();
@@ -259,7 +258,7 @@ impl Subscribe {
         } else {
             // TODO clean up, length check is not needed,
             // if it's check else where, it's not needed here.
-            return Err("wrong size".to_string());
+            return Err(eformat!(client.remote_addr, "wrong size"));
         }
     }
 }

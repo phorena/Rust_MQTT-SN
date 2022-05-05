@@ -24,9 +24,9 @@ impl WillTopicResp {
             && buf[0] == MSG_LEN_WILL_TOPIC_RESP
         {
             // TODO cancel timer.
-            return Ok(());
+            Ok(())
         } else {
-            return Err(eformat!(client.remote_addr, "len err", size));
+            Err(eformat!(client.remote_addr, "len err", size))
         }
     }
 
@@ -50,8 +50,8 @@ impl WillTopicResp {
             .transmit_tx
             .try_send((client.remote_addr, bytes.to_owned()))
         {
-            Ok(()) => return Ok(()),
-            Err(err) => return Err(eformat!(client.remote_addr, err)),
+            Ok(()) => Ok(()),
+            Err(err) => Err(eformat!(client.remote_addr, err)),
         }
     }
 }

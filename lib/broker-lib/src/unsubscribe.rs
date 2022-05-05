@@ -30,6 +30,12 @@ use trace_caller::trace;
 
 use crate::{
     eformat,
+    // Connection::connection_filter_insert,
+    filter::{
+        // global_filter_insert,
+        unsubscribe_with_topic_id,
+        unsubscribe_with_topic_name,
+    },
     //     StateMachine,
     flags::{
         flag_topic_id_type,
@@ -50,12 +56,6 @@ use crate::{
     function,
     message::{MsgHeader, MsgHeaderEnum},
     BrokerLib::MqttSnClient,
-    // Connection::connection_filter_insert,
-    filter::{
-        // global_filter_insert,
-        unsubscribe_with_topic_id,
-        unsubscribe_with_topic_name,
-    },
     MSG_LEN_UNSUBSCRIBE_HEADER,
     MSG_TYPE_UNSUBACK,
     MSG_TYPE_UNSUBSCRIBE,
@@ -129,7 +129,7 @@ impl Unsubscribe {
             // TODO replace unwrap
             {
                 (unsubscribe, _read_fixed_len) =
-                    Unsubscribe::try_read(&buf, size).unwrap()
+                    Unsubscribe::try_read(buf, size).unwrap()
             }
             MsgHeaderEnum::Long =>
             // TODO replace unwrap
