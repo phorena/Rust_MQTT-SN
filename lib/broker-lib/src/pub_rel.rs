@@ -30,7 +30,7 @@ use crate::{
         TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
     },
     */
-    BrokerLib::MqttSnClient, PubComp::PubComp, Publish::Publish, MSG_LEN_PUBREL,
+    BrokerLib::MqttSnClient, pub_comp::PubComp, publish::Publish, MSG_LEN_PUBREL,
     MSG_TYPE_PUBREL,
 };
 

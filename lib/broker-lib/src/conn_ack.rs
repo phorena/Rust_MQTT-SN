@@ -1,3 +1,13 @@
+/*
+5.4.5 CONNACK
+Length    MsgType ReturnCode
+(octet 0) (1)     (2)
+Table 10: CONNACK Message
+The CONNACK message is sent by the server in response to a connection request from a client. Its format is
+shown in Table 10:
+• Length and MsgType: see Section 5.2.
+• ReturnCode: encoded according to Table 5
+*/
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters /* Setters */};

@@ -1,91 +1,91 @@
-use crate::{
-    eformat, function, BrokerLib::MqttSnClient, Connection::Connection,
-    MSG_LEN_WILL_TOPIC_HEADER, MSG_TYPE_WILL_TOPIC,
-};
+/*
+5.4.23 WILLMSGUPD
+Length    MsgType WillMsg
+(octet 0) (1)     (2:n)
+Table 26: WILLMSGUPD Message
+
+The WILLMSGUPD message is sent by a client to update its Will message stored in the GW/server. Its format
+is shown in Table 26:
+*/
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 use std::str;
 
-#[derive(Debug, Clone, Getters, MutGetters, CopyGetters, Default)]
-#[getset(get, set)]
-pub struct WillTopic {
-    len: u8,
-    #[debug(format = "0x{:x}")]
-    msg_type: u8,
-    #[debug(format = "0b{:08b}")]
-    flags: u8,
-    will_topic: String,
-}
+use crate::{
+    eformat, function, BrokerLib::MqttSnClient, connection::Connection,
+    will_msg_resp::WillMsgResp, MSG_LEN_WILL_MSG_HEADER, MSG_TYPE_WILL_MSG,
+    RETURN_CODE_ACCEPTED,
+};
 
 #[derive(Debug, Clone, Getters, MutGetters, CopyGetters, Default)]
 #[getset(get, set)]
-struct WillTopic4 {
+pub struct WillMsgUpd {
+    len: u8,
+    #[debug(format = "0x{:x}")]
+    msg_type: u8,
+    will_msg: String,
+}
+#[derive(Debug, Clone, Getters, MutGetters, CopyGetters, Default)]
+#[getset(get, set)]
+struct WillMsgUpd4 {
     // NOTE: no pub
     one: u8,
     len: u16,
     #[debug(format = "0x{:x}")]
     msg_type: u8,
-    #[debug(format = "0b{:08b}")]
-    flags: u8,
-    will_topic: String,
+    will_msg: String,
 }
 
-impl WillTopic {
+impl WillMsgUpd {
     pub fn recv(
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
     ) -> Result<(), String> {
         if size < 256 {
-            let (will, len) = WillTopic::try_read(buf, size).unwrap();
+            let (will, len) = WillMsgUpd::try_read(buf, size).unwrap();
             if size == len as usize {
-                Connection::update_will_topic(
-                    client.remote_addr,
-                    will.will_topic,
-                )?;
+                Connection::update_will_msg(client.remote_addr, will.will_msg)?;
+                WillMsgResp::send(RETURN_CODE_ACCEPTED, client)?;
                 return Ok(());
             } else {
                 return Err(eformat!(
                     client.remote_addr,
-                    "2-bytes len not supported",
+                    "2-bytes len not supported", // TODO wrong message.
                     size
                 ));
             }
         } else if size < 1400 {
-            let (will, len) = WillTopic4::try_read(buf, size).unwrap();
+            let (will, len) = WillMsgUpd4::try_read(buf, size).unwrap();
             if size == len as usize && will.one == 1 {
-                Connection::update_will_topic(
-                    client.remote_addr,
-                    will.will_topic,
-                )?;
+                Connection::update_will_msg(client.remote_addr, will.will_msg)?;
+                WillMsgResp::send(RETURN_CODE_ACCEPTED, client)?;
                 return Ok(());
             } else {
                 return Err(eformat!(
                     client.remote_addr,
-                    "2-bytes len not supported",
+                    "4-bytes len not supported", // TODO wrong message.
                     size
                 ));
             }
         } else {
-            return Err(eformat!(client.remote_addr, "len err", size));
+            return Err(eformat!(
+                client.remote_addr,
+                "len not supported",
+                size
+            ));
         }
     }
-
-    pub fn send(
-        flags: u8,
-        will_topic: String,
-        client: &MqttSnClient,
-    ) -> Result<(), String> {
+    pub fn send(will_msg: String, client: &MqttSnClient) -> Result<(), String> {
         let len: usize =
-            MSG_LEN_WILL_TOPIC_HEADER as usize + will_topic.len() as usize;
+            MSG_LEN_WILL_MSG_HEADER as usize + will_msg.len() as usize;
         if len < 256 {
-            let will = WillTopic {
+            let will = WillMsgUpd {
                 len: len as u8,
-                msg_type: MSG_TYPE_WILL_TOPIC,
-                flags,
-                will_topic,
+                msg_type: MSG_TYPE_WILL_MSG,
+                will_msg,
             };
             let mut bytes = BytesMut::with_capacity(len);
             will.try_write(&mut bytes);
@@ -97,12 +97,11 @@ impl WillTopic {
                 Err(err) => return Err(eformat!(client.remote_addr, err)),
             }
         } else if len < 1400 {
-            let will = WillTopic4 {
+            let will = WillMsgUpd4 {
                 one: 1,
                 len: len as u16,
-                msg_type: MSG_TYPE_WILL_TOPIC,
-                flags,
-                will_topic,
+                msg_type: MSG_TYPE_WILL_MSG,
+                will_msg,
             };
             let mut bytes = BytesMut::with_capacity(len);
             will.try_write(&mut bytes);

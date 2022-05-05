@@ -5,77 +5,51 @@ extern crate arrayref;
 extern crate lazy_static;
 
 // TODO fix non_snake_case.
-#[allow(non_snake_case)]
-pub mod Advertise;
+pub mod advertise;
 #[allow(non_snake_case)]
 pub mod BrokerLib;
-#[allow(non_snake_case)]
-pub mod ConnAck;
-#[allow(non_snake_case)]
-pub mod Connect;
-#[allow(non_snake_case)]
-pub mod Connection;
+pub mod conn_ack;
+pub mod connect;
+pub mod connection;
 // pub mod ConnectionDb;
-#[allow(non_snake_case)]
-pub mod Disconnect;
+pub mod disconnect;
 // pub mod Functions;
 // pub mod MainMachineClient;
-#[allow(non_snake_case)]
-pub mod Filter;
+pub mod filter;
 #[allow(non_snake_case)]
 pub mod MsgType;
+pub mod ping_req;
+pub mod ping_resp;
+pub mod pub_ack;
+pub mod pub_comp;
+pub mod pub_rec;
+pub mod pub_rel;
+pub mod publish;
 #[allow(non_snake_case)]
-pub mod PingReq;
-#[allow(non_snake_case)]
-pub mod PingResp;
-#[allow(non_snake_case)]
-pub mod PubAck;
-#[allow(non_snake_case)]
-pub mod PubComp;
-#[allow(non_snake_case)]
-pub mod PubRec;
-#[allow(non_snake_case)]
-pub mod PubRel;
-#[allow(non_snake_case)]
-pub mod Publish;
-#[allow(non_snake_case)]
-pub mod RegAck;
-#[allow(non_snake_case)]
-pub mod Register;
+pub mod reg_ack;
+pub mod register;
 #[allow(non_snake_case)]
 pub mod StateEnum;
 #[allow(non_snake_case)]
 pub mod StateMachine;
-#[allow(non_snake_case)]
-pub mod SubAck;
-#[allow(non_snake_case)]
-pub mod Subscribe;
+pub mod sub_ack;
+pub mod subscribe;
 #[allow(non_snake_case)]
 pub mod SubscriberDb;
 #[allow(non_snake_case)]
 pub mod TimingWheel2;
 #[allow(non_snake_case)]
 pub mod TopicDb;
-#[allow(non_snake_case)]
-pub mod UnsubAck;
-#[allow(non_snake_case)]
-pub mod Unsubscribe;
-#[allow(non_snake_case)]
-pub mod WillMsg;
-#[allow(non_snake_case)]
-pub mod WillMsgReq;
-#[allow(non_snake_case)]
-pub mod WillMsgResp;
-#[allow(non_snake_case)]
-pub mod WillMsgUpd;
-#[allow(non_snake_case)]
-pub mod WillTopic;
-#[allow(non_snake_case)]
-pub mod WillTopicReq;
-#[allow(non_snake_case)]
-pub mod WillTopicResp;
-#[allow(non_snake_case)]
-pub mod WillTopicUpd;
+pub mod unsub_ack;
+pub mod unsubscribe;
+pub mod will_msg;
+pub mod will_msg_req;
+pub mod will_msg_resp;
+pub mod will_msg_upd;
+pub mod will_topic;
+pub mod will_topic_req;
+pub mod will_topic_resp;
+pub mod will_topic_upd;
 // pub mod client_struct;
 pub mod flags;
 pub mod message;
@@ -84,8 +58,8 @@ pub mod gw_info;
 pub mod search_gw;
 
 // pub mod BrokerLib;
-#[allow(non_snake_case)]
-pub mod Channels;
+// #[allow(non_snake_case)]
+// pub mod Channels;
 
 pub const MTU: usize = 1500;
 

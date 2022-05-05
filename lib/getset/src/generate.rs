@@ -270,6 +270,7 @@ pub fn read_functions(_name: &Ident, field: &Field, _params: &GenParams) -> Toke
                         Ok(v) => v.to_string(),
                         // TODO should not panic, return error
                         Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+                        // Err(e) => return(format("Invalid UTF-8 sequence: {}", e)),
                     };
                 };
             }

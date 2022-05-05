@@ -51,7 +51,7 @@ use crate::{
     message::{MsgHeader, MsgHeaderEnum},
     BrokerLib::MqttSnClient,
     // Connection::connection_filter_insert,
-    Filter::{
+    filter::{
         // global_filter_insert,
         unsubscribe_with_topic_id,
         unsubscribe_with_topic_name,

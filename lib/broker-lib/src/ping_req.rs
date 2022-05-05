@@ -8,7 +8,7 @@ use crate::{
     eformat, function,
     message::{MsgHeader, MsgHeaderEnum},
     BrokerLib::MqttSnClient,
-    PingResp::PingResp,
+    ping_resp::PingResp,
     MSG_LEN_PINGREQ_HEADER, MSG_TYPE_PINGREQ,
 };
 

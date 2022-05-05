@@ -1,3 +1,21 @@
+/*
+5.4.4 CONNECT
+Length MsgType Flags ProtocolId Duration ClientId
+(octet 0) (1) (2) (3) (4,5) (6:n)
+Table 9: CONNECT Message
+The CONNECT message is sent by a client to setup a connection. Its format is shown in Table 9:
+• Length and MsgType: see Section 5.2.
+• Flags:
+– DUP, QoS, Retain, TopicIdType: not used.
+– Will: if set, indicates that client is requesting for Will topic and Will message prompting;
+– CleanSession: same meaning as with MQTT, however extended for Will topic and Will message (see
+Section 6.3).
+• ProtocolId: corresponds to the “Protocol Name” and “Protocol Version” of the MQTT CONNECT message.
+• Duration: same as with MQTT, contains the value of the Keep Alive timer.
+• ClientId: same as with MQTT, contains the client id which is a 1-23 character long string which uniquely
+identifies the client to the server.
+5.4.5 CONNACK
+*/
 use bytes::{BufMut, Bytes, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
@@ -9,8 +27,8 @@ use crate::{
     function,
     message::{MsgHeader, MsgHeaderEnum},
     BrokerLib::MqttSnClient,
-    ConnAck::ConnAck,
-    Connection::Connection,
+    conn_ack::ConnAck,
+    connection::Connection,
     MSG_LEN_CONNECT_HEADER,
     // flags::{flags_set, flag_qos_level, },
     MSG_TYPE_CONNACK,

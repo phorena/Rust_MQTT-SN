@@ -1,5 +1,5 @@
 use crate::{
-    eformat, function, BrokerLib::MqttSnClient, Connection::Connection,
+    eformat, function, BrokerLib::MqttSnClient, connection::Connection,
     MSG_LEN_WILL_MSG_HEADER, MSG_TYPE_WILL_MSG,
 };
 use bytes::{BufMut, BytesMut};
