@@ -132,18 +132,17 @@ impl MqttSnClient {
                     Ok((size, addr)) => {
                         self.remote_addr = addr;
                         // Decode message header
-                        let msg_header: MsgHeader;
-                        match MsgHeader::try_read(&buf, size) {
+                        let msg_header = match MsgHeader::try_read(&buf, size) {
                             Ok(header) => {
-                                msg_header = header;
+                                header
                             }
                             Err(e) => {
                                 error!("{}", e);
                                 continue;
                             }
-                        }
+                        };
                         let msg_type = msg_header.msg_type;
-                        if Connection::contains_key(addr) == false {
+                        if !Connection::contains_key(addr) {
                             // New connection, not in the connection hashmap.
                             if msg_type == MSG_TYPE_CONNECT {
                                 if let Err(err) = Connect::recv(
@@ -169,7 +168,7 @@ impl MqttSnClient {
                         dbg_buf!(buf, size);
                         if msg_type == MSG_TYPE_PUBLISH {
                             if let Err(err) =
-                                Publish::recv(&buf, size, &mut self, msg_header)
+                                Publish::recv(&buf, size, &self, msg_header)
                             {
                                 error!("{}", err);
                             }
@@ -177,7 +176,7 @@ impl MqttSnClient {
                         };
                         if msg_type == MSG_TYPE_PUBREL {
                             if let Err(err) =
-                                PubRel::recv(&buf, size, &mut self)
+                                PubRel::recv(&buf, size, &self)
                             {
                                 error!("{}", err);
                             }
@@ -197,7 +196,7 @@ impl MqttSnClient {
                         };
                         if msg_type == MSG_TYPE_DISCONNECT {
                             let _result =
-                                Disconnect::recv(&buf, size, &mut self);
+                                Disconnect::recv(&buf, size, &self);
                             continue;
                         };
                         if msg_type == MSG_TYPE_CONNACK {
@@ -310,7 +309,7 @@ impl MqttSnClient {
         qos: u8,
         retain: u8,
     ) -> &Receiver<Publish> {
-        let _result = Subscribe::send(topic, msg_id, qos, retain, &self);
+        let _result = Subscribe::send(topic, msg_id, qos, retain, self);
         &self.subscribe_rx
     }
     /* XXX TODO client code.

@@ -287,7 +287,7 @@ pub fn try_register_topic_name(
     let topic_ids = GLOBAL_TOPIC_NAME_TO_IDS.lock().unwrap().get(&topic_name);
     // If topic name is already in the map, return the existing topic id,
     // otherwise insert the topic name and topic id into the map.
-    if topic_ids.len() == 0 {
+    if topic_ids.is_empty() {
         GLOBAL_TOPIC_NAME_TO_IDS
             .lock()
             .unwrap()
@@ -305,7 +305,7 @@ pub fn try_insert_topic_name(
     let topic_ids = GLOBAL_TOPIC_NAME_TO_IDS.lock().unwrap().get(&topic_name);
     // If topic name is already in the map, return the existing topic id,
     // otherwise insert the topic name and topic id into the map.
-    if topic_ids.len() == 0 {
+    if topic_ids.is_empty() {
         let topic_id = *GLOBAL_TOPIC_ID.lock().unwrap();
         GLOBAL_TOPIC_NAME_TO_IDS
             .lock()
@@ -340,7 +340,7 @@ pub fn unsubscribe_with_topic_name(
 ) -> Result<(), String> {
     // Get the topic id from the topic name.
     let topic_ids = GLOBAL_TOPIC_NAME_TO_IDS.lock().unwrap().get(&topic_name);
-    if topic_ids.len() > 0 {
+    if !topic_ids.is_empty() {
         // Remove socket_addr from the topic id map.
         let topic_id = topic_ids[0];
         unsubscribe_with_topic_id(socket_addr, topic_id)?;
@@ -404,7 +404,7 @@ pub fn insert_filter(
             GLOBAL_CONCRETE_TOPICS
                 .lock()
                 .unwrap()
-                .insert(filter.clone(), socket_addr);
+                .insert(filter, socket_addr);
         }
         return Ok(());
     }
@@ -430,13 +430,13 @@ pub fn delete_filter(socket_add: SocketAddr) {
 
 #[inline(always)]
 pub fn match_concrete_topics(topic: &String) -> Vec<SocketAddr> {
-    GLOBAL_CONCRETE_TOPICS.lock().unwrap().get(&topic)
+    GLOBAL_CONCRETE_TOPICS.lock().unwrap().get(topic)
 }
 
 #[inline(always)]
 pub fn match_topics(topic: &String) -> Vec<SocketAddr> {
     let sock_vec = GLOBAL_WILDCARD_TOPICS.lock().unwrap().get(topic);
-    if sock_vec.len() == 0 {
+    if sock_vec.is_empty() {
         // The topic doesn't match any wildcard topics.
         // Matching the topic against all wildcard filters.
         for (filter, socket_vec) in

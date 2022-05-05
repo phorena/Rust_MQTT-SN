@@ -1,3 +1,17 @@
+/*
+From MQTT-SN v1.2 spec.
+The Length field is either 1- or 3-octet long and specifies the total number of octets contained in the message
+(including the Length field itself).
+If the first octet of the Length field is coded “0x01” then the Length field is 3-octet long; in this case, the two
+following octets specify the total number of octets of the message (most-significant octet first). Otherwise, the
+Length field is only 1-octet long and specifies itself the total number of octets contained in the message.
+The 3-octet format allows the encoding of message lengths up to 65535 octets. Messages with lengths smaller
+than 256 octets may use the shorter 1-octet format.
+Note that because MQTT-SN does not support message fragmentation and reassembly, the maximum message
+length that could be used in a network is governed by the maximum packet size that is supported by that network,
+and not by the maximum length that could be encoded by MQTT-SN.
+*/
+
 use crate::{eformat, function};
 use custom_debug::Debug;
 
@@ -14,20 +28,6 @@ pub struct MsgHeader {
     #[debug(format = "0x{:x}")]
     pub msg_type: u8,
 }
-
-/*
-From MQTT-SN v1.2 spec.
-The Length field is either 1- or 3-octet long and specifies the total number of octets contained in the message
-(including the Length field itself).
-If the first octet of the Length field is coded “0x01” then the Length field is 3-octet long; in this case, the two
-following octets specify the total number of octets of the message (most-significant octet first). Otherwise, the
-Length field is only 1-octet long and specifies itself the total number of octets contained in the message.
-The 3-octet format allows the encoding of message lengths up to 65535 octets. Messages with lengths smaller
-than 256 octets may use the shorter 1-octet format.
-Note that because MQTT-SN does not support message fragmentation and reassembly, the maximum message
-length that could be used in a network is governed by the maximum packet size that is supported by that network,
-and not by the maximum length that could be encoded by MQTT-SN.
-*/
 
 impl MsgHeader {
     pub fn try_read(buf: &[u8], size: usize) -> Result<MsgHeader, String> {

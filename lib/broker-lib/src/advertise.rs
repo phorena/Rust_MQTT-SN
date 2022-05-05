@@ -62,7 +62,7 @@ impl Advertise {
             .transmit_tx
             .try_send((client.remote_addr, bytes.to_owned()))
         {
-            Ok(()) => return Ok(()),
+            Ok(()) => Ok(()),
             Err(err) => return Err(eformat!(client.remote_addr, err)),
         }
     }
