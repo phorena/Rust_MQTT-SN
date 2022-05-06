@@ -89,10 +89,10 @@ impl PubAck {
         // faster implementation
         // TODO verify big-endian or little-endian for u16 numbers
         // XXX order of statements performance
-        let msg_id_byte_0 = msg_id as u8;
-        let topic_id_byte_0 = topic_id as u8;
-        let msg_id_byte_1 = (msg_id >> 8) as u8;
-        let topic_id_byte_1 = (topic_id >> 8) as u8;
+        let msg_id_byte_1 = msg_id as u8;
+        let topic_id_byte_1 = topic_id as u8;
+        let msg_id_byte_0 = (msg_id >> 8) as u8;
+        let topic_id_byte_0 = (topic_id >> 8) as u8;
         // message format
         // PUBACK:[len(0), msg_type(1),
         //         topic_id(2,3), msg_id(4,5),
@@ -101,10 +101,10 @@ impl PubAck {
         let buf: &[u8] = &[
             MSG_LEN_PUBACK,
             MSG_TYPE_PUBACK,
-            topic_id_byte_1,
             topic_id_byte_0,
-            msg_id_byte_1,
+            topic_id_byte_1,
             msg_id_byte_0,
+            msg_id_byte_1,
             return_code,
         ];
         bytes.put(buf);

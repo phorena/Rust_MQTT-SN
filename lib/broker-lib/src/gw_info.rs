@@ -71,7 +71,7 @@ impl GwInfo {
         size: usize,
         client: &MqttSnClient,
     ) -> Result<(), String> {
-        let (gw_info, read_fixed_len) = GwInfo::try_read(buf, size).unwrap();
+        let (gw_info, _read_fixed_len) = GwInfo::try_read(buf, size).unwrap();
         info!(
             "{}: {} with {}",
             client.remote_addr, gw_info.gw_id, gw_info.gw_addr

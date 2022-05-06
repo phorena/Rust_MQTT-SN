@@ -1,3 +1,23 @@
+/*
+5.4.12 PUBLISH
+Length    MsgType Flags TopicId MsgId Data
+(octet 0) (1)     (2)   (3-4)   (5-6) (7:n)
+Table 16: PUBLISH Message
+This message is used by both clients and gateways to publish data for a certain topic. Its format is illustrated
+in Table 16:
+• Length and MsgType: see Section 5.2.
+• Flags:
+– DUP: same as MQTT, indicates whether message is sent for the first time or not.
+– QoS: same as MQTT, contains the QoS level for this PUBLISH message.
+– Retain: same as MQTT, contains the Retain flag.
+– Will: not used
+– CleanSession: not used
+– TopicIdType: indicates the type of the topic id contained in the TopicId field.
+• TopicId: contains the topic id value or the short topic name for which the data is published.
+• MsgId: same meaning as the MQTT “Message ID”; only relevant in case of QoS levels 1 and 2, otherwise
+coded 0x0000.
+• Data: the published data.
+*/
 #![allow(unused_imports)]
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
@@ -70,25 +90,7 @@ pub struct Publish {
     flags: u8,
     topic_id: u16,
     msg_id: u16,
-    // data: String,
-    data: BytesMut,
-}
-
-#[derive(
-    Debug, Clone, Getters, MutGetters, CopyGetters, Default, PartialEq, Hash, Eq,
-)]
-#[getset(get, set)]
-struct Publish4 {
-    one: u8,
-    len: u16,
-    #[debug(format = "0x{:x}")]
-    msg_type: u8,
-    #[debug(format = "0b{:08b}")]
-    flags: u8,
-    topic_id: u16,
-    msg_id: u16,
-    // data: String,
-    data: BytesMut,
+    data: BytesMut, // TODO: use Bytes.
 }
 
 impl Publish {
@@ -152,35 +154,15 @@ impl Publish {
         client: &MqttSnClient,
         msg_header: MsgHeader,
     ) -> Result<(), String> {
-        /*
-        let (publish, read_fixed_len) = Publish::try_read(&buf, size).unwrap();
-        dbg!(publish.clone());
-        dbg!(publish.clone().data);
-        let read_len = read_fixed_len + publish.data.len();
-
-        dbg!((size, read_len));
-        */
-
-        let publish: Publish;
-        let _read_fixed_len;
-
-        match msg_header.header_len {
-            MsgHeaderEnum::Short =>
-            // TODO replace unwrap
-            {
-                (publish, _read_fixed_len) =
-                    Publish::try_read(buf, size).unwrap();
+        let (publish, _read_fixed_len) = match msg_header.header_len {
+            MsgHeaderEnum::Short => Publish::try_read(buf, size).unwrap(),
+            MsgHeaderEnum::Long => {
+                // * NOTE: don't use publish.len from this arm, because the
+                // * shift to eliminate the need the long struct.
+                // * Use the len from the msg_header.
+                Publish::try_read(&buf[2..], size - 2).unwrap()
             }
-            MsgHeaderEnum::Long =>
-            // TODO replace unwrap
-            // For the 4-byte header, parse the body ignoring the first 2 bytes and
-            // don't use the length field for the unsubscribe struct.
-            // Use the length field from the msg_header.
-            {
-                (publish, _read_fixed_len) =
-                    Publish::try_read(&buf[3..], size).unwrap();
-            }
-        }
+        };
         dbg!((size, _read_fixed_len));
         dbg!(publish.clone());
         let subscriber_vec = get_subscribers_with_topic_id(publish.topic_id);
@@ -262,8 +244,8 @@ impl Publish {
         qos: u8,
         retain: u8,
         data: BytesMut,
-        client: &MqttSnClient,
-        remote_addr: SocketAddr,
+        client: &MqttSnClient, // contains the address of the publisher
+        remote_addr: SocketAddr, // address of the subscriber
     ) -> Result<(), String> {
         let len = data.len() + MSG_LEN_PUBLISH_HEADER as usize;
         let mut bytes_buf = BytesMut::with_capacity(len);
@@ -276,47 +258,44 @@ impl Publish {
             CLEAN_SESSION_FALSE, // not used
             TOPIC_ID_TYPE_NORMAL,
         ); // default for now
+
+        // TODO verify big-endian or little-endian for u16 numbers
+        // XXX order of statements performance
+        let msg_id_byte_1 = msg_id as u8;
+        let topic_id_byte_1 = topic_id as u8;
+        let msg_id_byte_0 = (msg_id >> 8) as u8;
+        let topic_id_byte_0 = (topic_id >> 8) as u8;
+
         if len < 256 {
-            let publish = Publish {
-                len: len as u8,
-                msg_type: MSG_TYPE_PUBLISH,
+            let buf: &[u8] = &[
+                len as u8,
+                MSG_TYPE_PUBLISH,
                 flags,
-                topic_id,
-                msg_id,
-                data,
-            };
-            // serialize the con_ack struct into byte(u8) array for the network.
-            // serialize the con_ack struct into byte(u8) array for the network.
-            dbg!((bytes_buf.clone(), &publish));
-            publish.try_write(&mut bytes_buf);
-            dbg!(bytes_buf.clone());
-            // TODO check for 1400
+                msg_id_byte_0,
+                msg_id_byte_1,
+                topic_id_byte_0,
+                topic_id_byte_1,
+            ];
+            bytes_buf.put(buf);
         } else if len < 1400 {
-            let publish = Publish4 {
-                one: 1,
-                len: len as u16,
-                msg_type: MSG_TYPE_PUBLISH,
+            let buf: &[u8] = &[
+                1,
+                (len >> 8) as u8,
+                len as u8,
+                MSG_TYPE_PUBLISH,
                 flags,
-                topic_id,
-                msg_id,
-                data,
-            };
-            // serialize the con_ack struct into byte(u8) array for the network.
-            // serialize the con_ack struct into byte(u8) array for the network.
-            dbg!((bytes_buf.clone(), &publish));
-            publish.try_write(&mut bytes_buf);
-            dbg!(bytes_buf.clone());
+                msg_id_byte_0,
+                msg_id_byte_1,
+                topic_id_byte_0,
+                topic_id_byte_1,
+            ];
+            bytes_buf.put(buf);
         } else {
-            // TODO more details
             return Err(eformat!(client.remote_addr, "len too long", len));
         }
-        // transmit message to remote address
-        if let Err(err) = client
-            .transmit_tx
-            .try_send((remote_addr, bytes_buf.to_owned()))
-        {
-            return Err(eformat!(remote_addr, err));
-        }
+        bytes_buf.put(data);
+        // TODO: let bytes = bytes_buf.freeze(); // no copy on clone.
+
         dbg!(&qos);
         match qos {
             // For level 1, schedule a message for retransmit,
@@ -354,7 +333,7 @@ impl Publish {
                     MSG_TYPE_PUBREC,
                     0,
                     msg_id,
-                    bytes_buf,
+                    bytes_buf.clone(),
                 )) {
                     Ok(()) => return Ok(()),
                     Err(err) => return Err(eformat!(remote_addr, err)),
@@ -365,6 +344,11 @@ impl Publish {
             _ => {
                 // TODO return error
             }
+        }
+        // transmit message to remote address
+        if let Err(err) = client.transmit_tx.try_send((remote_addr, bytes_buf))
+        {
+            return Err(eformat!(remote_addr, err));
         }
         Ok(())
     }

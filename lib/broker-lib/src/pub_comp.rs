@@ -69,7 +69,7 @@ impl PubComp {
             && size == MSG_LEN_PUBCOMP as usize
         {
             // TODO verify as Big Endian
-            let msg_id = buf[2] as u16 + ((buf[3] as u16) << 8);
+            let msg_id = buf[3] as u16 + ((buf[2] as u16) << 8);
             match client.cancel_tx.try_send((
                 client.remote_addr,
                 MSG_TYPE_PUBCOMP,

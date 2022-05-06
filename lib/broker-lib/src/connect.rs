@@ -25,6 +25,7 @@ use std::str;
 use crate::{
     conn_ack::ConnAck,
     connection::Connection,
+    dbg_buf,
     eformat,
     function,
     message::{MsgHeader, MsgHeaderEnum},
@@ -52,13 +53,12 @@ pub struct Connect {
     pub client_id: Bytes,
 }
 
+/// Connect and Connect4 are for sending CONNECT messages with different header lengths.
 #[derive(
     Debug, Clone, Getters, MutGetters, CopyGetters, Default, PartialEq,
 )]
 #[getset(get, set)]
-/// Connect message type with 4 bytes header.
-struct Connect4 {
-    // NOTE: no pub
+pub struct Connect4 {
     pub one: u8,
     pub len: u16,
     #[debug(format = "0x{:x}")]
@@ -160,35 +160,26 @@ impl Connect {
         buf: &[u8],
         size: usize,
         client: &mut MqttSnClient,
-        header: MsgHeader,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
-        match header.header_len {
-            MsgHeaderEnum::Short => {
-                // TODO check size vs len
-                let (connect, _read_fixed_len) =
-                    Connect::try_read(buf, size).unwrap();
-                dbg!(&connect);
-                Connection::try_insert(
-                    client.remote_addr,
-                    connect.flags,
-                    connect.protocol_id,
-                    connect.duration,
-                    connect.client_id,
-                )?;
-            }
+        dbg_buf!(buf, size);
+        let (connect, _read_fixed_len) = match msg_header.header_len {
+            MsgHeaderEnum::Short => Connect::try_read(buf, size).unwrap(),
             MsgHeaderEnum::Long => {
-                let (connect, _read_fixed_len) =
-                    Connect4::try_read(buf, size).unwrap();
-                dbg!(&connect);
-                Connection::try_insert(
-                    client.remote_addr,
-                    connect.flags,
-                    connect.protocol_id,
-                    connect.duration,
-                    connect.client_id,
-                )?;
+                // The len is no long valid. Use msg_header.len instead.
+                Connect::try_read(&buf[2..], size - 2).unwrap()
             }
-        }
+        };
+        // TODO check size vs len
+        dbg!(msg_header);
+        dbg!(&connect);
+        Connection::try_insert(
+            client.remote_addr,
+            connect.flags,
+            connect.protocol_id,
+            connect.duration,
+            connect.client_id,
+        )?;
         ConnAck::send(client, RETURN_CODE_ACCEPTED)?;
         Ok(())
     }

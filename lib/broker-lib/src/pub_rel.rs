@@ -67,9 +67,7 @@ impl PubRel {
         client: &MqttSnClient,
     ) -> Result<(), String> {
         if buf[0] == MSG_LEN_PUBREL && buf[1] == MSG_TYPE_PUBREL {
-            // TODO verify as Big Endian
-            let msg_id = buf[2] as u16 + ((buf[3] as u16) << 8);
-            // TODO use ?
+            let msg_id = buf[3] as u16 + ((buf[2] as u16) << 8);
             // Send PUBCOMP to publisher
             PubComp::send(msg_id, client)?;
             // Send publish message to subscribers.

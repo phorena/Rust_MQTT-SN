@@ -187,7 +187,8 @@ impl MqttSnClient {
                             continue;
                         };
                         if msg_type == MSG_TYPE_SUBSCRIBE {
-                            let _result = Subscribe::recv(&buf, size, &self);
+                            let _result =
+                                Subscribe::recv(&buf, size, &self, msg_header);
                             continue;
                         };
                         if msg_type == MSG_TYPE_DISCONNECT {

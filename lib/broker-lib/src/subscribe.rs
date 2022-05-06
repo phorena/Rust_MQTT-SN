@@ -56,6 +56,7 @@ use crate::{
         WILL_FALSE,
     },
     function,
+    message::{MsgHeader, MsgHeaderEnum},
     sub_ack::SubAck,
     BrokerLib::MqttSnClient,
     MSG_TYPE_SUBACK,
@@ -168,10 +169,15 @@ impl Subscribe {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
+        header: MsgHeader,
     ) -> Result<(), String> {
         // TODO replace unwrap
-        let (subscribe, read_fixed_len) =
-            Subscribe::try_read(buf, size).unwrap();
+        let (subscribe, read_fixed_len) = match header.header_len {
+            MsgHeaderEnum::Short => Subscribe::try_read(buf, size).unwrap(),
+            MsgHeaderEnum::Long => {
+                Subscribe::try_read(&buf[2..], size - 2).unwrap()
+            }
+        };
         dbg!(subscribe.clone());
         dbg!(subscribe.clone().topic_name);
         let read_len = read_fixed_len + subscribe.topic_name.len();

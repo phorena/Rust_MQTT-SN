@@ -40,10 +40,8 @@ impl Advertise {
         // faster implementation
         // TODO verify big-endian or little-endian for u16 numbers
         // XXX order of statements performance
-        let duration_0 = duration as u8;
-        let duration_1 = (duration >> 8) as u8;
-        // message format
-        // PUBACK:[len(0), msg_type(1), msg_id(2,3)]
+        let duration_0 = (duration >> 8) as u8;
+        let duration_1 = duration as u8;
         let mut bytes = BytesMut::with_capacity(MSG_LEN_ADVERTISE as usize);
         let buf: &[u8] = &[
             MSG_LEN_ADVERTISE,
@@ -68,7 +66,7 @@ impl Advertise {
         size: usize,
         client: &MqttSnClient,
     ) -> Result<(), String> {
-        let (advertise, read_fixed_len) =
+        let (advertise, _read_fixed_len) =
             Advertise::try_read(buf, size).unwrap();
         info!(
             "{}: advertise {} with {} id",
