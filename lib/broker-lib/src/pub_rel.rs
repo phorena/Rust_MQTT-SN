@@ -1,3 +1,13 @@
+/*
+5.4.14 PUBREC, PUBREL, and PUBCOMP
+Length MsgType MsgId
+(octet 0) (1) (2-3)
+Table 18: PUBREC, PUBREL, and PUBCOMP Messages
+As with MQTT, the PUBREC, PUBREL, and PUBCOMP messages are used in conjunction with a PUBLISH
+message with QoS level 2. Their format is illustrated in Table 18:
+• Length and MsgType: see Section 5.2.
+• MsgId: same value as the one contained in the corresponding PUBLISH message.
+*/
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
@@ -67,6 +77,7 @@ impl PubRel {
         client: &MqttSnClient,
     ) -> Result<(), String> {
         if buf[0] == MSG_LEN_PUBREL && buf[1] == MSG_TYPE_PUBREL {
+            // TODO verify as Big Endian
             let msg_id = buf[3] as u16 + ((buf[2] as u16) << 8);
             // Send PUBCOMP to publisher
             PubComp::send(msg_id, client)?;

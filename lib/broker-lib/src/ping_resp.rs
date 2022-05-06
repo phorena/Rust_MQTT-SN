@@ -1,3 +1,15 @@
+/*
+5.4.20 PINGRESP
+Length MsgType
+(octet 0) (1)
+Table 23: PINGRESP Message
+As with MQTT, a PINGRESP message is the response to a PINGREQ message and means ”yes I am alive”.
+Keep Alive messages flow in either direction, sent either by a connected client or the gateway. Its format is
+illustrated in Table 23: it has only a header and no variable part.
+Moreover, a PINGRESP message is sent by a gateway to inform a sleeping client that it has no more buffered
+messages for that client, see Section 6.14 for further details.
+*/
+
 use crate::{
     eformat, function, BrokerLib::MqttSnClient, MSG_LEN_PINGRESP,
     MSG_TYPE_PINGRESP,

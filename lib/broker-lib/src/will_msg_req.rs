@@ -1,3 +1,8 @@
+/*
+5.4.8 WILLMSGREQ
+The WILLMSGREQ message is sent by the GW to request a client for sending the Will message. Its format is
+shown in Table 11: it has only a header and no variable part.
+*/
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};

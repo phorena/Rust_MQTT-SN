@@ -1,3 +1,24 @@
+/*
+5.4.16 SUBACK
+Length MsgType Flags TopicId MsgId ReturnCode
+(octet 0) (1) (2) (3,4) (5,6) (7)
+Table 20: SUBACK Message
+The SUBACK message is sent by a gateway to a client as an acknowledgment to the receipt and processing of
+a SUBSCRIBE message. Its format is illustrated in Table 20:
+• Length and MsgType: see Section 5.2.
+• Flags:
+– DUP: not used.
+– QoS: same as MQTT, contains the granted QoS level.
+– Retain: not used.
+– Will: not used
+– CleanSession: not used
+– TopicIdType: not used
+• TopicId: in case of “accepted” the value that will be used as topic id by the gateway when sending PUBLISH
+messages to the client (not relevant in case of subscriptions to a short topic name or to a topic name which
+contains wildcard characters)
+• MsgId: same value as the one contained in the corresponding SUBSCRIBE message.
+• ReturnCode: “accepted”, or rejection reason.
+*/
 use crate::{
     eformat, function, BrokerLib::MqttSnClient, MSG_LEN_SUBACK, MSG_TYPE_SUBACK,
 };

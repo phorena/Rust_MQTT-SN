@@ -1,3 +1,11 @@
+/*
+5.4.6 WILLTOPICREQ
+Length MsgType
+(octet 0) (1)
+Table 11: WILLTOPICREQ and WILLMSGREQ Messages
+The WILLTOPICREQ message is sent by the GW to request a client for sending the Will topic name. Its
+format is shown in Table 11: it has only a header and no variable part.
+*/
 use crate::{
     eformat, function, BrokerLib::MqttSnClient, MSG_LEN_WILL_TOPIC_REQ,
     MSG_TYPE_WILL_TOPIC_REQ,

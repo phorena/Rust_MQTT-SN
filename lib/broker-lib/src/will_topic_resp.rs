@@ -1,3 +1,12 @@
+/*
+5.4.24 WILLTOPICRESP
+Length MsgType ReturnCode
+(octet 0) (1) (2)
+Table 27: WILLTOPICRESP and WILLMSGRESP Messages
+The WILLTOPICRESP message is sent by a GW to acknowledge the receipt and processing of an WILLTOPICUPD message. Its format is illustrated in Table 27:
+• Length and MsgType: see Section 5.2.
+• ReturnCode: “accepted”, or rejection reason
+*/
 use crate::{
     eformat, function, BrokerLib::MqttSnClient, ReturnCodeConst,
     MSG_LEN_WILL_TOPIC_RESP, MSG_TYPE_WILL_TOPIC_RESP,

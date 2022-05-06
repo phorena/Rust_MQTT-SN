@@ -1,3 +1,23 @@
+/*
+5.4.7 WILLTOPIC
+Length MsgType Flags WillTopic
+(octet 0) (1) (2) (3:n)
+Table 12: WILLTOPIC Message
+The WILLTOPIC message is sent by a client as response to the WILLTOPICREQ message for transferring its
+Will topic name to the GW. Its format is shown in Table 12:
+• Length and MsgType: see Section 5.2.
+• Flags:
+– DUP: not used.
+– QoS: same as MQTT, contains the Will QoS
+– Retain: same as MQTT, contains the Will Retain flag
+– Will: not used
+– CleanSession: not used
+– TopicIdType: not used.
+• WillTopic: contains the Will topic name.
+An empty WILLTOPIC message is a WILLTOPIC message without Flags and WillTopic field (i.e. it is exactly
+2 octets long). It is used by a client to delete the Will topic and the Will message stored in the server, see Section
+6.4.
+*/
 use crate::{
     connection::Connection, eformat, function, BrokerLib::MqttSnClient,
     MSG_LEN_WILL_TOPIC_HEADER, MSG_TYPE_WILL_TOPIC,

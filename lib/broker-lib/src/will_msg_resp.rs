@@ -1,3 +1,10 @@
+/*
+5.4.25 WILLMSGRESP
+The WILLMSGRESP message is sent by a GW to acknowledge the receipt and processing of an WILLMSGUPD
+message. Its format is illustrated in Table 27:
+• Length and MsgType: see Section 5.2.
+• ReturnCode: “accepted”, or rejection reason
+*/
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};

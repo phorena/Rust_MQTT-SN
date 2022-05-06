@@ -1,3 +1,17 @@
+/*
+5.4.13 PUBACK
+Length MsgType TopicId MsgId ReturnCode
+(octet 0) (1) (2,3) (4,5) (6)
+Table 17: PUBACK message
+The PUBACK message is sent by a gateway or a client as an acknowledgment to the receipt and processing
+of a PUBLISH message in case of QoS levels 1 or 2. It can also be sent as response to a PUBLISH message in
+case of an error; the error reason is then indicated in the ReturnCode field. Its format is illustrated in Table 17:
+• Length and MsgType: see Section 5.2.
+• TopicId: same value the one contained in the corresponding PUBLISH message.
+• MsgId: same value as the one contained in the corresponding PUBLISH message.
+• ReturnCode: “accepted”, or rejection reason.
+*/
+
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
@@ -88,7 +102,6 @@ impl PubAck {
     ) -> Result<(), String> {
         // faster implementation
         // TODO verify big-endian or little-endian for u16 numbers
-        // XXX order of statements performance
         let msg_id_byte_1 = msg_id as u8;
         let topic_id_byte_1 = topic_id as u8;
         let msg_id_byte_0 = (msg_id >> 8) as u8;

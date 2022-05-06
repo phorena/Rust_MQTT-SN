@@ -1,3 +1,13 @@
+/*
+5.4.9 WILLMSG
+Length MsgType WillMsg
+(octet 0) (1) (2:n)
+Table 13: WILLMSG Message
+The WILLMSG message is sent by a client as response to a WILLMSGREQ for transferring its Will message
+to the GW. Its format is shown in Table 13:
+• Length and MsgType: see Section 5.2.
+• WillMsg: contains the Will message.
+*/
 use crate::{
     connection::Connection, eformat, function, BrokerLib::MqttSnClient,
     MSG_LEN_WILL_MSG_HEADER, MSG_TYPE_WILL_MSG,

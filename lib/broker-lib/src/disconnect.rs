@@ -1,3 +1,23 @@
+/*
+5.4.21 DISCONNECT
+Length    MsgType Duration (optional)
+(octet 0) (1)     (2-3)
+Table 24: DISCONNECT Message
+The format of the DISCONNECT message is illustrated in Table 24:
+• Length and MsgType: see Section 5.2.
+• Duration: contains the value of the sleep timer; this field is optional and is included by a “sleeping” client
+that wants to go the “asleep” state, see Section 6.14 for further details.
+As with MQTT, the DISCONNECT message is sent by a client to indicate that it wants to close the connection.
+The gateway will acknowledge the receipt of that message by returning a DISCONNECT to the client. A server or
+gateway may also sends a DISCONNECT to a client, e.g. in case a gateway, due to an error, cannot map a received
+message to a client. Upon receiving such a DISCONNECT message, a client should try to setup the connection
+again by sending a CONNECT message to the gateway or server. In all these cases the DISCONNECT message
+does not contain the Duration field.
+A DISCONNECT message with a Duration field is sent by a client when it wants to go to the “asleep” state.
+The receipt of this message is also acknowledged by the gateway by means of a DISCONNECT message (without
+a duration field).
+*/
+
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
@@ -13,18 +33,6 @@ use crate::{
     // flags::{flags_set, flag_qos_level, },
     MSG_TYPE_DISCONNECT,
 };
-
-/*
-As with MQTT, the DISCONNECT message is sent by a client to indicate that it wants to close the connection.
-The gateway will acknowledge the receipt of that message by returning a DISCONNECT to the client. A server or
-gateway may also sends a DISCONNECT to a client, e.g. in case a gateway, due to an error, cannot map a received
-message to a client. Upon receiving such a DISCONNECT message, a client should try to setup the connection
-again by sending a CONNECT message to the gateway or server. In all these cases the DISCONNECT message
-does not contain the Duration field.
-A DISCONNECT message with a Duration field is sent by a client when it wants to go to the “asleep” state.
-The receipt of this message is also acknowledged by the gateway by means of a DISCONNECT message (without
-a duration field).
-*/
 
 #[derive(
     Debug,

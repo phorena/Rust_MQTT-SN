@@ -1,3 +1,13 @@
+/*
+5.4.18 UNSUBACK
+Length MsgType MsgId
+(octet 0) (1) (2-3)
+Table 21: UNSUBACK Message
+An UNSUBACK message is sent by a GW to acknowledge the receipt and processing of an UNSUBSCRIBE
+message. Its format is illustrated in Table 21:
+• Length and MsgType: see Section 5.2.
+• MsgId: same value as the one contained in the corresponding UNSUBSCRIBE message.
+*/
 use crate::{
     eformat, function, BrokerLib::MqttSnClient, MSG_LEN_UNSUBACK,
     MSG_TYPE_UNSUBACK,
