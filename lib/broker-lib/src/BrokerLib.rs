@@ -2,7 +2,7 @@ use std::net::UdpSocket;
 use std::thread;
 use std::{net::SocketAddr, sync::Arc, sync::Mutex};
 
-use crate::TimingWheel2::RetransTimeWheel;
+use crate::timing_wheel::RetransTimeWheel;
 use bytes::{Bytes, BytesMut};
 use core::fmt::Debug;
 use crossbeam::channel::{unbounded, Receiver, Sender};
@@ -126,6 +126,13 @@ impl MqttSnClient {
         let builder = thread::Builder::new().name("recv_thread".into());
         // process input datagram from network
         let _recv_thread = builder.spawn(move || {
+            // TODO optimization
+            // recv_from(&mut buf[2..], size -2 ) instead of recv_from(&mut buf size).
+            // declare the struct with one:u8 and len:u16
+            // if the message header is short, backup 2 bytes to try_read() and len += 2.
+            // the message is mapped to the struct with one=0 and correct len.
+            // The buf[0..1] must be init to 0.
+
             let mut buf = [0; 1500];
             loop {
                 match socket.recv_from(&mut buf) {
@@ -140,7 +147,57 @@ impl MqttSnClient {
                             }
                         };
                         let msg_type = msg_header.msg_type;
-                        if !Connection::contains_key(addr) {
+                        if Connection::contains_key(addr) {
+                            // Existing connection
+                            dbg!(&msg_header);
+                            dbg_buf!(buf, size);
+                            if msg_type == MSG_TYPE_PUBLISH {
+                                if let Err(err) =
+                                    Publish::recv(&buf, size, &self, msg_header)
+                                {
+                                    error!("{}", err);
+                                }
+                                continue;
+                            };
+                            if msg_type == MSG_TYPE_PUBREL {
+                                if let Err(err) =
+                                    PubRel::recv(&buf, size, &self)
+                                {
+                                    error!("{}", err);
+                                }
+                                continue;
+                            };
+                            if msg_type == MSG_TYPE_PUBACK {
+                                let _result = PubAck::recv(&buf, size, &self);
+                                continue;
+                            };
+                            if msg_type == MSG_TYPE_SUBACK {
+                                let _result = SubAck::recv(&buf, size, &self);
+                                continue;
+                            };
+                            if msg_type == MSG_TYPE_SUBSCRIBE {
+                                let _result = Subscribe::recv(
+                                    &buf, size, &self, msg_header,
+                                );
+                                continue;
+                            };
+                            if msg_type == MSG_TYPE_DISCONNECT {
+                                let _result =
+                                    Disconnect::recv(&buf, size, &self);
+                                continue;
+                            };
+                            if msg_type == MSG_TYPE_CONNACK {
+                                match ConnAck::recv(&buf, size, &self) {
+                                    // Broker shouldn't receive ConnAck
+                                    // because it doesn't send Connect for now.
+                                    Ok(_) => {
+                                        error!("Broker ConnAck {:?}", addr);
+                                    }
+                                    Err(why) => error!("ConnAck {:?}", why),
+                                }
+                                continue;
+                            };
+                        } else {
                             // New connection, not in the connection hashmap.
                             if msg_type == MSG_TYPE_CONNECT {
                                 if let Err(err) = Connect::recv(
@@ -161,51 +218,6 @@ impl MqttSnClient {
                                 continue;
                             }
                         }
-                        // Existing connection
-                        dbg!(&msg_header);
-                        dbg_buf!(buf, size);
-                        if msg_type == MSG_TYPE_PUBLISH {
-                            if let Err(err) =
-                                Publish::recv(&buf, size, &self, msg_header)
-                            {
-                                error!("{}", err);
-                            }
-                            continue;
-                        };
-                        if msg_type == MSG_TYPE_PUBREL {
-                            if let Err(err) = PubRel::recv(&buf, size, &self) {
-                                error!("{}", err);
-                            }
-                            continue;
-                        };
-                        if msg_type == MSG_TYPE_PUBACK {
-                            let _result = PubAck::recv(&buf, size, &self);
-                            continue;
-                        };
-                        if msg_type == MSG_TYPE_SUBACK {
-                            let _result = SubAck::recv(&buf, size, &self);
-                            continue;
-                        };
-                        if msg_type == MSG_TYPE_SUBSCRIBE {
-                            let _result =
-                                Subscribe::recv(&buf, size, &self, msg_header);
-                            continue;
-                        };
-                        if msg_type == MSG_TYPE_DISCONNECT {
-                            let _result = Disconnect::recv(&buf, size, &self);
-                            continue;
-                        };
-                        if msg_type == MSG_TYPE_CONNACK {
-                            match ConnAck::recv(&buf, size, &self) {
-                                // Broker shouldn't receive ConnAck
-                                // because it doesn't send Connect for now.
-                                Ok(_) => {
-                                    error!("Broker ConnAck {:?}", addr);
-                                }
-                                Err(why) => error!("ConnAck {:?}", why),
-                            }
-                            continue;
-                        };
                     }
                     Err(why) => {
                         error!("{}", why);

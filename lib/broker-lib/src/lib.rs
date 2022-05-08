@@ -24,9 +24,8 @@ pub mod StateMachine;
 #[allow(non_snake_case)]
 pub mod SubscriberDb;
 #[allow(non_snake_case)]
-pub mod TimingWheel2;
-#[allow(non_snake_case)]
 pub mod TopicDb;
+pub mod timing_wheel;
 pub mod filter;
 pub mod ping_req;
 pub mod ping_resp;
