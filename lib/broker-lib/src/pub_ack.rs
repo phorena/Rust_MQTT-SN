@@ -20,7 +20,7 @@ use std::mem;
 use crate::{
     eformat,
     function,
-    BrokerLib::MqttSnClient,
+    broker_lib::MqttSnClient,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_PUBACK,
     MSG_TYPE_PUBACK,

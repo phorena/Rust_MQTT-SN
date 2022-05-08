@@ -22,7 +22,7 @@ use crate::{
     eformat, function,
     message::{MsgHeader, MsgHeaderEnum},
     ping_resp::PingResp,
-    BrokerLib::MqttSnClient,
+    broker_lib::MqttSnClient,
     MSG_LEN_PINGREQ_HEADER, MSG_TYPE_PINGREQ,
 };
 

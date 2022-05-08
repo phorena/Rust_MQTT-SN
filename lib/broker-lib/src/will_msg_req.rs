@@ -8,7 +8,7 @@ use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
 
 use crate::{
-    eformat, function, BrokerLib::MqttSnClient, MSG_LEN_WILL_MSG_REQ,
+    eformat, function, broker_lib::MqttSnClient, MSG_LEN_WILL_MSG_REQ,
     MSG_TYPE_WILL_MSG_REQ,
 };
 

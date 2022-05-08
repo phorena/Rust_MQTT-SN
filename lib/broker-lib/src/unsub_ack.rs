@@ -9,7 +9,7 @@ message. Its format is illustrated in Table 21:
 • MsgId: same value as the one contained in the corresponding UNSUBSCRIBE message.
 */
 use crate::{
-    eformat, function, BrokerLib::MqttSnClient, MSG_LEN_UNSUBACK,
+    eformat, function, broker_lib::MqttSnClient, MSG_LEN_UNSUBACK,
     MSG_TYPE_UNSUBACK,
 };
 use bytes::{BufMut, BytesMut};

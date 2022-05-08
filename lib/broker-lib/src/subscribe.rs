@@ -58,7 +58,7 @@ use crate::{
     function,
     message::{MsgHeader, MsgHeaderEnum},
     sub_ack::SubAck,
-    BrokerLib::MqttSnClient,
+    broker_lib::MqttSnClient,
     MSG_TYPE_SUBACK,
     MSG_TYPE_SUBSCRIBE,
     RETURN_CODE_ACCEPTED,

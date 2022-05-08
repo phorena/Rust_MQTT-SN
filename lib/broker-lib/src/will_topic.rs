@@ -19,7 +19,7 @@ An empty WILLTOPIC message is a WILLTOPIC message without Flags and WillTopic fi
 6.4.
 */
 use crate::{
-    connection::Connection, eformat, function, BrokerLib::MqttSnClient,
+    connection::Connection, eformat, function, broker_lib::MqttSnClient,
     MSG_LEN_WILL_TOPIC_HEADER, MSG_TYPE_WILL_TOPIC,
 };
 use bytes::{BufMut, BytesMut};

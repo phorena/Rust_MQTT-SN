@@ -11,7 +11,7 @@ messages for that client, see Section 6.14 for further details.
 */
 
 use crate::{
-    eformat, function, BrokerLib::MqttSnClient, MSG_LEN_PINGRESP,
+    eformat, function, broker_lib::MqttSnClient, MSG_LEN_PINGRESP,
     MSG_TYPE_PINGRESP,
 };
 use bytes::{BufMut, BytesMut};

@@ -20,7 +20,7 @@ it is exactly 2 octets long). It is used by a client to delete its Will topic an
 */
 use crate::{
     connection::Connection, eformat, function, will_topic_resp::WillTopicResp,
-    BrokerLib::MqttSnClient, MSG_LEN_WILL_TOPIC_UPD_HEADER,
+    broker_lib::MqttSnClient, MSG_LEN_WILL_TOPIC_UPD_HEADER,
     MSG_TYPE_WILL_TOPIC_UPD, RETURN_CODE_ACCEPTED,
 };
 use bytes::{BufMut, BytesMut};

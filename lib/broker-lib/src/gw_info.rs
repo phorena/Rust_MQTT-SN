@@ -14,7 +14,7 @@ Like the SEARCHGW message the broadcast radius for this message is also indicate
 network layer when MQTT-SN gives this message for transmission.
 */
 use crate::{
-    eformat, function, BrokerLib::MqttSnClient, MSG_LEN_GW_INFO_HEADER,
+    eformat, function, broker_lib::MqttSnClient, MSG_LEN_GW_INFO_HEADER,
     MSG_TYPE_GW_INFO,
 };
 use bytes::{BufMut, BytesMut};

@@ -27,7 +27,7 @@ use crate::{
     connection::Connection,
     eformat,
     function,
-    BrokerLib::MqttSnClient,
+    broker_lib::MqttSnClient,
     MSG_LEN_DISCONNECT,
     MSG_LEN_DISCONNECT_DURATION,
     // flags::{flags_set, flag_qos_level, },

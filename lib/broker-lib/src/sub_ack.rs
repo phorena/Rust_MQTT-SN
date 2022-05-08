@@ -20,7 +20,7 @@ contains wildcard characters)
 • ReturnCode: “accepted”, or rejection reason.
 */
 use crate::{
-    eformat, function, BrokerLib::MqttSnClient, MSG_LEN_SUBACK, MSG_TYPE_SUBACK,
+    eformat, function, broker_lib::MqttSnClient, MSG_LEN_SUBACK, MSG_TYPE_SUBACK,
 };
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;

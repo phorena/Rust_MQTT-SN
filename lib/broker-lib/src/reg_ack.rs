@@ -17,7 +17,7 @@ use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
 use crate::{
-    eformat, function, BrokerLib::MqttSnClient, MSG_LEN_REGACK, MSG_TYPE_REGACK,
+    eformat, function, broker_lib::MqttSnClient, MSG_LEN_REGACK, MSG_TYPE_REGACK,
 };
 
 #[derive(Debug, Clone, Getters, MutGetters, CopyGetters, Default)]

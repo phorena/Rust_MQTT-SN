@@ -15,7 +15,7 @@ use std::str;
 
 use crate::{
     connection::Connection, eformat, function, will_msg_resp::WillMsgResp,
-    BrokerLib::MqttSnClient, MSG_LEN_WILL_MSG_HEADER, MSG_TYPE_WILL_MSG,
+    broker_lib::MqttSnClient, MSG_LEN_WILL_MSG_HEADER, MSG_TYPE_WILL_MSG,
     RETURN_CODE_ACCEPTED,
 };
 

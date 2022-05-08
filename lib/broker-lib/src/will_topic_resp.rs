@@ -8,7 +8,7 @@ The WILLTOPICRESP message is sent by a GW to acknowledge the receipt and process
 • ReturnCode: “accepted”, or rejection reason
 */
 use crate::{
-    eformat, function, BrokerLib::MqttSnClient, ReturnCodeConst,
+    eformat, function, broker_lib::MqttSnClient, ReturnCodeConst,
     MSG_LEN_WILL_TOPIC_RESP, MSG_TYPE_WILL_TOPIC_RESP,
 };
 use bytes::{BufMut, BytesMut};

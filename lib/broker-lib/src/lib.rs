@@ -6,7 +6,7 @@ extern crate lazy_static;
 
 // TODO fix non_snake_case.
 #[allow(non_snake_case)]
-pub mod BrokerLib;
+pub mod broker_lib;
 pub mod advertise;
 pub mod conn_ack;
 pub mod connect;

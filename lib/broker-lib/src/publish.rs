@@ -46,7 +46,7 @@ use crate::{
     pub_ack::PubAck,
     pub_msg_cache::PubMsgCache,
     pub_rec::PubRec,
-    BrokerLib::MqttSnClient,
+    broker_lib::MqttSnClient,
     MSG_LEN_PUBACK, MSG_LEN_PUBLISH_HEADER, MSG_LEN_PUBREC, MSG_TYPE_CONNACK,
     MSG_TYPE_CONNECT, MSG_TYPE_PUBACK, MSG_TYPE_PUBCOMP, MSG_TYPE_PUBLISH,
     MSG_TYPE_PUBREC, MSG_TYPE_PUBREL, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE,

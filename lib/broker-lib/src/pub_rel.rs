@@ -41,7 +41,7 @@ use crate::{
         TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
     },
     */
-    BrokerLib::MqttSnClient, MSG_LEN_PUBREL, MSG_TYPE_PUBREL,
+    broker_lib::MqttSnClient, MSG_LEN_PUBREL, MSG_TYPE_PUBREL,
 };
 
 #[derive(

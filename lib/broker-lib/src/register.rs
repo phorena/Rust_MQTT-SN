@@ -25,7 +25,7 @@ use crate::{
     filter::try_register_topic_name,
     function,
     message::{MsgHeader, MsgHeaderEnum},
-    BrokerLib::MqttSnClient,
+    broker_lib::MqttSnClient,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_REGISTER_HEADER,
     MSG_TYPE_REGACK,

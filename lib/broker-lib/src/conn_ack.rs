@@ -15,7 +15,7 @@ use getset::{CopyGetters, Getters, MutGetters /* Setters */};
 use crate::{
     eformat,
     function,
-    BrokerLib::MqttSnClient,
+    broker_lib::MqttSnClient,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_CONNACK,
     MSG_TYPE_CONNACK,

@@ -29,7 +29,7 @@ use crate::{
     eformat,
     function,
     message::{MsgHeader, MsgHeaderEnum},
-    BrokerLib::MqttSnClient,
+    broker_lib::MqttSnClient,
     MSG_LEN_CONNECT_HEADER,
     // flags::{flags_set, flag_qos_level, },
     MSG_TYPE_CONNACK,
