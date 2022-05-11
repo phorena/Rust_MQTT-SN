@@ -3,9 +3,9 @@
 Length MsgType ClientId (optional)
 (octet 0) (1) (2:n)
 Table 22: PINGREQ Message
+
 As with MQTT, the PINGREQ message is an ”are you alive” message that is sent from or received by a
 connected client. Its format is illustrated in Table 22:
-c Copyright IBM Corporation 1999, 2013. All rights reserved. 16
 • Length and MsgType: see Section 5.2.
 • ClientId: contains the client id; this field is optional and is included by a “sleeping” client when it goes
 to the “awake” state and is waiting for messages sent by the server/gateway, see Section 6.14 for further
@@ -19,10 +19,10 @@ use std::mem;
 use std::str; // NOTE: needed for MutGetters
 
 use crate::{
+    broker_lib::MqttSnClient,
     eformat, function,
     message::{MsgHeader, MsgHeaderEnum},
     ping_resp::PingResp,
-    broker_lib::MqttSnClient,
     MSG_LEN_PINGREQ_HEADER, MSG_TYPE_PINGREQ,
 };
 

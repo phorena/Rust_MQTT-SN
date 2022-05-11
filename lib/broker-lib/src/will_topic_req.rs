@@ -7,7 +7,7 @@ The WILLTOPICREQ message is sent by the GW to request a client for sending the W
 format is shown in Table 11: it has only a header and no variable part.
 */
 use crate::{
-    eformat, function, broker_lib::MqttSnClient, MSG_LEN_WILL_TOPIC_REQ,
+    broker_lib::MqttSnClient, eformat, function, MSG_LEN_WILL_TOPIC_REQ,
     MSG_TYPE_WILL_TOPIC_REQ,
 };
 use bytes::{BufMut, BytesMut};

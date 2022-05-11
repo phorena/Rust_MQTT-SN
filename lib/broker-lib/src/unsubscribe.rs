@@ -29,6 +29,7 @@ extern crate trace_caller;
 use trace_caller::trace;
 
 use crate::{
+    broker_lib::MqttSnClient,
     eformat,
     // Connection::connection_filter_insert,
     filter::{
@@ -55,7 +56,6 @@ use crate::{
     },
     function,
     message::{MsgHeader, MsgHeaderEnum},
-    broker_lib::MqttSnClient,
     MSG_LEN_UNSUBSCRIBE_HEADER,
     MSG_TYPE_UNSUBACK,
     MSG_TYPE_UNSUBSCRIBE,

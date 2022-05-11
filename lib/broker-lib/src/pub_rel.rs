@@ -14,8 +14,6 @@ use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
 use crate::{
-    eformat, function, pub_comp::PubComp, pub_msg_cache::PubMsgCache,
-    publish::Publish,
     /*
     flags::{flags_set, flag_qos_level, },
     StateMachine,
@@ -41,7 +39,9 @@ use crate::{
         TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
     },
     */
-    broker_lib::MqttSnClient, MSG_LEN_PUBREL, MSG_TYPE_PUBREL,
+    broker_lib::MqttSnClient, eformat, function, pub_comp::PubComp,
+    pub_msg_cache::PubMsgCache, publish::Publish, MSG_LEN_PUBREL,
+    MSG_TYPE_PUBREL,
 };
 
 #[derive(

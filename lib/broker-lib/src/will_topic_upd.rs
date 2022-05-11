@@ -19,8 +19,8 @@ An empty WILLTOPICUPD message is a WILLTOPICUPD message without Flags and WillTo
 it is exactly 2 octets long). It is used by a client to delete its Will topic and Will message stored in the GW/server.
 */
 use crate::{
-    connection::Connection, eformat, function, will_topic_resp::WillTopicResp,
-    broker_lib::MqttSnClient, MSG_LEN_WILL_TOPIC_UPD_HEADER,
+    broker_lib::MqttSnClient, connection::Connection, eformat, function,
+    will_topic_resp::WillTopicResp, MSG_LEN_WILL_TOPIC_UPD_HEADER,
     MSG_TYPE_WILL_TOPIC_UPD, RETURN_CODE_ACCEPTED,
 };
 use bytes::{BufMut, BytesMut};

@@ -13,7 +13,7 @@ use crate::flags::{
 };
 use crate::MainMachineClient::MainMachine;
 use crate::MsgType::MsgType;
-use crate::TimingWheel2::TimingWheel2;
+use crate::TimingWheel::TimingWheel;
 use crate::Transfer::Transfer;
 use crate::MTU;
 
@@ -84,7 +84,7 @@ struct ClientStruct {
     state: Arc<AtomicU8>,
     addr: SocketAddr,
     broker: UdpSocket,
-    timing_wheel: &'static TimingWheel2<RetransmitHeader, RetransmitData>,
+    timing_wheel: &'static TimingWheel<RetransmitHeader, RetransmitData>,
 }
 
 pub fn process_input(

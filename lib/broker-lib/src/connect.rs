@@ -23,13 +23,13 @@ use std::mem;
 use std::str;
 
 use crate::{
+    broker_lib::MqttSnClient,
     conn_ack::ConnAck,
     connection::Connection,
     dbg_buf,
     eformat,
     function,
     message::{MsgHeader, MsgHeaderEnum},
-    broker_lib::MqttSnClient,
     MSG_LEN_CONNECT_HEADER,
     // flags::{flags_set, flag_qos_level, },
     MSG_TYPE_CONNACK,

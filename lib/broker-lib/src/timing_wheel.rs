@@ -41,7 +41,7 @@ impl<KEY: Debug + Clone> Slot<KEY> {
 // static TIME_WHEEL_DEFAULT_DURATION_MS: usize = 300;
 
 #[derive(Debug, Clone)]
-pub struct TimingWheel2<KEY: Debug + Clone, VAL: Debug + Clone> {
+pub struct TimingWheel<KEY: Debug + Clone, VAL: Debug + Clone> {
     max_slot: usize,       // (1000 / sleep_duration) * 64 * 2;
     sleep_duration: usize, // in milliseconds
     default_duration: usize,
@@ -51,7 +51,7 @@ pub struct TimingWheel2<KEY: Debug + Clone, VAL: Debug + Clone> {
 }
 
 impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
-    TimingWheel2<KEY, VAL>
+    TimingWheel<KEY, VAL>
 {
     #[trace_var(max_slot, slot_vec, default_duration)]
     pub fn new(sleep_duration: usize, default_duration_ms: usize) -> Self {
@@ -69,7 +69,7 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
             slot_vec.push(Slot::new());
             // slot_hash.push(Arc::new(Mutex::new(HashMap::new())));
         }
-        TimingWheel2 {
+        TimingWheel {
             max_slot,
             sleep_duration,
             default_duration,
@@ -302,7 +302,7 @@ pub struct RetransTimeWheel {
     pub cancel_rx: Receiver<(SocketAddr, u8, u16, u16)>,
     transmit_tx: Sender<(SocketAddr, BytesMut)>,
     transmit_rx: Receiver<(SocketAddr, BytesMut)>,
-    wheel: TimingWheel2<RetransmitHeader, RetransmitData>,
+    wheel: TimingWheel<RetransmitHeader, RetransmitData>,
 }
 
 impl RetransTimeWheel {
@@ -316,7 +316,7 @@ impl RetransTimeWheel {
         transmit_tx: Sender<(SocketAddr, BytesMut)>,
         transmit_rx: Receiver<(SocketAddr, BytesMut)>,
     ) -> Self {
-        let wheel = TimingWheel2::new(sleep_duration, default_duration_ms);
+        let wheel = TimingWheel::new(sleep_duration, default_duration_ms);
         RetransTimeWheel {
             schedule_tx,
             schedule_rx,

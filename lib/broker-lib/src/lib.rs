@@ -34,7 +34,6 @@ pub mod pub_comp;
 pub mod pub_rec;
 pub mod pub_rel;
 pub mod publish;
-#[allow(non_snake_case)]
 pub mod reg_ack;
 pub mod register;
 pub mod sub_ack;
@@ -134,7 +133,7 @@ pub const MSG_LEN_WILL_TOPIC_HEADER: MsgLenConst = 3;
 pub const MSG_LEN_WILL_MSG_HEADER: MsgLenConst = 2;
 pub const MSG_LEN_WILL_TOPIC_UPD_HEADER: MsgLenConst = 3;
 pub const MSG_LEN_WILL_MSG_UPD_HEADER: MsgLenConst = 2;
-pub const MSG_LEN_PUBLISH_HEADER: MsgLenConst = 6;
+pub const MSG_LEN_PUBLISH_HEADER: MsgLenConst = 7;
 pub const MSG_LEN_CONNECT_HEADER: MsgLenConst = 6;
 pub const MSG_LEN_PINGREQ_HEADER: MsgLenConst = 2;
 pub const MSG_LEN_SUBSCRIBE_HEADER: MsgLenConst = 7;

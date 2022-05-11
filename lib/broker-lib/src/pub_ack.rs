@@ -18,9 +18,9 @@ use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
 use crate::{
+    broker_lib::MqttSnClient,
     eformat,
     function,
-    broker_lib::MqttSnClient,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_PUBACK,
     MSG_TYPE_PUBACK,

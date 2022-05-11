@@ -10,7 +10,7 @@ use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
 
 use crate::{
-    eformat, function, broker_lib::MqttSnClient, ReturnCodeConst,
+    broker_lib::MqttSnClient, eformat, function, ReturnCodeConst,
     MSG_LEN_WILL_MSG_RESP, MSG_TYPE_WILL_MSG_RESP,
 };
 #[derive(Debug, Clone, Copy, Getters, MutGetters, CopyGetters, Default)]

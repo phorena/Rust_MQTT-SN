@@ -21,11 +21,11 @@ use std::mem;
 use std::str;
 
 use crate::{
+    broker_lib::MqttSnClient,
     eformat,
     filter::try_register_topic_name,
     function,
     message::{MsgHeader, MsgHeaderEnum},
-    broker_lib::MqttSnClient,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_REGISTER_HEADER,
     MSG_TYPE_REGACK,

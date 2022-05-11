@@ -26,7 +26,7 @@ use crate::{
     sub_ack::SubAck,
     subscribe::Subscribe,
     StateMachine::{StateMachine, STATE_DISCONNECT},
-    // TimingWheel2::{RetransmitData, RetransmitHeader},
+    // TimingWheel::{RetransmitData, RetransmitHeader},
     MSG_TYPE_CONNACK,
     MSG_TYPE_CONNECT,
     MSG_TYPE_DISCONNECT,
@@ -191,7 +191,7 @@ impl MqttSnClient {
                                     // Broker shouldn't receive ConnAck
                                     // because it doesn't send Connect for now.
                                     Ok(_) => {
-                                        error!("Broker ConnAck {:?}", addr);
+                                        error!("Broker shouldn't receive ConnAck {:?}", addr);
                                     }
                                     Err(why) => error!("ConnAck {:?}", why),
                                 }
@@ -205,7 +205,17 @@ impl MqttSnClient {
                                 ) {
                                     error!("{}", err);
                                 }
+                                let clone_socket = socket.try_clone().expect("couldn't clone the socket");
+                                clone_socket.connect(addr).unwrap();
                                 continue;
+                            } else if msg_type == MSG_TYPE_PUBLISH {
+                                if let Err(err) = Publish::recv(
+                                    &buf, size, &mut self, msg_header,
+                                ) {
+                                    error!("{}", err);
+                                }
+                                continue;
+                                
                             } else {
                                 error!(
                                     "{}",
@@ -232,7 +242,8 @@ impl MqttSnClient {
                 Ok((addr, bytes)) => {
                     // TODO DTLS
                     dbg!((addr, &bytes));
-                    let _result = socket_tx.send_to(&bytes[..], addr);
+                    let result = socket_tx.send_to(&bytes[..], addr);
+                    dbg!(result);
                 }
                 Err(why) => {
                     println!("channel_rx_thread: {}", why);

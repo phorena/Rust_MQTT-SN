@@ -11,7 +11,7 @@ Table 6:
 • Duration: time interval until the next ADVERTISE is broadcasted by this gateway
 */
 use crate::{
-    eformat, function, broker_lib::MqttSnClient, MSG_LEN_SEARCH_GW,
+    broker_lib::MqttSnClient, eformat, function, MSG_LEN_SEARCH_GW,
     MSG_TYPE_SEARCH_GW,
 };
 use bytes::{BufMut, BytesMut};

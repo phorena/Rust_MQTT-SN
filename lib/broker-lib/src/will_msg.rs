@@ -9,7 +9,7 @@ to the GW. Its format is shown in Table 13:
 • WillMsg: contains the Will message.
 */
 use crate::{
-    connection::Connection, eformat, function, broker_lib::MqttSnClient,
+    broker_lib::MqttSnClient, connection::Connection, eformat, function,
     MSG_LEN_WILL_MSG_HEADER, MSG_TYPE_WILL_MSG,
 };
 use bytes::{BufMut, BytesMut};

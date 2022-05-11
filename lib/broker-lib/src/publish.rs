@@ -32,6 +32,7 @@ use std::sync::Mutex;
 use trace_caller::trace;
 
 use crate::{
+    broker_lib::MqttSnClient,
     eformat,
     filter::{get_subscribers_with_topic_id, Subscriber},
     flags::{
@@ -46,7 +47,6 @@ use crate::{
     pub_ack::PubAck,
     pub_msg_cache::PubMsgCache,
     pub_rec::PubRec,
-    broker_lib::MqttSnClient,
     MSG_LEN_PUBACK, MSG_LEN_PUBLISH_HEADER, MSG_LEN_PUBREC, MSG_TYPE_CONNACK,
     MSG_TYPE_CONNECT, MSG_TYPE_PUBACK, MSG_TYPE_PUBCOMP, MSG_TYPE_PUBLISH,
     MSG_TYPE_PUBREC, MSG_TYPE_PUBREL, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE,
@@ -214,7 +214,13 @@ impl Publish {
                     client,
                 )?;
             }
-            QOS_LEVEL_0 | QOS_LEVEL_3 => {}
+            QOS_LEVEL_0 => {}
+            QOS_LEVEL_3 => {
+                return Err(eformat!(
+                    client.remote_addr,
+                    "QoS level 3 is not supported"
+                ));
+            }
             _ => {
                 // Should never happen because flag_qos_level() filters for 4 cases only.
                 {}
@@ -302,16 +308,15 @@ impl Publish {
             // cancel it if receive a PUBACK message.
             QOS_LEVEL_1 => {
                 dbg!((&qos, QOS_LEVEL_1));
-                match client.schedule_tx.try_send((
+                if let Err(why) = client.schedule_tx.try_send((
                     remote_addr,
                     MSG_TYPE_PUBACK,
-                    topic_id,
+                    0,
                     msg_id,
-                    bytes_buf,
+                    bytes_buf.clone(),
                 )) {
-                    Ok(()) => return Ok(()),
-                    Err(err) => return Err(eformat!(remote_addr, err)),
-                }
+                    return Err(eformat!(client.remote_addr, why));
+                };
             }
             QOS_LEVEL_2 => {
                 // 4-way handshake for QoS level 2 message for the SENDER.
@@ -328,16 +333,15 @@ impl Publish {
                 // PUBREC message doesn't have topic id.
                 // For the time wheel hash, default to 0.
                 dbg!(&qos);
-                match client.schedule_tx.try_send((
+                if let Err(why) = client.schedule_tx.try_send((
                     remote_addr,
                     MSG_TYPE_PUBREC,
                     0,
                     msg_id,
                     bytes_buf.clone(),
                 )) {
-                    Ok(()) => return Ok(()),
-                    Err(err) => return Err(eformat!(remote_addr, err)),
-                }
+                    return Err(eformat!(client.remote_addr, why));
+                };
             }
             // no restransmit for Level 0 & 3.
             QOS_LEVEL_0 | QOS_LEVEL_3 => {}
@@ -346,11 +350,10 @@ impl Publish {
             }
         }
         // transmit message to remote address
-        if let Err(err) = client.transmit_tx.try_send((remote_addr, bytes_buf))
-        {
-            return Err(eformat!(remote_addr, err));
+        match client.transmit_tx.try_send((remote_addr, bytes_buf)) {
+            Ok(_) => Ok(()),
+            Err(why) => Err(eformat!(client.remote_addr, why)),
         }
-        Ok(())
     }
     /// send PUBLISH messages to subscribers
     pub fn send_msg_to_subscribers(
@@ -362,6 +365,7 @@ impl Publish {
         for subscriber in subscriber_vec {
             let socket_addr = subscriber.socket_addr;
             let qos = subscriber.qos;
+            dbg!(&socket_addr);
             // Can't return error, because not all subscribers will have error.
             // TODO error for every subscriber/message
             // TODO use Bytes not BytesMut to eliminate clone/copy.
