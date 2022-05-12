@@ -47,3 +47,47 @@ impl Retain {
         }
     }
 }
+#[cfg(test)]
+mod test {
+    use bytes::Bytes;
+    #[test]
+    fn test_retain() {
+        let topic_id = 11;
+        let msg_id = 22;
+        let payload = Bytes::from_static(b"hello");
+        super::Retain::insert(topic_id, msg_id, payload);
+        let retain = super::Retain::get(topic_id);
+        {
+            let retain_map = super::GLOBAL_RETAIN_MAP.lock().unwrap();
+            dbg!(retain_map);
+        }
+        dbg!(&retain);
+        println!("{:?}", retain.unwrap());
+
+        // second retain
+        let topic_id = 111;
+        let msg_id = 33;
+        let payload = Bytes::from_static(b"hey");
+        super::Retain::insert(topic_id, msg_id, payload);
+        let retain = super::Retain::get(topic_id);
+        {
+            let retain_map = super::GLOBAL_RETAIN_MAP.lock().unwrap();
+            dbg!(retain_map);
+        }
+        dbg!(&retain);
+        println!("{:?}", retain.unwrap());
+
+        // replace retain
+        let topic_id = 11;
+        let msg_id = 33;
+        let payload = Bytes::from_static(b"hi");
+        super::Retain::insert(topic_id, msg_id, payload);
+        let retain = super::Retain::get(topic_id);
+        {
+            let retain_map = super::GLOBAL_RETAIN_MAP.lock().unwrap();
+            dbg!(retain_map);
+        }
+        dbg!(&retain);
+        println!("{:?}", retain.unwrap());
+    }
+}
