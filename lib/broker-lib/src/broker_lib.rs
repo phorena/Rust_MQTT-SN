@@ -215,7 +215,6 @@ impl MqttSnClient {
                                     error!("{}", err);
                                 }
                                 continue;
-                                
                             } else {
                                 error!(
                                     "{}",

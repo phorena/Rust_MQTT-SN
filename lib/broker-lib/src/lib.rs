@@ -5,9 +5,9 @@ extern crate arrayref;
 extern crate lazy_static;
 
 // TODO fix non_snake_case.
+pub mod advertise;
 #[allow(non_snake_case)]
 pub mod broker_lib;
-pub mod advertise;
 pub mod conn_ack;
 pub mod connect;
 pub mod connection;
@@ -25,7 +25,6 @@ pub mod StateMachine;
 pub mod SubscriberDb;
 #[allow(non_snake_case)]
 pub mod TopicDb;
-pub mod timing_wheel;
 pub mod filter;
 pub mod ping_req;
 pub mod ping_resp;
@@ -36,8 +35,10 @@ pub mod pub_rel;
 pub mod publish;
 pub mod reg_ack;
 pub mod register;
+pub mod retain;
 pub mod sub_ack;
 pub mod subscribe;
+pub mod timing_wheel;
 pub mod unsub_ack;
 pub mod unsubscribe;
 pub mod will_msg;

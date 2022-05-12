@@ -50,9 +50,7 @@ pub struct TimingWheel<KEY: Debug + Clone, VAL: Debug + Clone> {
     hash: Arc<Mutex<HashMap<KEY, VAL>>>,
 }
 
-impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone>
-    TimingWheel<KEY, VAL>
-{
+impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone> TimingWheel<KEY, VAL> {
     #[trace_var(max_slot, slot_vec, default_duration)]
     pub fn new(sleep_duration: usize, default_duration_ms: usize) -> Self {
         dbg!((sleep_duration, default_duration_ms));
