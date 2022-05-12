@@ -36,17 +36,18 @@ use crate::{
     eformat,
     filter::{get_subscribers_with_topic_id, Subscriber},
     flags::{
-        flag_qos_level, flags_set, CLEAN_SESSION_FALSE, CLEAN_SESSION_TRUE,
-        DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2,
-        QOS_LEVEL_3, RETAIN_FALSE, RETAIN_TRUE, TOPIC_ID_TYPE_NORMAL,
-        TOPIC_ID_TYPE_PRE_DEFINED, TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT,
-        WILL_FALSE, WILL_TRUE,
+        flag_is_retain, flag_qos_level, flags_set, CLEAN_SESSION_FALSE,
+        CLEAN_SESSION_TRUE, DUP_FALSE, DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1,
+        QOS_LEVEL_2, QOS_LEVEL_3, RETAIN_FALSE, RETAIN_TRUE,
+        TOPIC_ID_TYPE_NORMAL, TOPIC_ID_TYPE_PRE_DEFINED,
+        TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
     },
     function,
     message::{MsgHeader, MsgHeaderEnum},
     pub_ack::PubAck,
     pub_msg_cache::PubMsgCache,
     pub_rec::PubRec,
+    retain::Retain,
     MSG_LEN_PUBACK, MSG_LEN_PUBLISH_HEADER, MSG_LEN_PUBREC, MSG_TYPE_CONNACK,
     MSG_TYPE_CONNECT, MSG_TYPE_PUBACK, MSG_TYPE_PUBCOMP, MSG_TYPE_PUBLISH,
     MSG_TYPE_PUBREC, MSG_TYPE_PUBREL, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE,
@@ -225,6 +226,13 @@ impl Publish {
                 // Should never happen because flag_qos_level() filters for 4 cases only.
                 {}
             }
+        }
+        if flag_is_retain(publish.flags) {
+            Retain::insert(
+                publish.topic_id,
+                publish.msg_id,
+                publish.data.clone(),
+            );
         }
         Publish::send_msg_to_subscribers(subscriber_vec, publish, client)?;
 

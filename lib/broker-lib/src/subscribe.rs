@@ -40,24 +40,27 @@ use crate::{
     },
     //     StateMachine,
     flags::{
+        flag_is_retain,
         flag_qos_level,
         flag_topic_id_type,
         flags_set,
         CLEAN_SESSION_FALSE,
         DUP_FALSE,
+        // CleanSessionConst, DupConst, QoSConst, RetainConst, TopicIdTypeConst,
+        // WillConst, CLEAN_SESSION_TRUE,
+        // DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
+        RETAIN_FALSE, // RETAIN_TRUE,
         TOPIC_ID_TYPE_NORMAL,
         TOPIC_ID_TYPE_PRE_DEFINED,
         TOPIC_ID_TYPE_RESERVED,
         TOPIC_ID_TYPE_SHORT,
-        // CleanSessionConst, DupConst, QoSConst, RetainConst, TopicIdTypeConst,
-        // WillConst, CLEAN_SESSION_TRUE,
-        // DUP_TRUE, QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
-        // RETAIN_FALSE, RETAIN_TRUE,
         // WILL_TRUE,
         WILL_FALSE,
     },
     function,
     message::{MsgHeader, MsgHeaderEnum},
+    publish::Publish,
+    retain::Retain,
     sub_ack::SubAck,
     MSG_TYPE_SUBACK,
     MSG_TYPE_SUBSCRIBE,
@@ -183,6 +186,7 @@ impl Subscribe {
         let read_len = read_fixed_len + subscribe.topic_name.len();
 
         dbg!((size, read_len));
+        dbg!(flag_topic_id_type(subscribe.flags));
 
         // TODO check QoS, https://www.hivemq.com/blog/mqtt-essentials-
         // part-6-mqtt-quality-of-service-levels/
@@ -210,51 +214,70 @@ impl Subscribe {
                     return Ok(());
                 }
                 TOPIC_ID_TYPE_PRE_DEFINED => {
+                    // Pre-defined topic type(u16/2 bytes) in the topic_id field.
+                    // The struct has topic_name field only. We have to convert it to
+                    // topic_id.
+                    let id = subscribe.topic_name.chars().as_str();
+                    dbg!(id);
+                    dbg!(id.len());
+                    if id.len() != 2 {
+                        return Err(eformat!(
+                            client.remote_addr,
+                            "Invalid topic_name length: {}",
+                            id.len()
+                        ));
+                    }
+                    let mut topic_id: u16 = 0;
+                    for c in id.chars() {
+                        topic_id = (topic_id << 8) + c as u16;
+                    }
+                    dbg!(topic_id);
                     // Pre-defined topic type(integer): save remote_addr and
                     // topic_id to the hash map.
-                    match subscribe.topic_name.parse::<u16>() {
-                        Ok(topic_id) => {
-                            dbg!(topic_id);
-                            insert_subscriber_with_topic_id(
-                                client.remote_addr,
-                                topic_id,
-                                flag_qos_level(subscribe.flags),
-                            )?;
-                            dbg!(topic_id);
-                            // Because only QoS flag is used and other flags are not used,
-                            // return the same flags as received.
-                            SubAck::send(
-                                client,
-                                subscribe.flags,
-                                topic_id,
-                                subscribe.msg_id,
-                                RETURN_CODE_ACCEPTED,
-                            )?;
-                            return Ok(());
-                        }
-                        Err(e) => {
-                            return Err(eformat!(
-                                client.remote_addr,
-                                "error parsing topic_id",
-                                e,
-                                subscribe.topic_name
-                            ));
-                        }
+                    insert_subscriber_with_topic_id(
+                        client.remote_addr,
+                        topic_id,
+                        flag_qos_level(subscribe.flags),
+                    )?;
+                    dbg!(topic_id);
+                    SubAck::send(
+                        client,
+                        subscribe.flags,
+                        topic_id,
+                        subscribe.msg_id,
+                        RETURN_CODE_ACCEPTED,
+                    )?;
+                    dbg!(topic_id);
+                    if let Some(msg) = Retain::get(topic_id) {
+                        dbg!(topic_id);
+                        Publish::send(
+                            msg.topic_id,
+                            msg.msg_id,
+                            0,
+                            RETAIN_FALSE,
+                            msg.payload,
+                            client,
+                            client.remote_addr,
+                        )?;
                     }
+                    return Ok(());
                 }
                 TOPIC_ID_TYPE_SHORT => {
+                    dbg!(flag_topic_id_type(subscribe.flags));
                     return Err(eformat!(
                         client.remote_addr,
                         "topic Id short topic name not supported"
                     ));
                 }
                 TOPIC_ID_TYPE_RESERVED => {
+                    dbg!(flag_topic_id_type(subscribe.flags));
                     return Err(eformat!(
                         client.remote_addr,
                         "topic Id reserved type"
                     ));
                 }
                 _ => {
+                    dbg!(flag_topic_id_type(subscribe.flags));
                     return Err(eformat!(
                         client.remote_addr,
                         "topic Id unknown type"

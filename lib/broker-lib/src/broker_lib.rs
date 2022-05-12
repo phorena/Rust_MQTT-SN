@@ -205,8 +205,8 @@ impl MqttSnClient {
                                 ) {
                                     error!("{}", err);
                                 }
-                                let clone_socket = socket.try_clone().expect("couldn't clone the socket");
-                                clone_socket.connect(addr).unwrap();
+                                //let clone_socket = socket.try_clone().expect("couldn't clone the socket");
+                                // clone_socket.connect(addr).unwrap();
                                 continue;
                             } else if msg_type == MSG_TYPE_PUBLISH {
                                 if let Err(err) = Publish::recv(
