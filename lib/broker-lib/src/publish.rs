@@ -229,6 +229,7 @@ impl Publish {
         }
         if flag_is_retain(publish.flags) {
             Retain::insert(
+                flag_qos_level(publish.flags),
                 publish.topic_id,
                 publish.msg_id,
                 publish.data.clone(),

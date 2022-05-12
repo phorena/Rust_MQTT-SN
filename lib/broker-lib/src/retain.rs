@@ -3,6 +3,7 @@ use hashbrown::HashMap;
 use std::sync::Mutex;
 
 use crate::{
+    flags::QoSConst,
     MsgIdType,
     // eformat,
     // function,
@@ -16,6 +17,7 @@ lazy_static! {
 
 #[derive(Debug, Clone)]
 pub struct Retain {
+    pub    qos: QoSConst,
     pub topic_id: TopicIdType,
     pub msg_id: MsgIdType,
     pub payload: BytesMut,
@@ -23,21 +25,23 @@ pub struct Retain {
 
 impl Retain {
     pub fn new(
+        qos: QoSConst,
         topic_id: TopicIdType,
         msg_id: MsgIdType,
         payload: BytesMut,
     ) -> Self {
         Self {
+            qos,
             topic_id,
             msg_id,
             payload,
         }
     }
-    pub fn insert(topic_id: TopicIdType, msg_id: MsgIdType, payload: BytesMut) {
+    pub fn insert(qos: QoSConst, topic_id: TopicIdType, msg_id: MsgIdType, payload: BytesMut) {
         let mut retain_map = GLOBAL_RETAIN_MAP.lock().unwrap();
         // if the topic_id is already in the map, replace the old retain with the new one
         // TODO check error
-        retain_map.insert(topic_id, Retain::new(topic_id, msg_id, payload));
+        retain_map.insert(topic_id, Retain::new(qos, topic_id, msg_id, payload));
         dbg!(&retain_map);
     }
     pub fn get(topic_id: TopicIdType) -> Option<Retain> {

@@ -253,7 +253,7 @@ impl Subscribe {
                         Publish::send(
                             msg.topic_id,
                             msg.msg_id,
-                            0,
+                            msg.qos,
                             RETAIN_FALSE,
                             msg.payload,
                             client,
