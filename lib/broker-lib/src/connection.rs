@@ -1,4 +1,4 @@
-use crate::{eformat, function};
+use crate::{eformat, filter::try_insert_topic_name, function, TopicIdType};
 // use log::*;
 // use rand::Rng;
 use bytes::Bytes;
@@ -81,19 +81,21 @@ lazy_static! {
 // #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Connection {
-    socket_addr: SocketAddr,
-    flags: u8,
-    protocol_id: u8,
-    duration: u16,
-    client_id: Bytes,
+    pub socket_addr: SocketAddr,
+    pub flags: u8,
+    pub protocol_id: u8,
+    pub duration: u16,
+    pub client_id: Bytes,
     // TODO Struct Will
     _will: u8,
     _state: u8,
-    will_topic: Bytes, // NOTE: this is a Bytes, not a BytesMut.
-    will_message: Bytes,
+    pub will_topic_id: Option<TopicIdType>,
+    pub will_topic: Bytes, // NOTE: this is a Bytes, not a BytesMut.
+    pub will_message: Bytes,
 }
 
 impl Connection {
+    /*
     pub fn new(
         socket_addr: SocketAddr,
         flags: u8,
@@ -114,6 +116,7 @@ impl Connection {
         };
         Ok(conn)
     }
+    */
     pub fn try_insert(
         socket_addr: SocketAddr,
         flags: u8,
@@ -130,6 +133,7 @@ impl Connection {
             client_id,
             _will: 0,
             _state: 0,
+            will_topic_id: None,
             will_topic: Bytes::new(),
             will_message: Bytes::new(),
         };
@@ -157,7 +161,8 @@ impl Connection {
         let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
         match conn_hashmap.get_mut(&socket_addr) {
             Some(conn) => {
-                conn.will_topic = Bytes::from(topic);
+                // conn.will_topic = Bytes::from(topic);
+                conn.will_topic_id = Some(try_insert_topic_name(topic)?);
                 Ok(())
             }
             None => Err(eformat!(socket_addr, "not found.")),

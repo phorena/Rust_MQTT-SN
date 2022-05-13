@@ -27,7 +27,10 @@ use crate::{
     broker_lib::MqttSnClient,
     connection::Connection,
     eformat,
+    filter::get_subscribers_with_topic_id,
+    flags::RETAIN_FALSE,
     function,
+    publish::Publish,
     MSG_LEN_DISCONNECT,
     MSG_LEN_DISCONNECT_DURATION,
     // flags::{flags_set, flag_qos_level, },
@@ -77,9 +80,28 @@ impl Disconnect {
                 Disconnect::try_read(buf, size).unwrap();
             dbg!(disconnect.clone());
             Connection::db();
-            Connection::remove(client.remote_addr)?;
+            let conn = Connection::remove(client.remote_addr)?;
             Connection::db();
             Disconnect::send(client)?;
+            if let Some(topic_id) = conn.will_topic_id {
+                let subscriber_vec = get_subscribers_with_topic_id(topic_id);
+                for subscriber in subscriber_vec {
+                    // Can't return error, because not all subscribers will have error.
+                    // TODO error for every subscriber/message
+                    // TODO use Bytes not BytesMut to eliminate clone/copy.
+                    // TODO new tx method to reduce have try_write() run once for every subscriber.
+                    let _result = Publish::send(
+                        topic_id,
+                        0,
+                        subscriber.qos,
+                        RETAIN_FALSE,
+                        // TODO *NOTE* BytesMut::put(conn.will_message),
+                        BytesMut::new(),
+                        client,
+                        subscriber.socket_addr,
+                    );
+                }
+            }
             Ok(())
         } else if size == MSG_LEN_DISCONNECT_DURATION as usize {
             // TODO: implement DisconnectDuration

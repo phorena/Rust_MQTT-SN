@@ -280,6 +280,7 @@ lazy_static! {
     pub static ref GLOBAL_TOPIC_ID: Mutex<TopicIdType> = Mutex::new(0);
 }
 
+/// Try to register/insert a topic name and topic id pair
 pub fn try_register_topic_name(
     topic_name: String,
     topic_id: TopicIdType,
@@ -294,11 +295,21 @@ pub fn try_register_topic_name(
             .insert(topic_name, topic_id);
         Ok(topic_id)
     } else {
-        // Topic name is already in the map with one topic id.
-        Ok(topic_ids[0])
+        if topic_ids[0] == topic_id {
+            // Topic name is already in the map with one topic id.
+            Ok(topic_ids[0])
+        } else {
+            Err(eformat!(
+                "topic name/id pair already exists",
+                topic_name,
+                topic_id,
+                topic_ids[0]
+            ))
+        }
     }
 }
 
+/// Try to insert a NEW topic name, without topic id.
 pub fn try_insert_topic_name(
     topic_name: String,
 ) -> Result<TopicIdType, String> {
@@ -320,16 +331,35 @@ pub fn try_insert_topic_name(
 }
 
 #[inline(always)]
-pub fn insert_subscriber_with_topic_id(
-    socket_add: SocketAddr,
+pub fn subscribe_with_topic_name(
+    socket_addr: SocketAddr,
+    topic_name: String,
+    qos: QoSConst,
+) -> Result<TopicIdType, String> {
+    match try_insert_topic_name(topic_name.clone()) {
+        Ok(id) => {
+            GLOBAL_TOPIC_IDS.lock().unwrap().insert(id, socket_addr);
+            GLOBAL_TOPIC_IDS_QOS
+                .lock()
+                .unwrap()
+                .insert((id, socket_addr), qos);
+            Ok(id)
+        }
+        Err(why) => Err(eformat!(socket_addr, why, topic_name)),
+    }
+}
+
+#[inline(always)]
+pub fn subscribe_with_topic_id(
+    socket_addr: SocketAddr,
     id: TopicIdType,
     qos: QoSConst,
 ) -> Result<(), String> {
-    GLOBAL_TOPIC_IDS.lock().unwrap().insert(id, socket_add);
+    GLOBAL_TOPIC_IDS.lock().unwrap().insert(id, socket_addr);
     GLOBAL_TOPIC_IDS_QOS
         .lock()
         .unwrap()
-        .insert((id, socket_add), qos);
+        .insert((id, socket_addr), qos);
     Ok(())
 }
 
@@ -413,19 +443,19 @@ pub fn insert_filter(
 
 /// Remove topics and filters from the bisetmaps using the rev_delete()
 #[inline(always)]
-pub fn delete_filter(socket_add: SocketAddr) {
+pub fn delete_filter(socket_addr: SocketAddr) {
     GLOBAL_WILDCARD_FILTERS
         .lock()
         .unwrap()
-        .rev_delete(&socket_add);
+        .rev_delete(&socket_addr);
     GLOBAL_CONCRETE_TOPICS
         .lock()
         .unwrap()
-        .rev_delete(&socket_add);
+        .rev_delete(&socket_addr);
     GLOBAL_WILDCARD_TOPICS
         .lock()
         .unwrap()
-        .rev_delete(&socket_add);
+        .rev_delete(&socket_addr);
 }
 
 #[inline(always)]
@@ -463,10 +493,10 @@ pub fn match_topics(topic: &String) -> Vec<SocketAddr> {
 
 pub fn global_filter_insert(
     filter: &str,
-    socket_add: SocketAddr,
+    socket_addr: SocketAddr,
 ) -> Result<(), String> {
     let mut filters = GLOBAL_FILTERS.lock().unwrap();
-    filters.insert(filter, socket_add)?;
+    filters.insert(filter, socket_addr)?;
     // dbg!(filters);
     Ok(())
 }
@@ -506,13 +536,13 @@ mod test {
         let socket4 = "127.0.0.4:1200".parse::<SocketAddr>().unwrap();
         let result = super::get_subscribers_with_topic_id(1);
         dbg!(result);
-        super::insert_subscriber_with_topic_id(socket, 1, QOS_LEVEL_2);
-        super::insert_subscriber_with_topic_id(socket2, 1, QOS_LEVEL_1);
-        super::insert_subscriber_with_topic_id(socket3, 1, QOS_LEVEL_0);
-        super::insert_subscriber_with_topic_id(socket, 2, QOS_LEVEL_2);
-        super::insert_subscriber_with_topic_id(socket2, 2, QOS_LEVEL_1);
-        super::insert_subscriber_with_topic_id(socket3, 3, QOS_LEVEL_0);
-        super::insert_subscriber_with_topic_id(socket3, 3, QOS_LEVEL_3);
+        super::subscribe_with_topic_id(socket, 1, QOS_LEVEL_2);
+        super::subscribe_with_topic_id(socket2, 1, QOS_LEVEL_1);
+        super::subscribe_with_topic_id(socket3, 1, QOS_LEVEL_0);
+        super::subscribe_with_topic_id(socket, 2, QOS_LEVEL_2);
+        super::subscribe_with_topic_id(socket2, 2, QOS_LEVEL_1);
+        super::subscribe_with_topic_id(socket3, 3, QOS_LEVEL_0);
+        super::subscribe_with_topic_id(socket3, 3, QOS_LEVEL_3);
         dbg!(super::GLOBAL_TOPIC_IDS.lock().unwrap());
         dbg!(super::GLOBAL_TOPIC_IDS_QOS.lock().unwrap());
         let result = super::get_subscribers_with_topic_id(1);

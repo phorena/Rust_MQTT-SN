@@ -239,10 +239,6 @@ impl Publish {
 
         // TODO check dup, likely not dup
         //
-        // TODO check retain, likely not retain
-        // if retain {
-        //   send a message to save the message in the topic db
-        // }
         Ok(())
     }
 
@@ -372,9 +368,6 @@ impl Publish {
     ) -> Result<(), String> {
         // send PUBLISH messages to subscribers
         for subscriber in subscriber_vec {
-            let socket_addr = subscriber.socket_addr;
-            let qos = subscriber.qos;
-            dbg!(&socket_addr);
             // Can't return error, because not all subscribers will have error.
             // TODO error for every subscriber/message
             // TODO use Bytes not BytesMut to eliminate clone/copy.
@@ -382,11 +375,11 @@ impl Publish {
             Publish::send(
                 publish.topic_id,
                 publish.msg_id,
-                qos,
+                subscriber.qos,
                 RETAIN_FALSE,
                 publish.data.clone(),
                 client,
-                socket_addr,
+                subscriber.socket_addr,
             )?;
         }
         Ok(())

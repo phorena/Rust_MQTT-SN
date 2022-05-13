@@ -35,7 +35,7 @@ use crate::{
     // Connection::connection_filter_insert,
     filter::{
         // global_filter_insert,
-        insert_subscriber_with_topic_id,
+        subscribe_with_topic_id,
         try_insert_topic_name,
     },
     //     StateMachine,
@@ -196,7 +196,7 @@ impl Subscribe {
                     // Normal topic type(string): assign topic_id from existing
                     // or new.
                     let topic_id = try_insert_topic_name(subscribe.topic_name)?;
-                    insert_subscriber_with_topic_id(
+                    subscribe_with_topic_id(
                         client.remote_addr,
                         topic_id,
                         flag_qos_level(subscribe.flags),
@@ -228,13 +228,13 @@ impl Subscribe {
                         ));
                     }
                     let mut topic_id: u16 = 0;
-                    for c in id.chars() {
-                        topic_id = (topic_id << 8) + c as u16;
+                    for char in id.chars() {
+                        topic_id = (topic_id << 8) + char as u16;
                     }
                     dbg!(topic_id);
                     // Pre-defined topic type(integer): save remote_addr and
                     // topic_id to the hash map.
-                    insert_subscriber_with_topic_id(
+                    subscribe_with_topic_id(
                         client.remote_addr,
                         topic_id,
                         flag_qos_level(subscribe.flags),
