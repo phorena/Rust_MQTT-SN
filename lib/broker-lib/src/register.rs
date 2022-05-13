@@ -23,13 +23,16 @@ use std::str;
 use crate::{
     broker_lib::MqttSnClient,
     eformat,
-    filter::try_register_topic_name,
+    filter::get_topic_id_with_topic_name,
     function,
     message::{MsgHeader, MsgHeaderEnum},
+    reg_ack::RegAck,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_REGISTER_HEADER,
     MSG_TYPE_REGACK,
     MSG_TYPE_REGISTER,
+    RETURN_CODE_ACCEPTED,
+    RETURN_CODE_INVALID_TOPIC_ID,
 };
 #[derive(Debug, Clone, Getters, MutGetters, CopyGetters, Default)]
 #[getset(get, set)]
@@ -83,14 +86,24 @@ impl Register {
                     Register::try_read(&buf[3..], size).unwrap();
             }
         }
-        try_register_topic_name(
-            register.topic_name.clone(),
-            register.topic_id,
-        )?;
-        info!(
-            "{}: register {} with {} id",
-            client.remote_addr, register.topic_name, register.topic_id
-        );
+        match get_topic_id_with_topic_name(register.topic_name) {
+            Some(topic_id) => {
+                RegAck::send(
+                    topic_id,
+                    register.msg_id,
+                    RETURN_CODE_ACCEPTED,
+                    client,
+                )?;
+            }
+            None => {
+                RegAck::send(
+                    0,
+                    register.msg_id,
+                    RETURN_CODE_INVALID_TOPIC_ID,
+                    client,
+                )?;
+            }
+        };
         Ok(())
     }
     pub fn send(
@@ -102,8 +115,6 @@ impl Register {
         // new way to format a message
         let len = MSG_LEN_REGISTER_HEADER as usize + topic_name.len() as usize;
         let mut buf = BytesMut::with_capacity(len);
-        // TODO optimize by initializing an array of header fields
-        // then buf.put_slice().
         if len < 256 {
             // 2-byte header
             buf.put_u8(len as u8);

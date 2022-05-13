@@ -90,13 +90,14 @@ impl Disconnect {
                     // TODO error for every subscriber/message
                     // TODO use Bytes not BytesMut to eliminate clone/copy.
                     // TODO new tx method to reduce have try_write() run once for every subscriber.
+                    let mut msg = BytesMut::new();
+                    msg.put(conn.will_message.clone()); // TODO replace BytesMut with Bytes because clone doesn't copy data in Bytes
                     let _result = Publish::send(
                         topic_id,
-                        0,
+                        0, // TODO what is the msg_id?
                         subscriber.qos,
                         RETAIN_FALSE,
-                        // TODO *NOTE* BytesMut::put(conn.will_message),
-                        BytesMut::new(),
+                        msg,
                         client,
                         subscriber.socket_addr,
                     );

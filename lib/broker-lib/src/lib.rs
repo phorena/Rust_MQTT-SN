@@ -144,7 +144,7 @@ pub const MSG_LEN_REGISTER_HEADER: MsgLenConst = 6;
 type ReturnCodeConst = u8;
 const RETURN_CODE_ACCEPTED: ReturnCodeConst = 0;
 // const RETURN_CODE_CONGESTION: ReturnCodeConst = 1;
-// const RETURN_CODE_INVALID_TOPIC_ID: ReturnCodeConst = 2;
+const RETURN_CODE_INVALID_TOPIC_ID: ReturnCodeConst = 2;
 // const RETURN_CODE_NOT_SUPPORTED: ReturnCodeConst = 3;
 
 #[macro_export]

@@ -280,7 +280,15 @@ lazy_static! {
     pub static ref GLOBAL_TOPIC_ID: Mutex<TopicIdType> = Mutex::new(0);
 }
 
-/// Try to register/insert a topic name and topic id pair
+pub fn get_topic_id_with_topic_name(topic_name: String) -> Option<TopicIdType> {
+    let topic_ids = GLOBAL_TOPIC_NAME_TO_IDS.lock().unwrap().get(&topic_name);
+    if topic_ids.is_empty() {
+        None
+    } else {
+        Some(topic_ids[0])
+    }
+}
+
 pub fn try_register_topic_name(
     topic_name: String,
     topic_id: TopicIdType,

@@ -282,7 +282,7 @@ pub struct RetransmitHeader {
 
 #[derive(Debug, Clone)]
 pub struct RetransmitData {
-    pub bytes: BytesMut,
+    pub bytes: BytesMut, // TODO use Bytes instead.
 }
 
 #[derive(Debug, Clone)]
@@ -307,7 +307,7 @@ impl RetransTimeWheel {
     pub fn new(
         sleep_duration: usize,
         default_duration_ms: usize,
-        schedule_tx: Sender<(SocketAddr, u8, u16, u16, BytesMut)>,
+        schedule_tx: Sender<(SocketAddr, u8, u16, u16, BytesMut)>, // TODO use Bytes instead.
         schedule_rx: Receiver<(SocketAddr, u8, u16, u16, BytesMut)>,
         cancel_tx: Sender<(SocketAddr, u8, u16, u16)>,
         cancel_rx: Receiver<(SocketAddr, u8, u16, u16)>,
