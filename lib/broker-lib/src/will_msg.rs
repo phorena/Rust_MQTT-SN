@@ -9,8 +9,9 @@ to the GW. Its format is shown in Table 13:
 • WillMsg: contains the Will message.
 */
 use crate::{
-    broker_lib::MqttSnClient, connection::Connection, eformat, function,
-    MSG_LEN_WILL_MSG_HEADER, MSG_TYPE_WILL_MSG,
+    broker_lib::MqttSnClient, conn_ack::ConnAck, connection::Connection,
+    eformat, function, MSG_LEN_WILL_MSG_HEADER, MSG_TYPE_WILL_MSG,
+    RETURN_CODE_ACCEPTED,
 };
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
@@ -24,7 +25,7 @@ pub struct WillMsg {
     len: u8,
     #[debug(format = "0x{:x}")]
     msg_type: u8,
-    will_msg: String,
+    msg: String,
 }
 
 #[derive(Debug, Clone, Getters, MutGetters, CopyGetters, Default)]
@@ -35,7 +36,7 @@ struct WillMsg4 {
     len: u16,
     #[debug(format = "0x{:x}")]
     msg_type: u8,
-    will_msg: String,
+    msg: String,
 }
 
 impl WillMsg {
@@ -45,9 +46,11 @@ impl WillMsg {
         client: &MqttSnClient,
     ) -> Result<(), String> {
         if size < 256 {
-            let (will, len) = WillMsg::try_read(buf, size).unwrap();
+            let (will, mut len) = WillMsg::try_read(buf, size).unwrap();
+            len += will.msg.len() as usize;
             if size == len as usize {
-                Connection::update_will_msg(client.remote_addr, will.will_msg)?;
+                Connection::update_will_msg(client.remote_addr, will.msg)?;
+                ConnAck::send(client, RETURN_CODE_ACCEPTED)?;
                 Ok(())
             } else {
                 Err(eformat!(
@@ -57,9 +60,11 @@ impl WillMsg {
                 ))
             }
         } else if size < 1400 {
-            let (will, len) = WillMsg4::try_read(buf, size).unwrap();
+            let (will, mut len) = WillMsg4::try_read(buf, size).unwrap();
+            len += will.msg.len() as usize;
             if size == len as usize && will.one == 1 {
-                Connection::update_will_msg(client.remote_addr, will.will_msg)?;
+                Connection::update_will_msg(client.remote_addr, will.msg)?;
+                ConnAck::send(client, RETURN_CODE_ACCEPTED)?;
                 Ok(())
             } else {
                 Err(eformat!(
@@ -72,15 +77,14 @@ impl WillMsg {
             Err(eformat!(client.remote_addr, "msg too long", size))
         }
     }
-    pub fn send(will_msg: String, client: &MqttSnClient) -> Result<(), String> {
-        let len: usize =
-            MSG_LEN_WILL_MSG_HEADER as usize + will_msg.len() as usize;
+    pub fn send(msg: String, client: &MqttSnClient) -> Result<(), String> {
+        let len: usize = MSG_LEN_WILL_MSG_HEADER as usize + msg.len() as usize;
         let mut bytes = BytesMut::with_capacity(len);
         if len < 256 {
             let will = WillMsg {
                 len: len as u8,
                 msg_type: MSG_TYPE_WILL_MSG,
-                will_msg,
+                msg,
             };
             will.try_write(&mut bytes);
         } else if len < 1400 {
@@ -88,7 +92,7 @@ impl WillMsg {
                 one: 1,
                 len: len as u16,
                 msg_type: MSG_TYPE_WILL_MSG,
-                will_msg,
+                msg,
             };
             will.try_write(&mut bytes);
         } else {

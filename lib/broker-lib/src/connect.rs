@@ -14,7 +14,17 @@ Section 6.3).
 • Duration: same as with MQTT, contains the value of the Keep Alive timer.
 • ClientId: same as with MQTT, contains the client id which is a 1-23 character long string which uniquely
 identifies the client to the server.
-5.4.5 CONNACK
+
+6.2 Client’s Connection Setup
+As with MQTT, a MQTT-SN client needs to setup a connection to a GW before it can exchange information with
+that GW. The procedure for setting up a connection with a GW is illustrated in Fig. 3, in which it is assumed that
+the client requests the gateway to prompt for the transfer of Will topic and Will message. This request is indicated
+by setting the Will flag of the CONNECT message. The client then sends these two pieces of information to the
+GW upon receiving the corresponding request messages WILLTOPICREQ and WILLMSGREQ. The procedure
+is terminated with the CONNACK message sent by the GW.
+If Will flag is not set then the GW answers directly with a CONNACK message.
+In case the GW could not accept the connection request (e.g. because of congestion or it does not support a
+feature indicated in the CONNECT message), the GW returns a CONNACK message with the rejection reason.
 */
 use bytes::{BufMut, Bytes, BytesMut};
 use custom_debug::Debug;
@@ -26,14 +36,12 @@ use crate::{
     broker_lib::MqttSnClient,
     conn_ack::ConnAck,
     connection::Connection,
-    dbg_buf,
-    eformat,
+    dbg_buf, eformat,
+    flags::flag_is_will,
     function,
     message::{MsgHeader, MsgHeaderEnum},
-    MSG_LEN_CONNECT_HEADER,
-    // flags::{flags_set, flag_qos_level, },
-    MSG_TYPE_CONNACK,
-    MSG_TYPE_CONNECT,
+    will_topic_req::WillTopicReq,
+    MSG_LEN_CONNECT_HEADER, MSG_TYPE_CONNACK, MSG_TYPE_CONNECT,
     RETURN_CODE_ACCEPTED,
 };
 
@@ -166,7 +174,7 @@ impl Connect {
         let (connect, _read_fixed_len) = match msg_header.header_len {
             MsgHeaderEnum::Short => Connect::try_read(buf, size).unwrap(),
             MsgHeaderEnum::Long => {
-                // The len is no long valid. Use msg_header.len instead.
+                // *NOTE* The len is no long valid. Use msg_header.len instead.
                 Connect::try_read(&buf[2..], size - 2).unwrap()
             }
         };
@@ -180,7 +188,13 @@ impl Connect {
             connect.duration,
             connect.client_id,
         )?;
-        ConnAck::send(client, RETURN_CODE_ACCEPTED)?;
+        if flag_is_will(connect.flags) {
+            // Client set the Will Flag, so the GW must send a Will Topic Request message.
+            WillTopicReq::send(client)?;
+        } else {
+            // Client did not set the Will Flag, so the GW must send a Connect Ack message.
+            ConnAck::send(client, RETURN_CODE_ACCEPTED)?;
+        }
         Ok(())
     }
 }

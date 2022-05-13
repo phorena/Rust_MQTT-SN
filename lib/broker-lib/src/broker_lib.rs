@@ -25,6 +25,8 @@ use crate::{
     publish::Publish,
     sub_ack::SubAck,
     subscribe::Subscribe,
+    will_msg::WillMsg,
+    will_topic::WillTopic,
     StateMachine::{StateMachine, STATE_DISCONNECT},
     // TimingWheel::{RetransmitData, RetransmitHeader},
     MSG_TYPE_CONNACK,
@@ -35,6 +37,8 @@ use crate::{
     MSG_TYPE_PUBREL,
     MSG_TYPE_SUBACK,
     MSG_TYPE_SUBSCRIBE,
+    MSG_TYPE_WILL_MSG,
+    MSG_TYPE_WILL_TOPIC,
 };
 // use trace_var::trace_var;
 
@@ -186,6 +190,18 @@ impl MqttSnClient {
                                     Disconnect::recv(&buf, size, &self);
                                 continue;
                             };
+                            if msg_type == MSG_TYPE_WILL_TOPIC {
+                                if let Err(why) = WillTopic::recv(&buf, size, &self) {
+                                    error!("{}", why);
+                                }
+                                continue;
+                            }
+                            if msg_type == MSG_TYPE_WILL_MSG {
+                                if let Err(why) = WillMsg::recv(&buf, size, &self) {
+                                    error!("{}", why);
+                                }
+                                continue;
+                            }
                             if msg_type == MSG_TYPE_CONNACK {
                                 match ConnAck::recv(&buf, size, &self) {
                                     // Broker shouldn't receive ConnAck
@@ -197,6 +213,7 @@ impl MqttSnClient {
                                 }
                                 continue;
                             };
+                            error!( "{}", eformat!( addr, "message type not supported:", msg_type));
                         } else {
                             // New connection, not in the connection hashmap.
                             if msg_type == MSG_TYPE_CONNECT {
@@ -208,7 +225,8 @@ impl MqttSnClient {
                                 //let clone_socket = socket.try_clone().expect("couldn't clone the socket");
                                 // clone_socket.connect(addr).unwrap();
                                 continue;
-                            } else if msg_type == MSG_TYPE_PUBLISH {
+                            }
+                            if msg_type == MSG_TYPE_PUBLISH {
                                 if let Err(err) = Publish::recv(
                                     &buf, size, &mut self, msg_header,
                                 ) {

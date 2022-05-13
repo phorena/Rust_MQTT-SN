@@ -20,7 +20,7 @@ An empty WILLTOPIC message is a WILLTOPIC message without Flags and WillTopic fi
 */
 use crate::{
     broker_lib::MqttSnClient, connection::Connection, eformat, function,
-    MSG_LEN_WILL_TOPIC_HEADER, MSG_TYPE_WILL_TOPIC,
+    will_msg_req::WillMsgReq, MSG_LEN_WILL_TOPIC_HEADER, MSG_TYPE_WILL_TOPIC,
 };
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
@@ -59,12 +59,16 @@ impl WillTopic {
         client: &MqttSnClient,
     ) -> Result<(), String> {
         if size < 256 {
-            let (will, len) = WillTopic::try_read(buf, size).unwrap();
+            let (will, mut len) = WillTopic::try_read(buf, size).unwrap();
+            dbg!(&will);
+            dbg!((size, len));
+            len += will.will_topic.len() as usize;
             if size == len as usize {
                 Connection::update_will_topic(
                     client.remote_addr,
                     will.will_topic,
                 )?;
+                WillMsgReq::send(client)?;
                 Ok(())
             } else {
                 Err(eformat!(

@@ -149,6 +149,7 @@ impl Connection {
             None => Err(eformat!(socket_addr, "not found.")),
         }
     }
+    // *Note* to an existing connection
     pub fn update_will_topic(
         socket_addr: SocketAddr,
         topic: String,
