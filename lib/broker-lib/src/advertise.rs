@@ -37,9 +37,6 @@ impl Advertise {
         duration: u16,
         client: &MqttSnClient,
     ) -> Result<(), String> {
-        // faster implementation
-        // TODO verify big-endian or little-endian for u16 numbers
-        // XXX order of statements performance
         let duration_0 = (duration >> 8) as u8;
         let duration_1 = duration as u8;
         let mut bytes = BytesMut::with_capacity(MSG_LEN_ADVERTISE as usize);
@@ -51,12 +48,8 @@ impl Advertise {
             duration_1,
         ];
         bytes.put(buf);
-        // TODO replace BytesMut with Bytes to eliminate clone as copy
         dbg!(&buf);
-        match client
-            .transmit_tx
-            .try_send((client.remote_addr, bytes.to_owned()))
-        {
+        match client.transmit_tx.try_send((client.remote_addr, bytes)) {
             Ok(()) => Ok(()),
             Err(err) => return Err(eformat!(client.remote_addr, err)),
         }

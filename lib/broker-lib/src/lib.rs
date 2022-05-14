@@ -26,16 +26,22 @@ pub mod SubscriberDb;
 #[allow(non_snake_case)]
 pub mod TopicDb;
 pub mod filter;
+pub mod flags;
+pub mod gw_info;
+pub mod keep_alive;
+pub mod message;
 pub mod ping_req;
 pub mod ping_resp;
 pub mod pub_ack;
 pub mod pub_comp;
+pub mod pub_msg_cache;
 pub mod pub_rec;
 pub mod pub_rel;
 pub mod publish;
 pub mod reg_ack;
 pub mod register;
 pub mod retain;
+pub mod search_gw;
 pub mod sub_ack;
 pub mod subscribe;
 pub mod timing_wheel;
@@ -49,12 +55,6 @@ pub mod will_topic;
 pub mod will_topic_req;
 pub mod will_topic_resp;
 pub mod will_topic_upd;
-// pub mod client_struct;
-pub mod flags;
-pub mod gw_info;
-pub mod message;
-pub mod pub_msg_cache;
-pub mod search_gw;
 
 // pub mod BrokerLib;
 // #[allow(non_snake_case)]

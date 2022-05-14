@@ -40,7 +40,6 @@ use crate::{
     },
     //     StateMachine,
     flags::{
-        flag_is_retain,
         flag_qos_level,
         flag_topic_id_type,
         flags_set,

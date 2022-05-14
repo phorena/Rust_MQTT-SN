@@ -155,15 +155,16 @@ impl Publish {
         client: &MqttSnClient,
         msg_header: MsgHeader,
     ) -> Result<(), String> {
-        let (publish, _read_fixed_len) = match msg_header.header_len {
+        let (mut publish, _read_fixed_len) = match msg_header.header_len {
             MsgHeaderEnum::Short => Publish::try_read(buf, size).unwrap(),
             MsgHeaderEnum::Long => {
-                // * NOTE: don't use publish.len from this arm, because the
-                // * shift to eliminate the need the long struct.
-                // * Use the len from the msg_header.
                 Publish::try_read(&buf[2..], size - 2).unwrap()
             }
         };
+        // * NOTE: don't use publish.len from this arm, because the
+        // * shift to eliminate the need the long struct.
+        // * Use the len from the msg_header.
+        publish.len = 0;
         dbg!((size, _read_fixed_len));
         dbg!(publish.clone());
         let subscriber_vec = get_subscribers_with_topic_id(publish.topic_id);

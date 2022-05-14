@@ -58,10 +58,7 @@ impl GwInfo {
         bytes.put(buf);
         bytes.put(gw_addr.as_bytes());
         dbg!(&bytes);
-        match client
-            .transmit_tx
-            .try_send((client.remote_addr, bytes.to_owned()))
-        {
+        match client.transmit_tx.try_send((client.remote_addr, bytes)) {
             Ok(()) => Ok(()),
             Err(err) => return Err(eformat!(client.remote_addr, err)),
         }
