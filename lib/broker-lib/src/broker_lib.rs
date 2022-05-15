@@ -131,7 +131,7 @@ impl MqttSnClient {
         let builder = thread::Builder::new().name("recv_thread".into());
 
         let mut keep_alive_time_wheel = KeepAliveTimeWheel::new();
-        keep_alive_time_wheel.clone().run();
+        keep_alive_time_wheel.clone().run(self.clone());
 
         let ka_sock = "127.0.0.1:1200".parse::<SocketAddr>().unwrap();
         keep_alive_time_wheel.schedule(ka_sock, 10);

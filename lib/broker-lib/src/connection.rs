@@ -1,7 +1,15 @@
-use crate::{eformat, filter::try_insert_topic_name, function, TopicIdType};
+use crate::{
+    broker_lib::MqttSnClient,
+    eformat,
+    filter::{get_subscribers_with_topic_id, try_insert_topic_name},
+    flags::RETAIN_FALSE,
+    function,
+    publish::Publish,
+    TopicIdType,
+};
 // use log::*;
 // use rand::Rng;
-use bytes::Bytes;
+use bytes::{BufMut, Bytes, BytesMut};
 use hashbrown::HashMap;
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Mutex;
@@ -181,7 +189,31 @@ impl Connection {
             None => Err(eformat!(socket_addr, "not found.")),
         }
     }
-    pub fn db() {
+    pub fn publish_will(self, client: &MqttSnClient) -> Result<(), String> {
+        if let Some(topic_id) = self.will_topic_id {
+            let subscriber_vec = get_subscribers_with_topic_id(topic_id);
+            for subscriber in subscriber_vec {
+                // Can't return error, because not all subscribers will have error.
+                // TODO error for every subscriber/message
+                // TODO use Bytes not BytesMut to eliminate clone/copy.
+                // TODO new tx method to reduce have try_write() run once for every subscriber.
+                let mut msg = BytesMut::new();
+                msg.put(self.will_message.clone()); // TODO replace BytesMut with Bytes because clone doesn't copy data in Bytes
+                let _result = Publish::send(
+                    topic_id,
+                    0, // TODO what is the msg_id?
+                    subscriber.qos,
+                    RETAIN_FALSE,
+                    msg,
+                    client,
+                    subscriber.socket_addr,
+                );
+            }
+        }
+        Ok(())
+    }
+
+    pub fn debug() {
         let conn_hashmap = CONN_HASHMAP.lock().unwrap();
         dbg!(conn_hashmap);
     }

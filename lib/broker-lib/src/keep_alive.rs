@@ -14,7 +14,9 @@ use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
 use std::time::Duration;
 use trace_var::trace_var;
 
-use crate::{eformat, function};
+use crate::{
+    broker_lib::MqttSnClient, connection::Connection, eformat, function,
+};
 
 #[derive(Debug, Clone, Hash)]
 pub struct KeepAliveKey {
@@ -141,7 +143,7 @@ impl KeepAliveTimeWheel {
         }
     }
 
-    pub fn run(mut self) {
+    pub fn run(self, client: MqttSnClient) {
         // When the keep_alive timing wheel entry is expired,
         // this code determines if the connection is expired.
         // If the hash entry has been updated to a new counter,
@@ -182,8 +184,26 @@ impl KeepAliveTimeWheel {
                                     // The entry was pop() from the timing wheel slot.
                                     //    client_reschedule.set_state(STATE_LOST);
                                     // Remove it from the hashmap.
-                                    //    wheel2.cancel(addr);
+                                    // TODO XXX
 
+                                    // remove socket_add from keep alive HashMap
+                                    if let Some(conn) =
+                                        hash_entry_lock.remove(&socket_addr)
+                                    {
+                                        dbg!(&conn);
+                                        match Connection::remove(socket_addr) {
+                                            Ok(conn) => {
+                                                let _result =
+                                                    conn.publish_will(&client);
+                                            }
+                                            Err(_) => {
+                                                // TODO
+                                            }
+                                        }
+                                        dbg!(&self.cur_counter);
+                                    }
+
+                                    /*
                                     match hash_entry_lock.remove(&socket_addr) {
                                         Some(conn) => {
                                             dbg!(&conn);
@@ -193,7 +213,11 @@ impl KeepAliveTimeWheel {
                                             error!("not found");
                                         }
                                     }
-                                    info!("Connection lost: {:?}", socket_addr);
+                                    */
+                                    info!(
+                                        "Connection Timeout: {:?}",
+                                        socket_addr
+                                    );
                                 }
                             }
                         }
@@ -207,17 +231,5 @@ impl KeepAliveTimeWheel {
                 thread::sleep(Duration::from_millis(sleep_duration));
             }
         });
-    }
-}
-
-#[cfg(test)]
-mod test {
-    #[test]
-    fn test_keep_alive() {
-        use std::net::SocketAddr;
-        let socket = "127.0.0.1:1200".parse::<SocketAddr>().unwrap();
-        let mut tw = super::KeepAliveTimeWheel::new();
-        tw.schedule(socket, 100);
-        tw.run();
     }
 }

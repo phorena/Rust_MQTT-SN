@@ -79,9 +79,9 @@ impl Disconnect {
             let (disconnect, _read_len) =
                 Disconnect::try_read(buf, size).unwrap();
             dbg!(disconnect.clone());
-            Connection::db();
+            Connection::debug();
             let conn = Connection::remove(client.remote_addr)?;
-            Connection::db();
+            Connection::debug();
             Disconnect::send(client)?;
             if let Some(topic_id) = conn.will_topic_id {
                 let subscriber_vec = get_subscribers_with_topic_id(topic_id);
