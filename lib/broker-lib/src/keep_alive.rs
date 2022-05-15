@@ -14,6 +14,8 @@ use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
 use std::time::Duration;
 use trace_var::trace_var;
 
+use crate::{eformat, function};
+
 #[derive(Debug, Clone, Hash)]
 pub struct KeepAliveKey {
     addr: SocketAddr,
@@ -21,8 +23,8 @@ pub struct KeepAliveKey {
 
 #[derive(Debug, Clone)]
 pub struct KeepAliveVal {
+    latest_counter: usize,
     conn_duration: u16,
-    latest_counter: u32,
 }
 
 lazy_static! {
@@ -57,10 +59,10 @@ impl Slot {
 static TIME_WHEEL_DEFAULT_DURATION_MS: usize = 300;
 
 #[derive(Debug, Clone)]
-struct KeepAliveTimeWheel {
+pub struct KeepAliveTimeWheel {
     max_slot: usize,       // (1000 / sleep_duration) * 64 * 2;
     sleep_duration: usize, // in milli seconds
-    cur_counter: usize,
+    cur_counter: Arc<Mutex<usize>>,
     slot_vec: Vec<Slot>,
     hash: Arc<Mutex<HashMap<SocketAddr, KeepAliveVal>>>,
 }
@@ -68,8 +70,9 @@ struct KeepAliveTimeWheel {
 impl KeepAliveTimeWheel {
     pub fn new() -> Self {
         // verify sleep_duration (milli seconds) 1..1000.
-        let sleep_duration = 500; // .5 sec
-        let max_slot = (1000 / sleep_duration) * 64 * 2;
+        let sleep_duration = 1000; // 1 sec
+                                   // let max_slot = (1000 / sleep_duration) * 64 * 2;
+        let max_slot = 16;
         let mut slot_vec: Vec<Slot> = Vec::with_capacity(max_slot);
         // verify default_duration (milli seconds) 1..1000.
 
@@ -83,7 +86,7 @@ impl KeepAliveTimeWheel {
         KeepAliveTimeWheel {
             max_slot,
             sleep_duration,
-            cur_counter: 0,
+            cur_counter: Arc::new(Mutex::new(0)),
             slot_vec,
             // slot_hash,
             hash: Arc::new(Mutex::new(HashMap::new())),
@@ -95,26 +98,50 @@ impl KeepAliveTimeWheel {
     // or the latency pattern.
     #[inline(always)]
     #[trace_var(index, slot, hash, vec)]
-    fn schedule(
+    pub fn schedule(
         &mut self,
         key: SocketAddr,
-        val: KeepAliveVal,
-        duration: usize,
+        conn_duration: u16,
     ) -> Result<(), String> {
         // store the key in a slot of the timing wheel
-        let index = (self.cur_counter + duration) % self.max_slot;
+        let cur_counter = *self.cur_counter.lock().unwrap();
+        let index = (cur_counter + conn_duration as usize) % self.max_slot;
         let slot = &self.slot_vec[index];
         // TODO replace unwrap
         let mut hash = self.hash.lock().unwrap();
         let mut vec = slot.entries.lock().unwrap();
+        let val = KeepAliveVal {
+            latest_counter: index,
+            conn_duration,
+        };
         hash.insert(key, val);
         vec.push(key);
+        dbg!(index);
         dbg!(vec);
         dbg!(hash);
         return Ok(());
     }
 
-    pub fn _run(mut self) {
+    #[inline(always)]
+    #[trace_var(index, slot, hash, vec)]
+    pub fn reschedule(
+        &mut self,
+        socket_addr: SocketAddr,
+    ) -> Result<(), String> {
+        let mut hash = self.hash.lock().unwrap();
+        match hash.get_mut(&socket_addr) {
+            Some(conn) => {
+                dbg!(&conn);
+                dbg!(&self.cur_counter);
+                conn.latest_counter = *self.cur_counter.lock().unwrap();
+                dbg!(&conn);
+                Ok(())
+            }
+            None => Err(eformat!(socket_addr, "not found.")),
+        }
+    }
+
+    pub fn run(mut self) {
         // When the keep_alive timing wheel entry is expired,
         // this code determines if the connection is expired.
         // If the hash entry has been updated to a new counter,
@@ -122,78 +149,59 @@ impl KeepAliveTimeWheel {
         let _keep_alive_expire_thread = thread::spawn(move || {
             let sleep_duration = self.sleep_duration as u64;
             loop {
-                let cur_slot = &self.slot_vec[self.cur_counter % self.max_slot];
-                self.cur_counter += 1;
-                dbg!(&cur_slot);
+                let cur_counter = *self.cur_counter.lock().unwrap();
+                let cur_slot = &self.slot_vec[cur_counter % self.max_slot];
+                // dbg!(&cur_slot);
+                dbg!(&cur_counter);
                 match cur_slot.entries.lock() {
                     Ok(mut slot) => {
-                        while let Some(slot_entry) = slot.pop() {
-                            dbg!(&slot_entry);
-                            let hash_entry_lock = self.hash.lock().unwrap();
-                            let hash_entry = hash_entry_lock.get(&slot_entry);
-                            dbg!(&hash_entry);
+                        while let Some(socket_addr) = slot.pop() {
+                            dbg!(&socket_addr);
+                            let mut hash_entry_lock = self.hash.lock().unwrap();
+                            if let Some(conn) =
+                                hash_entry_lock.get(&socket_addr)
+                            {
+                                dbg!(&conn);
+                                let new_counter = conn.latest_counter as usize
+                                    + conn.conn_duration as usize;
+                                if new_counter > cur_counter {
+                                    // not expired, reschedule
+                                    // The new duration starts from the latest_counter,
+                                    // not the cur_counter. Subtract cur_counter is needed.
+                                    let index = new_counter % self.max_slot;
+
+                                    let slot = &self.slot_vec[index];
+                                    // TODO replace unwrap
+                                    let mut vec = slot.entries.lock().unwrap();
+                                    vec.push(socket_addr);
+                                    dbg!(index);
+                                    dbg!(vec);
+                                } else {
+                                    // Client timeout, move from ACTIVE to LOST state.
+                                    // MQTT-SN 1.2 spec page 25
+                                    // The entry was pop() from the timing wheel slot.
+                                    //    client_reschedule.set_state(STATE_LOST);
+                                    // Remove it from the hashmap.
+                                    //    wheel2.cancel(addr);
+
+                                    match hash_entry_lock.remove(&socket_addr) {
+                                        Some(conn) => {
+                                            dbg!(&conn);
+                                            dbg!(&self.cur_counter);
+                                        }
+                                        None => {
+                                            error!("not found");
+                                        }
+                                    }
+                                    info!("Connection lost: {:?}", socket_addr);
+                                }
+                            }
                         }
                     }
                     Err(_) => {}
                 }
+                *self.cur_counter.lock().unwrap() += 1;
 
-                /*
-                {
-                    let mut wheel = keep_alive_time_wheel2.lock().unwrap();
-                    let mut wheel2 = wheel.clone();
-                    // get vec for current time slot
-                    let slot = wheel.keep_alive_expire();
-                    dbg_fn!(slot);
-                    let cur_slot_lock = slot.entries.lock();
-                    match cur_slot_lock {
-                        Ok(mut slot) => {
-                            dbg_fn!(&slot);
-                            let cur_counter = wheel2.cur_counter;
-                            // iterate entries in the vec
-                            while let Some(top) = slot.pop() {
-                                dbg_fn!(top);
-                                // use the addr as the key to hashmap
-                                let addr = top.0;
-                                match wheel2.get_hash(addr) {
-                                    Ok(conn) => {
-                                        dbg_fn!(conn.clone());
-                                        let conn = conn.lock().unwrap();
-                                        let new_counter =
-                                            conn.latest_counter as usize + conn.conn_duration as usize;
-                                        if new_counter > cur_counter {
-                                            // not expired, reschedule
-                                            // The new duration starts from the latest_counter,
-                                            // not the cur_counter. Subtract cur_counter is needed.
-                                            let conn_duration = new_counter - wheel2.cur_counter;
-                                            wheel2.reschedule(addr, conn_duration);
-                                        } else {
-                                            // Client timeout, move from ACTIVE to LOST state.
-                                            // MQTT-SN 1.2 spec page 25
-                                            // The entry was pop() from the timing wheel slot.
-                                            client_reschedule.set_state(STATE_LOST);
-                                            // Remove it from the hashmap.
-                                            wheel2.cancel(addr);
-                                            info!("Connection lost: {:?}", addr);
-                                        }
-                                    }
-                                    Err(result) => {
-                                        match result {
-                                            None => {
-                                                // entry doesn't exist
-                                                error!("keep_alive get_hash(): None {:?}", addr);
-                                            }
-                                            Some((str, addr)) => {
-                                                error!("{}:{:?}", str, addr);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        _ => (),
-                    }
-                }
-                */
                 // The sleep() has to be outside of the mutex lock block for
                 // the lock to be unlocked while the thread is sleeping.
                 thread::sleep(Duration::from_millis(sleep_duration));
@@ -208,11 +216,8 @@ mod test {
     fn test_keep_alive() {
         use std::net::SocketAddr;
         let socket = "127.0.0.1:1200".parse::<SocketAddr>().unwrap();
-        let val = super::KeepAliveVal {
-            conn_duration: 10,
-            latest_counter: 20,
-        };
         let mut tw = super::KeepAliveTimeWheel::new();
-        tw.schedule(socket, val, 100);
+        tw.schedule(socket, 100);
+        tw.run();
     }
 }
