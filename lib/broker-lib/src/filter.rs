@@ -511,11 +511,6 @@ pub fn global_filter_insert(
 
 #[cfg(test)]
 mod test {
-    use uuid::Uuid;
-
-    use uuid::v1::{Context, Timestamp};
-
-    use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
     fn test_topic_name_and_id() {
@@ -533,36 +528,38 @@ mod test {
     }
     #[test]
     fn test_topic_id() {
-        use crate::flags::{
-            QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
-        };
-        use std::net::SocketAddr;
-
-        let socket = "127.0.0.1:1200".parse::<SocketAddr>().unwrap();
-        let socket2 = "127.0.0.2:1200".parse::<SocketAddr>().unwrap();
-        let socket3 = "127.0.0.3:1200".parse::<SocketAddr>().unwrap();
-        let socket4 = "127.0.0.4:1200".parse::<SocketAddr>().unwrap();
-        let result = super::get_subscribers_with_topic_id(1);
-        dbg!(result);
-        super::subscribe_with_topic_id(socket, 1, QOS_LEVEL_2);
-        super::subscribe_with_topic_id(socket2, 1, QOS_LEVEL_1);
-        super::subscribe_with_topic_id(socket3, 1, QOS_LEVEL_0);
-        super::subscribe_with_topic_id(socket, 2, QOS_LEVEL_2);
-        super::subscribe_with_topic_id(socket2, 2, QOS_LEVEL_1);
-        super::subscribe_with_topic_id(socket3, 3, QOS_LEVEL_0);
-        super::subscribe_with_topic_id(socket3, 3, QOS_LEVEL_3);
-        dbg!(super::GLOBAL_TOPIC_IDS.lock().unwrap());
-        dbg!(super::GLOBAL_TOPIC_IDS_QOS.lock().unwrap());
-        let result = super::get_subscribers_with_topic_id(1);
-        dbg!(result);
-        let result = super::get_subscribers_with_topic_id(2);
-        dbg!(result);
-        let result = super::get_subscribers_with_topic_id(3);
-        dbg!(result);
+        /*
+                use crate::flags::{
+                    QOS_LEVEL_0, QOS_LEVEL_1, QOS_LEVEL_2, QOS_LEVEL_3,
+                };
+                use std::net::SocketAddr;
+                let socket = "127.0.0.1:1200".parse::<SocketAddr>().unwrap();
+                let socket2 = "127.0.0.2:1200".parse::<SocketAddr>().unwrap();
+                let socket3 = "127.0.0.3:1200".parse::<SocketAddr>().unwrap();
+                let socket4 = "127.0.0.4:1200".parse::<SocketAddr>().unwrap();
+                let result = super::get_subscribers_with_topic_id(1);
+                dbg!(result);
+                super::subscribe_with_topic_id(socket, 1, QOS_LEVEL_2);
+                super::subscribe_with_topic_id(socket2, 1, QOS_LEVEL_1);
+                super::subscribe_with_topic_id(socket3, 1, QOS_LEVEL_0);
+                super::subscribe_with_topic_id(socket, 2, QOS_LEVEL_2);
+                super::subscribe_with_topic_id(socket2, 2, QOS_LEVEL_1);
+                super::subscribe_with_topic_id(socket3, 3, QOS_LEVEL_0);
+                super::subscribe_with_topic_id(socket3, 3, QOS_LEVEL_3);
+                dbg!(super::GLOBAL_TOPIC_IDS.lock().unwrap());
+                dbg!(super::GLOBAL_TOPIC_IDS_QOS.lock().unwrap());
+                let result = super::get_subscribers_with_topic_id(1);
+                dbg!(result);
+                let result = super::get_subscribers_with_topic_id(2);
+                dbg!(result);
+                let result = super::get_subscribers_with_topic_id(3);
+                dbg!(result);
+        */
     }
 
     #[test]
     fn test_insert_filter() {
+        /*
         use std::net::SocketAddr;
 
         let socket = "127.0.0.1:1200".parse::<SocketAddr>().unwrap();
@@ -599,6 +596,7 @@ mod test {
         dbg!(super::GLOBAL_CONCRETE_TOPICS.lock().unwrap());
         dbg!(super::GLOBAL_WILDCARD_FILTERS.lock().unwrap());
         dbg!(super::GLOBAL_WILDCARD_TOPICS.lock().unwrap());
+        */
     }
     #[test]
     fn test_filter2_insert_topic() {
@@ -680,6 +678,7 @@ mod test {
     }
     #[test]
     fn test_insert() {
+        /*
         use std::net::{IpAddr, SocketAddr};
 
         let socket = "127.0.0.1:1200".parse::<SocketAddr>().unwrap();
@@ -757,6 +756,7 @@ mod test {
         let r = filter.match_topic_wildcard("zz/dd");
         dbg!(&r);
         dbg!(&filter);
+        */
     }
 
     /*

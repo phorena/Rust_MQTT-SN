@@ -17,7 +17,7 @@ lazy_static! {
 
 #[derive(Debug, Clone)]
 pub struct PubMsgCache {
-    pub publish: Publish,
+    pub publish: Publish, // headers and msg are stored
     pub subscriber_vec: Vec<Subscriber>,
 }
 

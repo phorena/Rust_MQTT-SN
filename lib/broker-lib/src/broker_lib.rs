@@ -78,6 +78,7 @@ pub struct MqttSnClient {
     state: Arc<Mutex<u8>>,
     state_machine: StateMachine,
     // pub conn_hashmap: ConnHashMap,
+    pub keep_alive_time_wheel: KeepAliveTimeWheel,
 }
 
 impl MqttSnClient {
@@ -114,6 +115,7 @@ impl MqttSnClient {
             retrans_time_wheel,
             state: Arc::new(Mutex::new(STATE_DISCONNECT)),
             state_machine: StateMachine::new(),
+            keep_alive_time_wheel: KeepAliveTimeWheel::new(),
             schedule_tx,
             cancel_tx,
             transmit_tx,
@@ -196,7 +198,7 @@ impl MqttSnClient {
                             };
                             if msg_type == MSG_TYPE_DISCONNECT {
                                 let _result =
-                                    Disconnect::recv(&buf, size, &self);
+                                    Disconnect::recv(&buf, size, &mut self);
                                 continue;
                             };
                             if msg_type == MSG_TYPE_WILL_TOPIC {

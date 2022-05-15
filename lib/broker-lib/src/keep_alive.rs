@@ -3,14 +3,13 @@ use core::hash::Hash;
 use hashbrown::HashMap;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
-use std::{hint, thread};
+use std::thread;
 
-use bytes::{BufMut, Bytes, BytesMut};
+//use bytes::{BufMut, Bytes, BytesMut};
 use log::*;
-use simplelog::*;
 
 use chrono::{Datelike, Local, Timelike};
-use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
+// use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
 use std::time::Duration;
 use trace_var::trace_var;
 
@@ -27,13 +26,6 @@ pub struct KeepAliveKey {
 pub struct KeepAliveVal {
     latest_counter: usize,
     conn_duration: u16,
-}
-
-lazy_static! {
-    pub static ref KEEP_ALIVE_VAL_MAP: Mutex<HashMap<SocketAddr, KeepAliveVal>> =
-        Mutex::new(HashMap::new());
-    pub static ref KEEP_ALIVE_TIME_WHEEL: Vec<Mutex<Vec<KeepAliveKey>>> =
-        Vec::new();
 }
 
 #[derive(Debug, Clone)]
@@ -58,7 +50,7 @@ impl Slot {
 // The last one might be over 64, rounding up.
 /// static TIME_WHEEL_MAX_SLOTS:usize = (1000 / TIME_WHEEL_SLEEP_DURATION) * 64 * 2;
 // Initial timeout duration is 300 ms
-static TIME_WHEEL_DEFAULT_DURATION_MS: usize = 300;
+// static TIME_WHEEL_DEFAULT_DURATION_MS: usize = 300;
 
 #[derive(Debug, Clone)]
 pub struct KeepAliveTimeWheel {
@@ -144,10 +136,11 @@ impl KeepAliveTimeWheel {
     }
 
     pub fn run(self, client: MqttSnClient) {
-        // When the keep_alive timing wheel entry is expired,
+        // When the keep_alive timing wheel entry is accessed,
         // this code determines if the connection is expired.
         // If the hash entry has been updated to a new counter,
-        // then reschedule the connection.
+        // then reschedule the connection in the timing wheel.
+        //
         let _keep_alive_expire_thread = thread::spawn(move || {
             let sleep_duration = self.sleep_duration as u64;
             loop {
@@ -157,6 +150,7 @@ impl KeepAliveTimeWheel {
                 dbg!(&cur_counter);
                 match cur_slot.entries.lock() {
                     Ok(mut slot) => {
+                        // iterate all client in the slot
                         while let Some(socket_addr) = slot.pop() {
                             dbg!(&socket_addr);
                             let mut hash_entry_lock = self.hash.lock().unwrap();
@@ -184,7 +178,7 @@ impl KeepAliveTimeWheel {
                                     // The entry was pop() from the timing wheel slot.
                                     //    client_reschedule.set_state(STATE_LOST);
                                     // Remove it from the hashmap.
-                                    // TODO XXX
+                                    // TODO XXX change connection state to LOST.
 
                                     // remove socket_add from keep alive HashMap
                                     if let Some(conn) =
@@ -202,18 +196,6 @@ impl KeepAliveTimeWheel {
                                         }
                                         dbg!(&self.cur_counter);
                                     }
-
-                                    /*
-                                    match hash_entry_lock.remove(&socket_addr) {
-                                        Some(conn) => {
-                                            dbg!(&conn);
-                                            dbg!(&self.cur_counter);
-                                        }
-                                        None => {
-                                            error!("not found");
-                                        }
-                                    }
-                                    */
                                     info!(
                                         "Connection Timeout: {:?}",
                                         socket_addr

@@ -12,12 +12,21 @@ use crate::{
 use bytes::{BufMut, Bytes, BytesMut};
 use hashbrown::HashMap;
 use std::net::{IpAddr, SocketAddr};
-use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::{sync::Arc, sync::Mutex};
 use uuid::v1::{Context, Timestamp};
 use uuid::Uuid;
 
 pub type ConnId = Uuid;
+
+#[derive(Debug, Clone)]
+pub enum StateEnum2 {
+    ACTIVE,
+    DISCONNECTED,
+    ASLEEP,
+    AWAKE,
+    LOST,
+}
 
 /// Generate a new UUID
 /// Use timestamp with nanoseconds precision
@@ -94,37 +103,14 @@ pub struct Connection {
     pub protocol_id: u8,
     pub duration: u16,
     pub client_id: Bytes,
-    // TODO Struct Will
-    _will: u8,
-    _state: u8,
+    state: Arc<Mutex<StateEnum2>>,
     pub will_topic_id: Option<TopicIdType>,
     pub will_topic: Bytes, // NOTE: this is a Bytes, not a BytesMut.
     pub will_message: Bytes,
+    // TODO pub sleep_msg_vec: Vec<Bytes>,
 }
 
 impl Connection {
-    /*
-    pub fn new(
-        socket_addr: SocketAddr,
-        flags: u8,
-        protocol_id: u8,
-        duration: u16,
-        client_id: Bytes,
-    ) -> Result<Self, String> {
-        let conn = Connection {
-            socket_addr,
-            flags,
-            _will: 0,
-            _state: 0,
-            protocol_id,
-            duration,
-            client_id,
-            will_topic: Bytes::new(),
-            will_message: Bytes::new(),
-        };
-        Ok(conn)
-    }
-    */
     pub fn try_insert(
         socket_addr: SocketAddr,
         flags: u8,
@@ -139,15 +125,28 @@ impl Connection {
             protocol_id,
             duration,
             client_id,
-            _will: 0,
-            _state: 0,
+            state: Arc::new(Mutex::new(StateEnum2::DISCONNECTED)),
             will_topic_id: None,
             will_topic: Bytes::new(),
             will_message: Bytes::new(),
+            // TODO  sleep_msg_vec: Vec::new(),
         };
         match conn_hashmap.try_insert(socket_addr, conn) {
             Ok(_) => Ok(()),
             Err(e) => Err(eformat!(e.entry.key(), "already exists.")),
+        }
+    }
+    pub fn update_state(
+        socket_addr: SocketAddr,
+        new_state: StateEnum2,
+    ) -> Result<(), String> {
+        let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
+        match conn_hashmap.get_mut(&socket_addr) {
+            Some(conn) => {
+                *conn.state.lock().unwrap() = new_state;
+                Ok(())
+            }
+            None => Err(eformat!(socket_addr, "not found.")),
         }
     }
     pub fn contains_key(socket_addr: SocketAddr) -> bool {

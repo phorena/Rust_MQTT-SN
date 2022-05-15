@@ -117,7 +117,8 @@ impl Publish {
             flags,
             topic_id,
             msg_id,
-            data: BytesMut::new(),
+            //data: BytesMut::new(),
+            data,
         }
     }
 

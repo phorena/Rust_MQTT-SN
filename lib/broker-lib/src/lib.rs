@@ -6,7 +6,7 @@ extern crate lazy_static;
 
 // TODO fix non_snake_case.
 pub mod advertise;
-#[allow(non_snake_case)]
+pub mod asleep_msg_cache;
 pub mod broker_lib;
 pub mod conn_ack;
 pub mod connect;
@@ -17,8 +17,6 @@ pub mod disconnect;
 // pub mod MainMachineClient;
 #[allow(non_snake_case)]
 pub mod MsgType;
-#[allow(non_snake_case)]
-pub mod StateEnum;
 #[allow(non_snake_case)]
 pub mod StateMachine;
 #[allow(non_snake_case)]

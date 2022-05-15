@@ -115,6 +115,8 @@ impl Register {
         // new way to format a message
         let len = MSG_LEN_REGISTER_HEADER as usize + topic_name.len() as usize;
         let mut buf = BytesMut::with_capacity(len);
+        // TODO optimize by initializing an array of header fields
+        // then buf.put_slice().
         if len < 256 {
             // 2-byte header
             buf.put_u8(len as u8);

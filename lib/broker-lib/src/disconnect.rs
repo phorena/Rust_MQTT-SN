@@ -26,10 +26,12 @@ use std::mem;
 use crate::{
     broker_lib::MqttSnClient,
     connection::Connection,
+    connection::StateEnum2,
     eformat,
     filter::get_subscribers_with_topic_id,
     flags::RETAIN_FALSE,
     function,
+    keep_alive::KeepAliveTimeWheel,
     publish::Publish,
     MSG_LEN_DISCONNECT,
     MSG_LEN_DISCONNECT_DURATION,
@@ -63,7 +65,7 @@ pub struct Disconnect {
     Default,
 )]
 #[getset(get, set)]
-pub struct DisconnectDuration {
+pub struct DisconnWithDuration {
     len: u8,
     #[debug(format = "0x{:x}")]
     msg_type: u8,
@@ -73,7 +75,7 @@ impl Disconnect {
     pub fn recv(
         buf: &[u8],
         size: usize,
-        client: &MqttSnClient,
+        client: &mut MqttSnClient,
     ) -> Result<(), String> {
         if size == MSG_LEN_DISCONNECT as usize {
             let (disconnect, _read_len) =
@@ -105,11 +107,14 @@ impl Disconnect {
             }
             Ok(())
         } else if size == MSG_LEN_DISCONNECT_DURATION as usize {
-            // TODO: implement DisconnectDuration
-            let (disconnect_duration, _read_len) =
-                DisconnectDuration::try_read(buf, size).unwrap();
-            dbg!(disconnect_duration.clone());
-            Connection::remove(client.remote_addr)?;
+            // *NOTE* Section 6.14 of the MQTT-SN 1.2 spec.
+            let (disconnect, _read_len) =
+                DisconnWithDuration::try_read(buf, size).unwrap();
+            dbg!(disconnect.clone());
+            Connection::update_state(client.remote_addr, StateEnum2::ASLEEP)?;
+            client
+                .keep_alive_time_wheel
+                .schedule(client.remote_addr, disconnect.duration)?;
             Disconnect::send(client)?;
             Ok(())
         } else {
