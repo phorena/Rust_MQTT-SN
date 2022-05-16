@@ -22,6 +22,7 @@ coded 0x0000.
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
+use log::*;
 use std::mem;
 use std::net::SocketAddr;
 use std::str;
@@ -32,7 +33,9 @@ use std::sync::Mutex;
 use trace_caller::trace;
 
 use crate::{
+    asleep_msg_cache::AsleepMsgCache,
     broker_lib::MqttSnClient,
+    connection::{Connection, StateEnum2},
     eformat,
     filter::{get_subscribers_with_topic_id, Subscriber},
     flags::{
@@ -372,17 +375,38 @@ impl Publish {
         for subscriber in subscriber_vec {
             // Can't return error, because not all subscribers will have error.
             // TODO error for every subscriber/message
-            // TODO use Bytes not BytesMut to eliminate clone/copy.
             // TODO new tx method to reduce have try_write() run once for every subscriber.
-            Publish::send(
-                publish.topic_id,
-                publish.msg_id,
-                subscriber.qos,
-                RETAIN_FALSE,
-                publish.data.clone(),
-                client,
-                subscriber.socket_addr,
-            )?;
+            match Connection::get_state(subscriber.socket_addr) {
+                Some(state) => match state {
+                    StateEnum2::ACTIVE => {
+                        // Send now
+                        let _result = Publish::send(
+                            publish.topic_id,
+                            publish.msg_id,
+                            subscriber.qos,
+                            RETAIN_FALSE,
+                            publish.data.clone(),
+                            client,
+                            subscriber.socket_addr,
+                        );
+                    }
+                    StateEnum2::ASLEEP => {
+                        // Cache the publish instance,
+                        // send it when the client sends a PingRequest.
+                        AsleepMsgCache::insert(
+                            subscriber.socket_addr,
+                            publish.clone(),
+                        );
+                    }
+                    _ => {}
+                },
+                None => {
+                    // TODO clean up
+                    error!("state not found {:?}", subscriber.socket_addr);
+                }
+            }
+            //      }
+            //     _ => { ;
         }
         Ok(())
     }

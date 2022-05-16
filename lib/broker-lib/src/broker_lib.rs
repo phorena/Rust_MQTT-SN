@@ -132,11 +132,8 @@ impl MqttSnClient {
         let socket_tx = socket.try_clone().expect("couldn't clone the socket");
         let builder = thread::Builder::new().name("recv_thread".into());
 
-        let mut keep_alive_time_wheel = KeepAliveTimeWheel::new();
+        let keep_alive_time_wheel = KeepAliveTimeWheel::new();
         keep_alive_time_wheel.clone().run(self.clone());
-
-        let ka_sock = "127.0.0.1:1200".parse::<SocketAddr>().unwrap();
-        keep_alive_time_wheel.schedule(ka_sock, 10);
 
         // process input datagram from network
         let _recv_thread = builder.spawn(move || {
@@ -149,10 +146,10 @@ impl MqttSnClient {
 
             let mut buf = [0; 1500];
             loop {
-                keep_alive_time_wheel.reschedule(ka_sock);
                 match socket.recv_from(&mut buf) {
                     Ok((size, addr)) => {
                         self.remote_addr = addr;
+                        let _result = self.keep_alive_time_wheel.reschedule(addr);
                         // Decode message header
                         let msg_header = match MsgHeader::try_read(&buf, size) {
                             Ok(header) => header,

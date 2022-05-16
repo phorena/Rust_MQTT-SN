@@ -41,9 +41,7 @@ impl Slot {
     }
 }
 
-// TODO use lazy_static for easy access from any code without
-// attach to any structure.
-static SLEEP_DURATION: usize = 100;
+static SLEEP_DURATION: usize = 100; // in millisec
 static MAX_SLOT: usize = (1000 / SLEEP_DURATION) * 64 * 2;
 
 lazy_static! {
@@ -53,7 +51,6 @@ lazy_static! {
     static ref TIME_WHEEL_MAP: Mutex<HashMap<SocketAddr, KeepAliveVal>> =
         Mutex::new(HashMap::new());
 }
-
 // clients use 100 milli seconds
 // brokers use 10 milli seconds
 /// static TIME_WHEEL_SLEEP_DURATION:usize = 100; // in milli seconds
@@ -76,40 +73,6 @@ pub struct KeepAliveTimeWheel {
 }
 
 impl KeepAliveTimeWheel {
-    pub fn init() {
-        let mut slot_vec = SLOT_VEC.lock().unwrap();
-        for _ in 0..MAX_SLOT {
-            slot_vec.push(Slot::new());
-        }
-    }
-    // The initial duration is set to TIME_WHEEL_INIT_DURATION, but can be
-    // changed to reflect the network the client is on, (LAN or WAN),
-    // or the latency pattern.
-    #[inline(always)]
-    #[trace_var(index, slot, hash)]
-    pub fn schedule(
-        &mut self,
-        key: SocketAddr,
-        conn_duration: u16,
-    ) -> Result<(), String> {
-        // store the key in a slot of the timing wheel
-        let cur_counter = *CUR_COUNTER.lock().unwrap() as usize;
-        let index = (cur_counter + conn_duration as usize) % MAX_SLOT;
-        // TODO replace unwrap
-        let mut hash = TIME_WHEEL_MAP.lock().unwrap();
-        let slot_vec = SLOT_VEC.lock().unwrap();
-        let vec = &mut slot_vec[index].entries.lock().unwrap();
-        let val = KeepAliveVal {
-            latest_counter: index,
-            conn_duration,
-        };
-        hash.insert(key, val);
-        vec.push(key);
-        dbg!(index);
-        dbg!(vec);
-        dbg!(hash);
-        return Ok(());
-    }
     pub fn new() -> Self {
         // verify sleep_duration (milli seconds) 1..1000.
         let sleep_duration = 1000; // 1 sec
@@ -140,7 +103,7 @@ impl KeepAliveTimeWheel {
     // or the latency pattern.
     #[inline(always)]
     #[trace_var(index, slot, hash, vec)]
-    pub fn schedule2(
+    pub fn schedule(
         &mut self,
         key: SocketAddr,
         conn_duration: u16,

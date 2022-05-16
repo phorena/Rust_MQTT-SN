@@ -22,9 +22,9 @@ pub type ConnId = Uuid;
 #[derive(Debug, Clone)]
 pub enum StateEnum2 {
     ACTIVE,
-    DISCONNECTED,
     ASLEEP,
     AWAKE,
+    DISCONNECTED,
     LOST,
 }
 
@@ -111,6 +111,7 @@ pub struct Connection {
 }
 
 impl Connection {
+    // Insert a new connection to the HashMap
     pub fn try_insert(
         socket_addr: SocketAddr,
         flags: u8,
@@ -134,6 +135,16 @@ impl Connection {
         match conn_hashmap.try_insert(socket_addr, conn) {
             Ok(_) => Ok(()),
             Err(e) => Err(eformat!(e.entry.key(), "already exists.")),
+        }
+    }
+    pub fn get_state(socket_addr: SocketAddr) -> Option<StateEnum2> {
+        let conn_hashmap = CONN_HASHMAP.lock().unwrap();
+        match conn_hashmap.get(&socket_addr) {
+            Some(conn) => {
+                let state = conn.state.lock().unwrap().clone();
+                Some(state)
+            }
+            None => None,
         }
     }
     pub fn update_state(
