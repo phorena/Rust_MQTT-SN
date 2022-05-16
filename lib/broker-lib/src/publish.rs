@@ -307,7 +307,7 @@ impl Publish {
             ];
             bytes_buf.put(buf);
         } else {
-            return Err(eformat!(client.remote_addr, "len too long", len));
+            return Err(eformat!(remote_addr, "len too long", len));
         }
         bytes_buf.put(data);
         // TODO: let bytes = bytes_buf.freeze(); // no copy on clone.
@@ -350,7 +350,7 @@ impl Publish {
                     msg_id,
                     bytes_buf.clone(),
                 )) {
-                    return Err(eformat!(client.remote_addr, why));
+                    return Err(eformat!(remote_addr, why));
                 };
             }
             // no restransmit for Level 0 & 3.
@@ -362,7 +362,7 @@ impl Publish {
         // transmit message to remote address
         match client.transmit_tx.try_send((remote_addr, bytes_buf)) {
             Ok(_) => Ok(()),
-            Err(why) => Err(eformat!(client.remote_addr, why)),
+            Err(why) => Err(eformat!(remote_addr, why)),
         }
     }
     /// send PUBLISH messages to subscribers

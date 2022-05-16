@@ -78,7 +78,7 @@ pub struct MqttSnClient {
     state: Arc<Mutex<u8>>,
     state_machine: StateMachine,
     // pub conn_hashmap: ConnHashMap,
-    pub keep_alive_time_wheel: KeepAliveTimeWheel,
+    // pub keep_alive_time_wheel: KeepAliveTimeWheel,
 }
 
 impl MqttSnClient {
@@ -115,7 +115,7 @@ impl MqttSnClient {
             retrans_time_wheel,
             state: Arc::new(Mutex::new(STATE_DISCONNECT)),
             state_machine: StateMachine::new(),
-            keep_alive_time_wheel: KeepAliveTimeWheel::new(),
+            // keep_alive_time_wheel: KeepAliveTimeWheel::new(),
             schedule_tx,
             cancel_tx,
             transmit_tx,
@@ -132,8 +132,8 @@ impl MqttSnClient {
         let socket_tx = socket.try_clone().expect("couldn't clone the socket");
         let builder = thread::Builder::new().name("recv_thread".into());
 
-        let keep_alive_time_wheel = KeepAliveTimeWheel::new();
-        keep_alive_time_wheel.clone().run(self.clone());
+        KeepAliveTimeWheel::init();
+        KeepAliveTimeWheel::run(self.clone());
 
         // process input datagram from network
         let _recv_thread = builder.spawn(move || {
@@ -149,7 +149,7 @@ impl MqttSnClient {
                 match socket.recv_from(&mut buf) {
                     Ok((size, addr)) => {
                         self.remote_addr = addr;
-                        let _result = self.keep_alive_time_wheel.reschedule(addr);
+                        let _result = KeepAliveTimeWheel::reschedule(addr);
                         // Decode message header
                         let msg_header = match MsgHeader::try_read(&buf, size) {
                             Ok(header) => header,

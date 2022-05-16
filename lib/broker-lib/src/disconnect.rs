@@ -112,9 +112,10 @@ impl Disconnect {
                 DisconnWithDuration::try_read(buf, size).unwrap();
             dbg!(disconnect.clone());
             Connection::update_state(client.remote_addr, StateEnum2::ASLEEP)?;
-            client
-                .keep_alive_time_wheel
-                .schedule(client.remote_addr, disconnect.duration)?;
+            KeepAliveTimeWheel::schedule(
+                client.remote_addr,
+                disconnect.duration,
+            )?;
             Disconnect::send(client)?;
             Ok(())
         } else {

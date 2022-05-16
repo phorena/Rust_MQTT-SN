@@ -1,12 +1,8 @@
-/// Cache for published messages
-use std::sync::Mutex;
-
-use crate::MsgIdType;
-
 use crate::publish::Publish;
-
 use bisetmap::BisetMap;
 use std::net::SocketAddr;
+/// Cache for published messages
+use std::sync::Mutex;
 
 lazy_static! {
     static ref ASLEEP_MSG_CACHE: Mutex<BisetMap<SocketAddr, Publish>> =

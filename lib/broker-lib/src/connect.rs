@@ -39,6 +39,7 @@ use crate::{
     dbg_buf, eformat,
     flags::flag_is_will,
     function,
+    keep_alive::KeepAliveTimeWheel,
     message::{MsgHeader, MsgHeaderEnum},
     will_topic_req::WillTopicReq,
     MSG_LEN_CONNECT_HEADER, MSG_TYPE_CONNACK, MSG_TYPE_CONNECT,
@@ -189,9 +190,7 @@ impl Connect {
             connect.duration,
             connect.client_id,
         )?;
-        client
-            .keep_alive_time_wheel
-            .schedule(client.remote_addr, connect.duration)?;
+        KeepAliveTimeWheel::schedule(client.remote_addr, connect.duration)?;
         if flag_is_will(connect.flags) {
             // Client set the Will Flag, so the GW must send a Will Topic Request message.
             WillTopicReq::send(client)?;
