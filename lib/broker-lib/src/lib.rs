@@ -39,6 +39,7 @@ pub mod publish;
 pub mod reg_ack;
 pub mod register;
 pub mod retain;
+pub mod retransmit;
 pub mod search_gw;
 pub mod sub_ack;
 pub mod subscribe;

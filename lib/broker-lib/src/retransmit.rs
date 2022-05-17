@@ -1,36 +1,45 @@
-use core::fmt::Debug;
-use core::hash::Hash;
-use hashbrown::HashMap;
-use std::net::SocketAddr;
-use std::sync::{Arc, Mutex};
-use std::thread;
-
-//use bytes::{BufMut, Bytes, BytesMut};
-use log::*;
-
-use chrono::{Datelike, Local, Timelike};
-// use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
-use std::time::Duration;
-use trace_var::trace_var;
-
 use crate::{
     broker_lib::MqttSnClient, connection::Connection, eformat, function,
 };
+use bytes::{BufMut, BytesMut};
+use core::fmt::Debug;
+use core::hash::Hash;
+use hashbrown::HashMap;
+use log::*;
+use std::net::SocketAddr;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
+use trace_var::trace_var;
 
-#[derive(Debug, Clone, Hash)]
-pub struct KeepAliveKey {
-    addr: SocketAddr,
+/// RetransmitHeader is stored in:
+/// (1) HashMap for cancellation from an ACK
+/// (2) timing wheel slots for timeouts.
+/// When the wheel reads a slot, it iterates all entries in the vector.
+/// Using the RetransmitHeader to get/remove the RetransmitData
+/// in the HashMap.
+/// If the new duration is greater that the maximum timeout period
+/// the HashMap entry will be removed.
+/// To cancel a scheduled event, remove the HashMap entry with the
+/// RetransmitHeader. Don't need to remove the entry in the slot
+/// because the slot entry lookup ignores missing HashMap entries.
+#[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]
+pub struct RetransmitHeader {
+    pub addr: SocketAddr,
+    pub msg_type: u8,
+    pub topic_id: u16, // for pub and sub, default 0
+    pub msg_id: u16,   // for pub and sub, default 0
 }
 
 #[derive(Debug, Clone)]
-pub struct KeepAliveVal {
-    latest_counter: usize,
-    conn_duration: u16,
+pub struct RetransmitData {
+    pub bytes: BytesMut, // TODO use Bytes instead.
 }
 
 #[derive(Debug, Clone)]
 struct Slot {
-    pub entries: Arc<Mutex<Vec<SocketAddr>>>,
+    pub entries: Arc<Mutex<Vec<(RetransmitHeader, u16)>>>,
 }
 
 impl Slot {
@@ -41,16 +50,24 @@ impl Slot {
     }
 }
 
-static SLEEP_DURATION: usize = 100; // in millisec
+static SLEEP_DURATION: usize = 100;
 static MAX_SLOT: usize = (1000 / SLEEP_DURATION) * 64 * 2;
 
+// TODO use lazy_static for easy access from any code without
+// attaching to a structure.
 lazy_static! {
-    static ref CUR_COUNTER: Mutex<u64> = Mutex::new(0);
+    static ref CURRENT_COUNTER: AtomicU64 = AtomicU64::new(0);
     static ref SLOT_VEC: Mutex<Vec<Slot>> =
         Mutex::new(Vec::with_capacity(MAX_SLOT));
-    static ref TIME_WHEEL_MAP: Mutex<HashMap<SocketAddr, KeepAliveVal>> =
+    static ref TIME_WHEEL_MAP: Mutex<HashMap<RetransmitHeader, RetransmitData>> =
         Mutex::new(HashMap::new());
 }
+
+// TODO only for retransmit timing wheel.
+// The initial duration is set to TIME_WHEEL_INIT_DURATION, but can be
+// changed to reflect the network the client is on, (LAN or WAN),
+// or the latency pattern.
+
 // clients use 100 milli seconds
 // brokers use 10 milli seconds
 /// static TIME_WHEEL_SLEEP_DURATION:usize = 100; // in milli seconds
@@ -63,38 +80,17 @@ lazy_static! {
 // Initial timeout duration is 300 ms
 // static TIME_WHEEL_DEFAULT_DURATION_MS: usize = 300;
 
-#[derive(Debug, Clone)]
-pub struct KeepAliveTimeWheel {
-    max_slot: usize,       // (1000 / sleep_duration) * 64 * 2;
-    sleep_duration: usize, // in milli seconds
-    cur_counter: Arc<Mutex<usize>>,
-    slot_vec: Vec<Slot>,
-    hash: Arc<Mutex<HashMap<SocketAddr, KeepAliveVal>>>,
-}
+/// Timing wheel for keep alive.
+/// The wheel is divided into MAX_SLOT slots.
+/// Each slot is a vector of SocketAddr.
+/// The data is stored in a HashMap indexed by the SocketAddr.
+pub struct RetransTimeWheel {}
 
-impl KeepAliveTimeWheel {
-    pub fn new() -> Self {
-        // verify sleep_duration (milli seconds) 1..1000.
-        let sleep_duration = 1000; // 1 sec
-                                   // let max_slot = (1000 / sleep_duration) * 64 * 2;
-        let max_slot = 16;
-        let mut slot_vec: Vec<Slot> = Vec::with_capacity(max_slot);
-        // verify default_duration (milli seconds) 1..1000.
-
-        // Must use for loop to initialize
-        // let slot_vec:Vec<Slot<KEY>> = vec![Vec<Slot<KEY>>, max_slot] didn'KEY work.
-        // It allocates one Vec<Slot<KEY>> and all entries point to it.
-        for _ in 0..max_slot {
+impl RetransTimeWheel {
+    pub fn init() {
+        let mut slot_vec = SLOT_VEC.lock().unwrap();
+        for _ in 0..MAX_SLOT {
             slot_vec.push(Slot::new());
-            // slot_hash.push(Arc::new(Mutex::new(HashMap::new())));
-        }
-        KeepAliveTimeWheel {
-            max_slot,
-            sleep_duration,
-            cur_counter: Arc::new(Mutex::new(0)),
-            slot_vec,
-            // slot_hash,
-            hash: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -102,126 +98,128 @@ impl KeepAliveTimeWheel {
     // changed to reflect the network the client is on, (LAN or WAN),
     // or the latency pattern.
     #[inline(always)]
-    #[trace_var(index, slot, hash, vec)]
-    pub fn schedule(
-        &mut self,
-        key: SocketAddr,
-        conn_duration: u16,
+    fn schedule(
+        key: RetransmitHeader,
+        val: RetransmitData,
+        duration: u16,
     ) -> Result<(), String> {
         // store the key in a slot of the timing wheel
-        let cur_counter = *self.cur_counter.lock().unwrap();
-        let index = (cur_counter + conn_duration as usize) % self.max_slot;
-        let slot = &self.slot_vec[index];
-        // TODO replace unwrap
-        let mut hash = self.hash.lock().unwrap();
-        let mut vec = slot.entries.lock().unwrap();
-        let val = KeepAliveVal {
-            latest_counter: index,
-            conn_duration,
-        };
-        hash.insert(key, val);
-        vec.push(key);
-        dbg!(index);
-        dbg!(vec);
-        dbg!(hash);
+        // TODO XXX change value 10 to a constant
+        let conn_duration = duration * 10;
+        let cur_counter = CURRENT_COUNTER.load(Ordering::Relaxed) as usize;
+        let index = (cur_counter + conn_duration as usize) % MAX_SLOT;
+        match TIME_WHEEL_MAP.try_lock() {
+            Ok(mut map) => {
+                map.insert(key, val);
+            }
+            Err(why) => {
+                return Err(eformat!(why.to_string()));
+            }
+        }
+        match SLOT_VEC.try_lock() {
+            Ok(mut slot_vec) => {
+                let slot = &mut slot_vec[index];
+                match slot.entries.try_lock() {
+                    Ok(mut entries) => {
+                        entries.push((key, duration));
+                    }
+                    Err(why) => {
+                        // unwind: remove the inserted key from the map
+                        if let None =
+                            TIME_WHEEL_MAP.lock().unwrap().remove(&key)
+                        {
+                            return Err(eformat!("key not found"));
+                        }
+                        return Err(eformat!(why.to_string()));
+                    }
+                }
+            }
+            Err(why) => {
+                // unwind: remove the inserted key from the map
+                if let None = TIME_WHEEL_MAP.lock().unwrap().remove(&key) {
+                    return Err(eformat!("key not found"));
+                }
+                return Err(eformat!(why.to_string()));
+            }
+        }
         return Ok(());
     }
-
+    /// Reschedule a keep alive event when it received a message from the sender.
+    /// Modify the latest_counter in the TIME_WHEEL_MAP to the current counter.
     #[inline(always)]
     #[trace_var(index, slot, hash, vec)]
-    pub fn reschedule(
-        &mut self,
-        socket_addr: SocketAddr,
-    ) -> Result<(), String> {
-        let mut hash = self.hash.lock().unwrap();
-        match hash.get_mut(&socket_addr) {
-            Some(conn) => {
-                dbg!(&conn);
-                dbg!(&self.cur_counter);
-                conn.latest_counter = *self.cur_counter.lock().unwrap();
-                dbg!(&conn);
+    pub fn cancel(key: RetransmitHeader) -> Result<(), String> {
+        match TIME_WHEEL_MAP.try_lock() {
+            Ok(mut map) => {
+                if let None = map.remove(&key) {
+                    return Err(eformat!(key.addr, "not found."));
+                }
                 Ok(())
             }
-            None => Err(eformat!(socket_addr, "not found.")),
+            Err(why) => Err(eformat!(key.addr, why.to_string())),
         }
     }
 
-    pub fn run(self, client: MqttSnClient) {
+    /// When the address(key) is expired in the timing wheel, it compare the latest_counter
+    /// with the current counter. If the latest_counter is less than the current counter,
+    /// the address(key) is expired. Otherwise, put it back to a new slot.
+    pub fn run(client: MqttSnClient) {
         // When the keep_alive timing wheel entry is accessed,
         // this code determines if the connection is expired.
         // If the hash entry has been updated to a new counter,
         // then reschedule the connection in the timing wheel.
         //
-        let _keep_alive_expire_thread = thread::spawn(move || {
-            let sleep_duration = self.sleep_duration as u64;
+        // TODO replace lock with try_lock
+        let _retrans_expire_thread = thread::spawn(move || {
             loop {
-                let cur_counter = *self.cur_counter.lock().unwrap();
-                let cur_slot = &self.slot_vec[cur_counter % self.max_slot];
-                // dbg!(&cur_slot);
-                dbg!(&cur_counter);
-                match cur_slot.entries.lock() {
-                    Ok(mut slot) => {
-                        // iterate all client in the slot
-                        while let Some(socket_addr) = slot.pop() {
-                            dbg!(&socket_addr);
-                            let mut hash_entry_lock = self.hash.lock().unwrap();
-                            if let Some(conn) =
-                                hash_entry_lock.get(&socket_addr)
-                            {
-                                dbg!(&conn);
-                                let new_counter = conn.latest_counter as usize
-                                    + conn.conn_duration as usize;
-                                if new_counter > cur_counter {
-                                    // not expired, reschedule
-                                    // The new duration starts from the latest_counter,
-                                    // not the cur_counter. Subtract cur_counter is needed.
-                                    let index = new_counter % self.max_slot;
-
-                                    let slot = &self.slot_vec[index];
-                                    // TODO replace unwrap
-                                    let mut vec = slot.entries.lock().unwrap();
-                                    vec.push(socket_addr);
-                                    dbg!(index);
-                                    dbg!(vec);
-                                } else {
-                                    // Client timeout, move from ACTIVE to LOST state.
-                                    // MQTT-SN 1.2 spec page 25
-                                    // The entry was pop() from the timing wheel slot.
-                                    //    client_reschedule.set_state(STATE_LOST);
-                                    // Remove it from the hashmap.
-                                    // TODO XXX change connection state to LOST.
-
-                                    // remove socket_add from keep alive HashMap
-                                    if let Some(conn) =
-                                        hash_entry_lock.remove(&socket_addr)
-                                    {
-                                        dbg!(&conn);
-                                        match Connection::remove(socket_addr) {
-                                            Ok(conn) => {
-                                                let _result =
-                                                    conn.publish_will(&client);
-                                            }
-                                            Err(_) => {
-                                                // TODO
-                                            }
-                                        }
-                                        dbg!(&self.cur_counter);
-                                    }
-                                    info!(
-                                        "Connection Timeout: {:?}",
-                                        socket_addr
-                                    );
-                                }
-                            }
-                        }
-                    }
-                    Err(_) => {}
-                }
-                *self.cur_counter.lock().unwrap() += 1;
-
                 // The sleep() has to be outside of the mutex lock block for
                 // the lock to be unlocked while the thread is sleeping.
-                thread::sleep(Duration::from_millis(sleep_duration));
+                thread::sleep(Duration::from_millis(SLEEP_DURATION as u64));
+                {
+                    let cur_counter: usize;
+                    cur_counter = CURRENT_COUNTER
+                        .fetch_add(1, Ordering::Relaxed)
+                        as usize;
+                    let index = cur_counter % MAX_SLOT;
+                    // dbg!(&cur_slot);
+                    // dbg!(cur_counter);
+                    let slot_vec = SLOT_VEC.lock().unwrap();
+                    let mut slot = slot_vec[index].entries.lock().unwrap();
+                    let mut map = TIME_WHEEL_MAP.lock().unwrap();
+                    // process the expired connections
+                    while let Some((retrans_hdr, mut duration)) = slot.pop() {
+                        dbg!(index);
+                        duration *= 2;
+                        if duration < (MAX_SLOT as u16) {
+                            // not expired, reschedule to new slot, don't remove hash entry
+                            if let Some(retrans_data) = map.get(&retrans_hdr) {
+                                let mut new_index = (cur_counter
+                                    + duration as usize)
+                                    % MAX_SLOT;
+                                if new_index == index {
+                                    // Can't lock the same slot twice
+                                    // Even without lock, push() to the same slot will be popped
+                                    // in the while loop, so it's an infinite loop.
+                                    // Use the next slot instead.
+                                    new_index = (index + 1) % MAX_SLOT;
+                                }
+                                let mut new_slot =
+                                    slot_vec[new_index].entries.lock().unwrap();
+                                new_slot.push((retrans_hdr, duration));
+                                // Retransmit the message to the receiver.
+                                if let Err(err) = client.transmit_tx.send((
+                                    retrans_hdr.addr,
+                                    retrans_data.bytes.clone(),
+                                )) {
+                                    error!("{}", eformat!(err));
+                                }
+                            }
+                        } else {
+                            // The connection is expired, remove the hash entry
+                            map.remove(&retrans_hdr);
+                        }
+                    }
+                }
             }
         });
     }

@@ -1,21 +1,16 @@
-use core::fmt::Debug;
-use core::hash::Hash;
-use hashbrown::HashMap;
-use std::net::SocketAddr;
-use std::sync::{Arc, Mutex};
-use std::thread;
-
-//use bytes::{BufMut, Bytes, BytesMut};
-use log::*;
-
-// use chrono::{Datelike, Local, Timelike};
-// use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
-use std::time::Duration;
-use trace_var::trace_var;
-
 use crate::{
     broker_lib::MqttSnClient, connection::Connection, eformat, function,
 };
+use core::fmt::Debug;
+use core::hash::Hash;
+use hashbrown::HashMap;
+use log::*;
+use std::net::SocketAddr;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
+use trace_var::trace_var;
 
 #[derive(Debug, Clone, Hash)]
 pub struct KeepAliveKey {
@@ -23,7 +18,7 @@ pub struct KeepAliveKey {
 }
 
 #[derive(Debug, Clone)]
-pub struct KeepAliveVal {
+struct KeepAliveVal {
     latest_counter: usize,
     conn_duration: u16,
 }
@@ -41,13 +36,11 @@ impl Slot {
     }
 }
 
-// TODO use lazy_static for easy access from any code without
-// attach to any structure.
 static SLEEP_DURATION: usize = 100;
 static MAX_SLOT: usize = (1000 / SLEEP_DURATION) * 64 * 2;
 
-use std::sync::atomic::{AtomicU64, Ordering};
-
+// TODO use lazy_static for easy access from any code without
+// attaching to a structure.
 lazy_static! {
     static ref CURRENT_COUNTER: AtomicU64 = AtomicU64::new(0);
     static ref SLOT_VEC: Mutex<Vec<Slot>> =
@@ -55,6 +48,11 @@ lazy_static! {
     static ref TIME_WHEEL_MAP: Mutex<HashMap<SocketAddr, KeepAliveVal>> =
         Mutex::new(HashMap::new());
 }
+
+// TODO only for retransmit timing wheel.
+// The initial duration is set to TIME_WHEEL_INIT_DURATION, but can be
+// changed to reflect the network the client is on, (LAN or WAN),
+// or the latency pattern.
 
 // clients use 100 milli seconds
 // brokers use 10 milli seconds
@@ -68,6 +66,10 @@ lazy_static! {
 // Initial timeout duration is 300 ms
 // static TIME_WHEEL_DEFAULT_DURATION_MS: usize = 300;
 
+/// Timing wheel for keep alive.
+/// The wheel is divided into MAX_SLOT slots.
+/// Each slot is a vector of SocketAddr.
+/// The data is stored in a HashMap indexed by the SocketAddr.
 pub struct KeepAliveTimeWheel {}
 
 impl KeepAliveTimeWheel {
@@ -77,9 +79,9 @@ impl KeepAliveTimeWheel {
             slot_vec.push(Slot::new());
         }
     }
-    // The initial duration is set to TIME_WHEEL_INIT_DURATION, but can be
-    // changed to reflect the network the client is on, (LAN or WAN),
-    // or the latency pattern.
+    /// Schedule a keep alive event for a connection.
+    /// Insert the connection address(key) into the corresponding slot.
+    /// Insert data into the TIME_WHEEL_MAP.
     #[inline(always)]
     // #[trace_var(index, slot, hash)]
     pub fn schedule(key: SocketAddr, conn_duration: u16) -> Result<(), String> {
@@ -128,28 +130,10 @@ impl KeepAliveTimeWheel {
                 return Err(eformat!(why.to_string()));
             }
         }
-
-        /*
-        let mut map = TIME_WHEEL_MAP.lock().unwrap();
-        dbg!(index);
-        let slot_vec = SLOT_VEC.lock().unwrap();
-        dbg!(index);
-        let vec = &mut slot_vec[index].entries.lock().unwrap();
-        dbg!(cur_counter);
-        let val = KeepAliveVal {
-            latest_counter: cur_counter,
-            conn_duration,
-        };
-        dbg!(cur_counter);
-        map.insert(key, val);
-        dbg!(index);
-        vec.push(key);
-        dbg!(index);
-        dbg!(vec);
-        dbg!(map);
-        */
         return Ok(());
     }
+    /// Reschedule a keep alive event when it received a message from the sender.
+    /// Modify the latest_counter in the TIME_WHEEL_MAP to the current counter.
     #[inline(always)]
     #[trace_var(index, slot, hash, vec)]
     pub fn reschedule(socket_addr: SocketAddr) -> Result<(), String> {
@@ -168,21 +152,10 @@ impl KeepAliveTimeWheel {
             },
             Err(why) => Err(eformat!(socket_addr, why.to_string())),
         }
-        /*
-        let mut hash = TIME_WHEEL_MAP.lock().unwrap();
-        match hash.get_mut(&socket_addr) {
-            Some(conn) => {
-                dbg!(&conn);
-                dbg!(&latest_counter);
-                conn.latest_counter = latest_counter;
-                dbg!(&latest_counter);
-                dbg!(&conn);
-                Ok(())
-            }
-            None => Err(eformat!(socket_addr, "not found.")),
-        }
-        */
     }
+    /// When the address(key) is expired in the timing wheel, it compare the latest_counter
+    /// with the current counter. If the latest_counter is less than the current counter,
+    /// the address(key) is expired. Otherwise, put it back to a new slot.
     pub fn run(client: MqttSnClient) {
         // When the keep_alive timing wheel entry is accessed,
         // this code determines if the connection is expired.
@@ -206,6 +179,7 @@ impl KeepAliveTimeWheel {
                     let slot_vec = SLOT_VEC.lock().unwrap();
                     let mut slot = slot_vec[index].entries.lock().unwrap();
                     let mut map = TIME_WHEEL_MAP.lock().unwrap();
+                    // process the expired connections
                     while let Some(socket_addr) = slot.pop() {
                         dbg!(index);
                         dbg!(socket_addr);
@@ -215,14 +189,11 @@ impl KeepAliveTimeWheel {
                                 + conn.conn_duration as usize;
                             dbg!(&conn);
                             if new_counter > cur_counter {
-                                // not expired, reschedule
+                                // Not expired, reschedule
                                 // The new duration starts from the latest_counter,
                                 // not the cur_counter. Subtract cur_counter is needed.
                                 let mut new_index = new_counter % MAX_SLOT;
-
-                                // let slot = slot_vec[index];
                                 dbg!(&conn);
-                                dbg!((index, new_index));
                                 if new_index == index {
                                     // Can't lock the same slot twice
                                     // Even without lock, push() to the same slot will be popped
@@ -240,7 +211,6 @@ impl KeepAliveTimeWheel {
                                 //    client_reschedule.set_state(STATE_LOST);
                                 // Remove it from the hashmap.
                                 // TODO XXX change connection state to LOST.
-
                                 // remove socket_add from keep alive HashMap
                                 if let Some(conn) = map.remove(&socket_addr) {
                                     dbg!(&conn);
