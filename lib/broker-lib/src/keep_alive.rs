@@ -8,7 +8,7 @@ use std::thread;
 //use bytes::{BufMut, Bytes, BytesMut};
 use log::*;
 
-use chrono::{Datelike, Local, Timelike};
+// use chrono::{Datelike, Local, Timelike};
 // use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
 use std::time::Duration;
 use trace_var::trace_var;
@@ -252,7 +252,13 @@ impl KeepAliveTimeWheel {
                                                 conn.publish_will(&client);
                                         }
                                         Err(why) => {
-                                            error!(eformat!(socket_addr, why.to_string()));
+                                            error!(
+                                                "{}",
+                                                eformat!(
+                                                    socket_addr,
+                                                    why.to_string()
+                                                )
+                                            );
                                         }
                                     }
                                 }
