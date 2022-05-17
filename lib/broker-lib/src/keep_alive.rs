@@ -46,8 +46,10 @@ impl Slot {
 static SLEEP_DURATION: usize = 100;
 static MAX_SLOT: usize = (1000 / SLEEP_DURATION) * 64 * 2;
 
+use std::sync::atomic::{AtomicU64, Ordering};
+
 lazy_static! {
-    static ref CUR_COUNTER: Mutex<u64> = Mutex::new(0);
+    static ref CURRENT_COUNTER: AtomicU64 = AtomicU64::new(0);
     static ref SLOT_VEC: Mutex<Vec<Slot>> =
         Mutex::new(Vec::with_capacity(MAX_SLOT));
     static ref TIME_WHEEL_MAP: Mutex<HashMap<SocketAddr, KeepAliveVal>> =
@@ -66,14 +68,7 @@ lazy_static! {
 // Initial timeout duration is 300 ms
 // static TIME_WHEEL_DEFAULT_DURATION_MS: usize = 300;
 
-#[derive(Debug, Clone)]
-pub struct KeepAliveTimeWheel {
-    max_slot: usize,       // (1000 / sleep_duration) * 64 * 2;
-    sleep_duration: usize, // in milli seconds
-    cur_counter: Arc<Mutex<usize>>,
-    slot_vec: Vec<Slot>,
-    hash: Arc<Mutex<HashMap<SocketAddr, KeepAliveVal>>>,
-}
+pub struct KeepAliveTimeWheel {}
 
 impl KeepAliveTimeWheel {
     pub fn init() {
@@ -89,12 +84,53 @@ impl KeepAliveTimeWheel {
     // #[trace_var(index, slot, hash)]
     pub fn schedule(key: SocketAddr, conn_duration: u16) -> Result<(), String> {
         // store the key in a slot of the timing wheel
+        // TODO XXX change value 10 to a constant
         let conn_duration = conn_duration * 10;
-        let cur_counter = *CUR_COUNTER.lock().unwrap() as usize;
+        let cur_counter = CURRENT_COUNTER.load(Ordering::Relaxed) as usize;
         let index = (cur_counter + conn_duration as usize) % MAX_SLOT;
-        dbg!(index);
-        // TODO replace unwrap
-        let mut hash = TIME_WHEEL_MAP.lock().unwrap();
+        match TIME_WHEEL_MAP.try_lock() {
+            Ok(mut map) => {
+                map.insert(
+                    key,
+                    KeepAliveVal {
+                        latest_counter: cur_counter,
+                        conn_duration: conn_duration,
+                    },
+                );
+            }
+            Err(why) => {
+                return Err(eformat!(why.to_string()));
+            }
+        }
+        match SLOT_VEC.try_lock() {
+            Ok(mut slot_vec) => {
+                let slot = &mut slot_vec[index];
+                match slot.entries.try_lock() {
+                    Ok(mut entries) => {
+                        entries.push(key);
+                    }
+                    Err(why) => {
+                        // unwind: remove the inserted key from the map
+                        if let None =
+                            TIME_WHEEL_MAP.lock().unwrap().remove(&key)
+                        {
+                            return Err(eformat!("key not found"));
+                        }
+                        return Err(eformat!(why.to_string()));
+                    }
+                }
+            }
+            Err(why) => {
+                // unwind: remove the inserted key from the map
+                if let None = TIME_WHEEL_MAP.lock().unwrap().remove(&key) {
+                    return Err(eformat!("key not found"));
+                }
+                return Err(eformat!(why.to_string()));
+            }
+        }
+
+        /*
+        let mut map = TIME_WHEEL_MAP.lock().unwrap();
         dbg!(index);
         let slot_vec = SLOT_VEC.lock().unwrap();
         dbg!(index);
@@ -105,18 +141,34 @@ impl KeepAliveTimeWheel {
             conn_duration,
         };
         dbg!(cur_counter);
-        hash.insert(key, val);
+        map.insert(key, val);
         dbg!(index);
         vec.push(key);
         dbg!(index);
         dbg!(vec);
-        dbg!(hash);
+        dbg!(map);
+        */
         return Ok(());
     }
     #[inline(always)]
     #[trace_var(index, slot, hash, vec)]
     pub fn reschedule(socket_addr: SocketAddr) -> Result<(), String> {
-        let latest_counter = *CUR_COUNTER.lock().unwrap() as usize;
+        let latest_counter = CURRENT_COUNTER.load(Ordering::Relaxed) as usize;
+        match TIME_WHEEL_MAP.try_lock() {
+            Ok(mut map) => match map.get_mut(&socket_addr) {
+                Some(conn) => {
+                    dbg!(&conn);
+                    dbg!(&latest_counter);
+                    conn.latest_counter = latest_counter;
+                    dbg!(&latest_counter);
+                    dbg!(&conn);
+                    Ok(())
+                }
+                None => Err(eformat!(socket_addr, "not found.")),
+            },
+            Err(why) => Err(eformat!(socket_addr, why.to_string())),
+        }
+        /*
         let mut hash = TIME_WHEEL_MAP.lock().unwrap();
         match hash.get_mut(&socket_addr) {
             Some(conn) => {
@@ -129,6 +181,7 @@ impl KeepAliveTimeWheel {
             }
             None => Err(eformat!(socket_addr, "not found.")),
         }
+        */
     }
     pub fn run(client: MqttSnClient) {
         // When the keep_alive timing wheel entry is accessed,
@@ -136,23 +189,26 @@ impl KeepAliveTimeWheel {
         // If the hash entry has been updated to a new counter,
         // then reschedule the connection in the timing wheel.
         //
+        // TODO replace lock with try_lock
         let _keep_alive_expire_thread = thread::spawn(move || {
             loop {
+                // The sleep() has to be outside of the mutex lock block for
+                // the lock to be unlocked while the thread is sleeping.
+                thread::sleep(Duration::from_millis(SLEEP_DURATION as u64));
                 {
                     let cur_counter: usize;
-                    cur_counter = *CUR_COUNTER.lock().unwrap() as usize;
-                    *CUR_COUNTER.lock().unwrap() += 1;
+                    cur_counter = CURRENT_COUNTER
+                        .fetch_add(1, Ordering::Relaxed)
+                        as usize;
                     let index = cur_counter % MAX_SLOT;
-                    // let slot_vec = SLOT_VEC.lock().unwrap();
                     // dbg!(&cur_slot);
                     // dbg!(cur_counter);
                     let slot_vec = SLOT_VEC.lock().unwrap();
                     let mut slot = slot_vec[index].entries.lock().unwrap();
-                    // drop(slot_vec);
+                    let mut map = TIME_WHEEL_MAP.lock().unwrap();
                     while let Some(socket_addr) = slot.pop() {
                         dbg!(index);
                         dbg!(socket_addr);
-                        let mut map = TIME_WHEEL_MAP.lock().unwrap();
                         if let Some(conn) = map.get(&socket_addr) {
                             dbg!(&conn);
                             let new_counter = conn.latest_counter as usize
@@ -165,20 +221,18 @@ impl KeepAliveTimeWheel {
                                 let mut new_index = new_counter % MAX_SLOT;
 
                                 // let slot = slot_vec[index];
-                                // TODO replace unwrap
                                 dbg!(&conn);
                                 dbg!((index, new_index));
                                 if new_index == index {
                                     // Can't lock the same slot twice
                                     // Even without lock, push() to the same slot will be popped
                                     // in the while loop, so it's an infinite loop.
-                                    new_index = index + 1;
+                                    // Use the next slot instead.
+                                    new_index = (index + 1) % MAX_SLOT;
                                 }
-                                    let mut new_slot = slot_vec[new_index]
-                                        .entries
-                                        .lock()
-                                        .unwrap();
-                                    new_slot.push(socket_addr);
+                                let mut new_slot =
+                                    slot_vec[new_index].entries.lock().unwrap();
+                                new_slot.push(socket_addr);
                             } else {
                                 // Client timeout, move from ACTIVE to LOST state.
                                 // MQTT-SN 1.2 spec page 25
@@ -197,8 +251,8 @@ impl KeepAliveTimeWheel {
                                             let _result =
                                                 conn.publish_will(&client);
                                         }
-                                        Err(_) => {
-                                            // TODO
+                                        Err(why) => {
+                                            error!(eformat!(socket_addr, why.to_string()));
                                         }
                                     }
                                 }
@@ -207,232 +261,6 @@ impl KeepAliveTimeWheel {
                         }
                     }
                 }
-                /*
-                    let addr = slot.pop();
-                    match slot {
-                    // match SLOT_VEC.lock().unwrap()[index].entries.lock() {
-                        Ok(slot) => {
-                            // iterate all client in the slot
-                            while let Some(socket_addr) = slot.pop() {
-                                dbg!(&socket_addr);
-                                let mut map = TIME_WHEEL_MAP.lock().unwrap();
-                                if let Some(conn) = map.get(&socket_addr) {
-                                    dbg!(&conn);
-                                    let new_counter = conn.latest_counter
-                                        as usize
-                                        + conn.conn_duration as usize;
-                                    dbg!(&conn);
-                                    if new_counter > cur_counter {
-                                        // not expired, reschedule
-                                        // The new duration starts from the latest_counter,
-                                        // not the cur_counter. Subtract cur_counter is needed.
-                                        let index = new_counter % MAX_SLOT;
-
-                                        // let slot = slot_vec[index];
-                                        // TODO replace unwrap
-                                    dbg!(&conn);
-                                        SLOT_VEC.lock().unwrap()[index]
-                                            .entries
-                                            .lock()
-                                            .unwrap()
-                                            .push(socket_addr);
-                                        // let mut vec =
-                                        //     slot_vec[index].entries.lock().unwrap();
-                                        // vec.push(socket_addr);
-                                        dbg!(index);
-                                        // dbg!(vec);
-                                    } else {
-                                        // Client timeout, move from ACTIVE to LOST state.
-                                        // MQTT-SN 1.2 spec page 25
-                                        // The entry was pop() from the timing wheel slot.
-                                        //    client_reschedule.set_state(STATE_LOST);
-                                        // Remove it from the hashmap.
-                                        // TODO XXX change connection state to LOST.
-
-                                        // remove socket_add from keep alive HashMap
-                                        if let Some(conn) =
-                                            map.remove(&socket_addr)
-                                        {
-                                            dbg!(&conn);
-                                            match Connection::remove(
-                                                socket_addr,
-                                            ) {
-                                                Ok(conn) => {
-                                                    let _result = conn
-                                                        .publish_will(&client);
-                                                }
-                                                Err(_) => {
-                                                    // TODO
-                                                }
-                                            }
-                                        }
-                                        info!(
-                                            "Connection Timeout: {:?}",
-                                            socket_addr
-                                        );
-                                    }
-                                }
-                            }
-                        }
-                        Err(_) => {}
-                    }
-                }
-                */
-                // The sleep() has to be outside of the mutex lock block for
-                // the lock to be unlocked while the thread is sleeping.
-                thread::sleep(Duration::from_millis(SLEEP_DURATION as u64));
-            }
-        });
-    }
-    pub fn new() -> Self {
-        // verify sleep_duration (milli seconds) 1..1000.
-        let sleep_duration = 1000; // 1 sec
-                                   // let max_slot = (1000 / sleep_duration) * 64 * 2;
-        let max_slot = 16;
-        let mut slot_vec: Vec<Slot> = Vec::with_capacity(max_slot);
-        // verify default_duration (milli seconds) 1..1000.
-
-        // Must use for loop to initialize
-        // let slot_vec:Vec<Slot<KEY>> = vec![Vec<Slot<KEY>>, max_slot] didn'KEY work.
-        // It allocates one Vec<Slot<KEY>> and all entries point to it.
-        for _ in 0..max_slot {
-            slot_vec.push(Slot::new());
-            // slot_hash.push(Arc::new(Mutex::new(HashMap::new())));
-        }
-        KeepAliveTimeWheel {
-            max_slot,
-            sleep_duration,
-            cur_counter: Arc::new(Mutex::new(0)),
-            slot_vec,
-            // slot_hash,
-            hash: Arc::new(Mutex::new(HashMap::new())),
-        }
-    }
-
-    // The initial duration is set to TIME_WHEEL_INIT_DURATION, but can be
-    // changed to reflect the network the client is on, (LAN or WAN),
-    // or the latency pattern.
-    #[inline(always)]
-    #[trace_var(index, slot, hash, vec)]
-    pub fn schedule2(
-        &mut self,
-        key: SocketAddr,
-        conn_duration: u16,
-    ) -> Result<(), String> {
-        // store the key in a slot of the timing wheel
-        let cur_counter = *self.cur_counter.lock().unwrap();
-        let index = (cur_counter + conn_duration as usize) % self.max_slot;
-        let slot = &self.slot_vec[index];
-        // TODO replace unwrap
-        let mut hash = self.hash.lock().unwrap();
-        let mut vec = slot.entries.lock().unwrap();
-        let val = KeepAliveVal {
-            latest_counter: index,
-            conn_duration,
-        };
-        hash.insert(key, val);
-        vec.push(key);
-        dbg!(index);
-        dbg!(vec);
-        dbg!(hash);
-        return Ok(());
-    }
-
-    #[inline(always)]
-    #[trace_var(index, slot, hash, vec)]
-    pub fn reschedule2(
-        &mut self,
-        socket_addr: SocketAddr,
-    ) -> Result<(), String> {
-        let mut hash = self.hash.lock().unwrap();
-        match hash.get_mut(&socket_addr) {
-            Some(conn) => {
-                dbg!(&conn);
-                dbg!(&self.cur_counter);
-                conn.latest_counter = *self.cur_counter.lock().unwrap();
-                dbg!(&conn);
-                Ok(())
-            }
-            None => Err(eformat!(socket_addr, "not found.")),
-        }
-    }
-
-    pub fn run2(self, client: MqttSnClient) {
-        // When the keep_alive timing wheel entry is accessed,
-        // this code determines if the connection is expired.
-        // If the hash entry has been updated to a new counter,
-        // then reschedule the connection in the timing wheel.
-        //
-        let _keep_alive_expire_thread = thread::spawn(move || {
-            let sleep_duration = self.sleep_duration as u64;
-            loop {
-                let cur_counter = *self.cur_counter.lock().unwrap();
-                let cur_slot = &self.slot_vec[cur_counter % self.max_slot];
-                // dbg!(&cur_slot);
-                dbg!(&cur_counter);
-                match cur_slot.entries.lock() {
-                    Ok(mut slot) => {
-                        // iterate all client in the slot
-                        while let Some(socket_addr) = slot.pop() {
-                            dbg!(&socket_addr);
-                            let mut hash_entry_lock = self.hash.lock().unwrap();
-                            if let Some(conn) =
-                                hash_entry_lock.get(&socket_addr)
-                            {
-                                dbg!(&conn);
-                                let new_counter = conn.latest_counter as usize
-                                    + conn.conn_duration as usize;
-                                if new_counter > cur_counter {
-                                    // not expired, reschedule
-                                    // The new duration starts from the latest_counter,
-                                    // not the cur_counter. Subtract cur_counter is needed.
-                                    let index = new_counter % self.max_slot;
-
-                                    let slot = &self.slot_vec[index];
-                                    // TODO replace unwrap
-                                    let mut vec = slot.entries.lock().unwrap();
-                                    vec.push(socket_addr);
-                                    dbg!(index);
-                                    dbg!(vec);
-                                } else {
-                                    // Client timeout, move from ACTIVE to LOST state.
-                                    // MQTT-SN 1.2 spec page 25
-                                    // The entry was pop() from the timing wheel slot.
-                                    //    client_reschedule.set_state(STATE_LOST);
-                                    // Remove it from the hashmap.
-                                    // TODO XXX change connection state to LOST.
-
-                                    // remove socket_add from keep alive HashMap
-                                    if let Some(conn) =
-                                        hash_entry_lock.remove(&socket_addr)
-                                    {
-                                        dbg!(&conn);
-                                        match Connection::remove(socket_addr) {
-                                            Ok(conn) => {
-                                                let _result =
-                                                    conn.publish_will(&client);
-                                            }
-                                            Err(_) => {
-                                                // TODO
-                                            }
-                                        }
-                                        dbg!(&self.cur_counter);
-                                    }
-                                    info!(
-                                        "Connection Timeout: {:?}",
-                                        socket_addr
-                                    );
-                                }
-                            }
-                        }
-                    }
-                    Err(_) => {}
-                }
-                *self.cur_counter.lock().unwrap() += 1;
-
-                // The sleep() has to be outside of the mutex lock block for
-                // the lock to be unlocked while the thread is sleeping.
-                thread::sleep(Duration::from_millis(sleep_duration));
             }
         });
     }
