@@ -162,15 +162,23 @@ impl KeepAliveTimeWheel {
                                 // not expired, reschedule
                                 // The new duration starts from the latest_counter,
                                 // not the cur_counter. Subtract cur_counter is needed.
-                                let index = new_counter % MAX_SLOT;
+                                let mut new_index = new_counter % MAX_SLOT;
 
                                 // let slot = slot_vec[index];
                                 // TODO replace unwrap
                                 dbg!(&conn);
-                                let mut new_slot =
-                                    slot_vec[index].entries.lock().unwrap();
-                                new_slot.push(socket_addr);
-                                dbg!(index);
+                                dbg!((index, new_index));
+                                if new_index == index {
+                                    // Can't lock the same slot twice
+                                    // Even without lock, push() to the same slot will be popped
+                                    // in the while loop, so it's an infinite loop.
+                                    new_index = index + 1;
+                                }
+                                    let mut new_slot = slot_vec[new_index]
+                                        .entries
+                                        .lock()
+                                        .unwrap();
+                                    new_slot.push(socket_addr);
                             } else {
                                 // Client timeout, move from ACTIVE to LOST state.
                                 // MQTT-SN 1.2 spec page 25
