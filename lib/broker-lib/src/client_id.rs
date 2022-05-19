@@ -14,8 +14,7 @@ pub struct ClientId {}
 
 impl ClientId {
     pub fn insert(key: Bytes, val: SocketAddr) {
-        let cache = CLIENT_ID_MAP.lock().unwrap();
-        cache.insert(key, val);
+        CLIENT_ID_MAP.lock().unwrap().insert(key, val);
     }
     pub fn key_exists(key: &Bytes) -> bool {
         CLIENT_ID_MAP.lock().unwrap().key_exists(key)
@@ -24,20 +23,16 @@ impl ClientId {
         CLIENT_ID_MAP.lock().unwrap().contains(key, val)
     }
     pub fn get(key: &Bytes) -> Vec<SocketAddr> {
-        let cache = CLIENT_ID_MAP.lock().unwrap();
-        cache.get(key)
+        CLIENT_ID_MAP.lock().unwrap().get(key)
     }
     pub fn rev_get(key: &SocketAddr) -> Vec<Bytes> {
-        let cache = CLIENT_ID_MAP.lock().unwrap();
-        cache.rev_get(key)
+        CLIENT_ID_MAP.lock().unwrap().rev_get(key)
     }
     pub fn delete(key: &Bytes) -> Vec<SocketAddr> {
-        let cache = CLIENT_ID_MAP.lock().unwrap();
-        cache.delete(key)
+        CLIENT_ID_MAP.lock().unwrap().delete(key)
     }
     pub fn rev_delete(key: &SocketAddr) -> Vec<Bytes> {
-        let cache = CLIENT_ID_MAP.lock().unwrap();
-        cache.rev_delete(key)
+        CLIENT_ID_MAP.lock().unwrap().rev_delete(key)
     }
     pub fn debug() {
         let cache = CLIENT_ID_MAP.lock().unwrap();

@@ -167,33 +167,38 @@ impl Connection {
         client_id: Bytes,
     ) -> Result<(), String> {
         if ClientId::contains(&client_id, &socket_addr) {
-            // The existing client with same the socket_addr reconnects
+            // An existing client with same the socket_addr reconnects
             Connection::update_state(&socket_addr, StateEnum2::ACTIVE)?;
             if flag_is_clean_session(flags) {
+                // Delete all subscriptions
                 let topic_id_vec =
                     delete_topic_ids_with_socket_addr(&socket_addr);
                 for topic_id in topic_id_vec {
-                    let qos = remove_qos(&topic_id, &socket_addr);
+                    let _qos = remove_qos(&topic_id, &socket_addr);
                 }
             }
             if flag_is_will(flags) {
+                // Delete will data, will_topic_id from the connection struct
+                // and subscription map.
                 let will_topic_id =
                     Connection::delete_will_topic_id(&socket_addr)?;
                 delete_topic_id(&will_topic_id);
             }
             return Ok(());
         }
-        // default values for a new connection
+        // For existing client_id with different socket_addr or new client_id.
+        // Default values for a new will
         let mut will_topic_id = None;
         let mut will_topic = Bytes::new();
         let mut will_message = Bytes::new();
-        // Should have one old_socket_addr, but the get() returns
-        // an array. Use for loop to traverse.
+        // ClientId::get() should return one old_socket_addr, but the get() returns
+        // vec. Use for loop to traverse.
         for old_socket_addr in ClientId::get(&client_id) {
             // Existing client id with different socket_addr
+            // Possible client migration or restart.
             dbg!(old_socket_addr);
-            // move existing subscriptions for non-clean session
-            if flag_is_clean_session(flags) {
+            // Move existing subscriptions for non-clean session
+            if !flag_is_clean_session(flags) {
                 // remove all the topic ids link to the old socket_addr
                 let topic_id_vec =
                     delete_topic_ids_with_socket_addr(&old_socket_addr);
@@ -219,8 +224,8 @@ impl Connection {
                 }
             }
         }
-        // process the connection with new socket_addr and client id
-        let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
+        // Initialize the connection with new socket_addr with
+        // existing or new client_id.
         let conn = Connection {
             socket_addr,
             flags,
@@ -233,10 +238,15 @@ impl Connection {
             will_message,
             // TODO  sleep_msg_vec: Vec::new(),
         };
-        if let Err(why) = conn_hashmap.try_insert(socket_addr, conn) {
-            return Err(eformat!(why.entry.key(), "already exists."));
-        }
+        let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
         ClientId::insert(client_id, socket_addr);
+        if let Err(why) = conn_hashmap.try_insert(socket_addr, conn) {
+            return Err(eformat!(
+                socket_addr,
+                why.entry.key(),
+                "already exists."
+            ));
+        }
         Ok(())
     }
     pub fn get_state(socket_addr: &SocketAddr) -> Result<StateEnum2, String> {
@@ -246,7 +256,7 @@ impl Connection {
                 let state = conn.state.lock().unwrap().clone();
                 Ok(state)
             }
-            None => Err(eformat!(socket_addr, "not found.")),
+            None => Err(eformat!(socket_addr, "state not found.")),
         }
     }
     pub fn update_state(
@@ -259,12 +269,11 @@ impl Connection {
                 *conn.state.lock().unwrap() = new_state;
                 Ok(())
             }
-            None => Err(eformat!(socket_addr, "not found.")),
+            None => Err(eformat!(socket_addr, "state not found.")),
         }
     }
     pub fn contains_key(socket_addr: SocketAddr) -> bool {
-        let conn_hashmap = CONN_HASHMAP.lock().unwrap();
-        conn_hashmap.contains_key(&socket_addr)
+        CONN_HASHMAP.lock().unwrap().contains_key(&socket_addr)
     }
     #[trace]
     pub fn remove(socket_addr: SocketAddr) -> Result<Connection, String> {
@@ -274,7 +283,7 @@ impl Connection {
             None => Err(eformat!(socket_addr, "not found.")),
         }
     }
-    // *Note* to an existing connection
+    // Update will topic to an existing connection
     pub fn update_will_topic(
         socket_addr: SocketAddr,
         topic: String,
@@ -282,8 +291,9 @@ impl Connection {
         let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
         match conn_hashmap.get_mut(&socket_addr) {
             Some(conn) => {
-                // conn.will_topic = Bytes::from(topic);
-                conn.will_topic_id = Some(try_insert_topic_name(topic)?);
+                conn.will_topic = Bytes::from(topic.clone());
+                let topic_id = try_insert_topic_name(topic)?;
+                conn.will_topic_id = Some(topic_id);
                 Ok(())
             }
             None => Err(eformat!(socket_addr, "not found.")),
