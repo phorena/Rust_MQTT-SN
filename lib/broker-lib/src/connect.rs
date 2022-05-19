@@ -40,7 +40,7 @@ use crate::{
     flags::flag_is_will,
     function,
     keep_alive::KeepAliveTimeWheel,
-    message::{MsgHeader, MsgHeaderEnum},
+    msg_hdr::{MsgHeader, MsgHeaderEnum},
     will_topic_req::WillTopicReq,
     MSG_LEN_CONNECT_HEADER, MSG_TYPE_CONNACK, MSG_TYPE_CONNECT,
     RETURN_CODE_ACCEPTED,

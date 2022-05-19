@@ -8,6 +8,7 @@ extern crate lazy_static;
 pub mod advertise;
 pub mod asleep_msg_cache;
 pub mod broker_lib;
+pub mod client_id;
 pub mod conn_ack;
 pub mod connect;
 pub mod connection;
@@ -27,7 +28,7 @@ pub mod filter;
 pub mod flags;
 pub mod gw_info;
 pub mod keep_alive;
-pub mod message;
+pub mod msg_hdr;
 pub mod ping_req;
 pub mod ping_resp;
 pub mod pub_ack;
@@ -185,22 +186,41 @@ macro_rules! dbg_fn2 {
 /// MUST ALSO IMPORT function!()
 macro_rules! eformat {
     ($exp:expr,$exp2:expr) => {
-        format!("{}:{} {} {}", function!(), line!(), $exp, $exp2)
+        format!("{:?}:{:?} {:?} {:?}", function!(), line!(), $exp, $exp2)
     };
     ($exp:expr) => {
-        format!("{}:{} {}", function!(), line!(), $exp)
+        format!("{:?}:{:?} {:?}", function!(), line!(), $exp)
     };
     ($exp:expr,$exp2:expr,$exp3:expr) => {
-        format!("{}:{} {} {} {}", function!(), line!(), $exp, $exp2, $exp3)
+        format!(
+            "{:?}:{:?} {:?} {:?} {:?}",
+            function!(),
+            line!(),
+            $exp,
+            $exp2,
+            $exp3
+        )
     };
     ($exp:expr,$exp2:expr,$exp3:expr,$exp4:expr) => {
         format!(
-            "{}:{} {} {} {} {}",
+            "{:?}:{:?} {:?} {:?} {:?} {:?}",
             function!(),
             line!(),
             $exp,
             $exp2,
             $exp3,
+            $exp4
+        )
+    };
+    ($exp:expr,$exp2:expr,$exp3:expr,$exp4:expr,$exp5:expr) => {
+        format!(
+            "{:?}:{:?} {:?} {:?} {:?} {:?} {:?}",
+            function!(),
+            line!(),
+            $exp,
+            $exp2,
+            $exp3,
+            $exp4,
             $exp4
         )
     };

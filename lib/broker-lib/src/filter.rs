@@ -263,25 +263,45 @@ impl Filter {
 }
 
 lazy_static! {
-    pub static ref GLOBAL_FILTERS: Mutex<Filter> = Mutex::new(Filter::new());
-    pub static ref GLOBAL_CONCRETE_TOPICS: Mutex<BisetMap<String, SocketAddr>> =
+    pub static ref FILTERS: Mutex<Filter> = Mutex::new(Filter::new());
+    pub static ref CONCRETE_TOPICS: Mutex<BisetMap<String, SocketAddr>> =
         Mutex::new(BisetMap::new());
-    pub static ref GLOBAL_WILDCARD_TOPICS: Mutex<BisetMap<String, SocketAddr>> =
+    pub static ref WILDCARD_TOPICS: Mutex<BisetMap<String, SocketAddr>> =
         Mutex::new(BisetMap::new());
-    pub static ref GLOBAL_WILDCARD_FILTERS: Mutex<BisetMap<String, SocketAddr>> =
+    pub static ref WILDCARD_FILTERS: Mutex<BisetMap<String, SocketAddr>> =
         Mutex::new(BisetMap::new());
-    pub static ref GLOBAL_TOPIC_IDS: Mutex<BisetMap<TopicIdType, SocketAddr>> =
+    /// topic_id <-> SocketAddr/subscribers
+    pub static ref TOPIC_IDS: Mutex<BisetMap<TopicIdType, SocketAddr>> =
         Mutex::new(BisetMap::new());
-    pub static ref GLOBAL_TOPIC_IDS_QOS: Mutex<HashMap<(TopicIdType, SocketAddr), QoSConst>> =
+    /// store QoS for each top_id/subscriber
+    pub static ref TOPIC_IDS_QOS: Mutex<HashMap<(TopicIdType, SocketAddr), QoSConst>> =
         Mutex::new(HashMap::new());
     /// Topic name to topic id map is 1:1. Using a BisetMap to allow access from both sides.
-    pub static ref GLOBAL_TOPIC_NAME_TO_IDS: Mutex<BisetMap<String, TopicIdType>> =
+    pub static ref TOPIC_NAME_TO_IDS: Mutex<BisetMap<String, TopicIdType>> =
         Mutex::new(BisetMap::new());
-    pub static ref GLOBAL_TOPIC_ID: Mutex<TopicIdType> = Mutex::new(0);
+    pub static ref TOPIC_ID_COUNTER: Mutex<TopicIdType> = Mutex::new(0);
+}
+// Delete QoS data
+pub fn remove_qos(
+    topic_id: &TopicIdType,
+    socket_addr: &SocketAddr,
+) -> Option<QoSConst> {
+    TOPIC_IDS_QOS
+        .lock()
+        .unwrap()
+        .remove(&(*topic_id, *socket_addr))
 }
 
+// Delete subscribers to this topic_id, and their QoS data
+pub fn delete_topic_id(topic_id: &TopicIdType) {
+    let sub_vec = TOPIC_IDS.lock().unwrap().delete(topic_id);
+    let mut map = TOPIC_IDS_QOS.lock().unwrap();
+    for sub in sub_vec {
+        map.remove(&(*topic_id, sub));
+    }
+}
 pub fn get_topic_id_with_topic_name(topic_name: String) -> Option<TopicIdType> {
-    let topic_ids = GLOBAL_TOPIC_NAME_TO_IDS.lock().unwrap().get(&topic_name);
+    let topic_ids = TOPIC_NAME_TO_IDS.lock().unwrap().get(&topic_name);
     if topic_ids.is_empty() {
         None
     } else {
@@ -293,11 +313,11 @@ pub fn try_register_topic_name(
     topic_name: String,
     topic_id: TopicIdType,
 ) -> Result<TopicIdType, String> {
-    let topic_ids = GLOBAL_TOPIC_NAME_TO_IDS.lock().unwrap().get(&topic_name);
+    let topic_ids = TOPIC_NAME_TO_IDS.lock().unwrap().get(&topic_name);
     // If topic name is already in the map, return the existing topic id,
     // otherwise insert the topic name and topic id into the map.
     if topic_ids.is_empty() {
-        GLOBAL_TOPIC_NAME_TO_IDS
+        TOPIC_NAME_TO_IDS
             .lock()
             .unwrap()
             .insert(topic_name, topic_id);
@@ -317,20 +337,20 @@ pub fn try_register_topic_name(
     }
 }
 
-/// Try to insert a NEW topic name, without topic id.
+/// Try to insert a NEW topic name, topic id is assigned using TOPIC_ID_COUNTER
 pub fn try_insert_topic_name(
     topic_name: String,
 ) -> Result<TopicIdType, String> {
-    let topic_ids = GLOBAL_TOPIC_NAME_TO_IDS.lock().unwrap().get(&topic_name);
+    let topic_ids = TOPIC_NAME_TO_IDS.lock().unwrap().get(&topic_name);
     // If topic name is already in the map, return the existing topic id,
     // otherwise insert the topic name and topic id into the map.
     if topic_ids.is_empty() {
-        let topic_id = *GLOBAL_TOPIC_ID.lock().unwrap();
-        GLOBAL_TOPIC_NAME_TO_IDS
+        let topic_id = *TOPIC_ID_COUNTER.lock().unwrap();
+        TOPIC_NAME_TO_IDS
             .lock()
             .unwrap()
             .insert(topic_name, topic_id);
-        *GLOBAL_TOPIC_ID.lock().unwrap() = topic_id + 1;
+        *TOPIC_ID_COUNTER.lock().unwrap() = topic_id + 1;
         Ok(topic_id)
     } else {
         // Topic name is already in the map with only one topic id.
@@ -346,11 +366,8 @@ pub fn subscribe_with_topic_name(
 ) -> Result<TopicIdType, String> {
     match try_insert_topic_name(topic_name.clone()) {
         Ok(id) => {
-            GLOBAL_TOPIC_IDS.lock().unwrap().insert(id, socket_addr);
-            GLOBAL_TOPIC_IDS_QOS
-                .lock()
-                .unwrap()
-                .insert((id, socket_addr), qos);
+            TOPIC_IDS.lock().unwrap().insert(id, socket_addr);
+            TOPIC_IDS_QOS.lock().unwrap().insert((id, socket_addr), qos);
             Ok(id)
         }
         Err(why) => Err(eformat!(socket_addr, why, topic_name)),
@@ -363,11 +380,8 @@ pub fn subscribe_with_topic_id(
     id: TopicIdType,
     qos: QoSConst,
 ) -> Result<(), String> {
-    GLOBAL_TOPIC_IDS.lock().unwrap().insert(id, socket_addr);
-    GLOBAL_TOPIC_IDS_QOS
-        .lock()
-        .unwrap()
-        .insert((id, socket_addr), qos);
+    TOPIC_IDS.lock().unwrap().insert(id, socket_addr);
+    TOPIC_IDS_QOS.lock().unwrap().insert((id, socket_addr), qos);
     Ok(())
 }
 
@@ -377,7 +391,7 @@ pub fn unsubscribe_with_topic_name(
     topic_name: String,
 ) -> Result<(), String> {
     // Get the topic id from the topic name.
-    let topic_ids = GLOBAL_TOPIC_NAME_TO_IDS.lock().unwrap().get(&topic_name);
+    let topic_ids = TOPIC_NAME_TO_IDS.lock().unwrap().get(&topic_name);
     if !topic_ids.is_empty() {
         // Remove socket_addr from the topic id map.
         let topic_id = topic_ids[0];
@@ -393,7 +407,7 @@ pub fn unsubscribe_with_topic_id(
     socket_addr: SocketAddr,
     id: TopicIdType,
 ) -> Result<(), String> {
-    GLOBAL_TOPIC_IDS.lock().unwrap().remove(&id, &socket_addr);
+    TOPIC_IDS.lock().unwrap().remove(&id, &socket_addr);
     Ok(())
 }
 
@@ -407,12 +421,11 @@ pub struct Subscriber {
 #[inline(always)]
 pub fn get_subscribers_with_topic_id(id: u16) -> Vec<Subscriber> {
     // Get the list of socket_addr that subscribed to the topic_id.
-    let sock_vec = GLOBAL_TOPIC_IDS.lock().unwrap().get(&id);
+    let sock_vec = TOPIC_IDS.lock().unwrap().get(&id);
     let mut return_vec: Vec<Subscriber> = Vec::new();
     // Get the QoS of each socket_addr subscribed to the topic_id.
     for socket_addr in sock_vec {
-        for qos in GLOBAL_TOPIC_IDS_QOS.lock().unwrap().get(&(id, socket_addr))
-        {
+        for qos in TOPIC_IDS_QOS.lock().unwrap().get(&(id, socket_addr)) {
             return_vec.push(Subscriber {
                 socket_addr: socket_addr,
                 qos: *qos,
@@ -423,8 +436,10 @@ pub fn get_subscribers_with_topic_id(id: u16) -> Vec<Subscriber> {
 }
 
 #[inline(always)]
-pub fn delete_subscribers_with_socket_addr(socket_addr: &SocketAddr) {
-    GLOBAL_TOPIC_IDS.lock().unwrap().rev_delete(socket_addr);
+pub fn delete_topic_ids_with_socket_addr(
+    socket_addr: &SocketAddr,
+) -> Vec<TopicIdType> {
+    TOPIC_IDS.lock().unwrap().rev_delete(socket_addr)
 }
 
 #[inline(always)]
@@ -434,15 +449,9 @@ pub fn insert_filter(
 ) -> Result<(), String> {
     if valid_filter(&filter[..]) {
         if has_wildcards(&filter[..]) {
-            GLOBAL_WILDCARD_FILTERS
-                .lock()
-                .unwrap()
-                .insert(filter, socket_addr);
+            WILDCARD_FILTERS.lock().unwrap().insert(filter, socket_addr);
         } else {
-            GLOBAL_CONCRETE_TOPICS
-                .lock()
-                .unwrap()
-                .insert(filter, socket_addr);
+            CONCRETE_TOPICS.lock().unwrap().insert(filter, socket_addr);
         }
         return Ok(());
     }
@@ -452,47 +461,33 @@ pub fn insert_filter(
 /// Remove topics and filters from the bisetmaps using the rev_delete()
 #[inline(always)]
 pub fn delete_filter(socket_addr: SocketAddr) {
-    GLOBAL_WILDCARD_FILTERS
-        .lock()
-        .unwrap()
-        .rev_delete(&socket_addr);
-    GLOBAL_CONCRETE_TOPICS
-        .lock()
-        .unwrap()
-        .rev_delete(&socket_addr);
-    GLOBAL_WILDCARD_TOPICS
-        .lock()
-        .unwrap()
-        .rev_delete(&socket_addr);
+    WILDCARD_FILTERS.lock().unwrap().rev_delete(&socket_addr);
+    CONCRETE_TOPICS.lock().unwrap().rev_delete(&socket_addr);
+    WILDCARD_TOPICS.lock().unwrap().rev_delete(&socket_addr);
 }
 
 #[inline(always)]
 pub fn match_concrete_topics(topic: &String) -> Vec<SocketAddr> {
-    GLOBAL_CONCRETE_TOPICS.lock().unwrap().get(topic)
+    CONCRETE_TOPICS.lock().unwrap().get(topic)
 }
 
 #[inline(always)]
 pub fn match_topics(topic: &String) -> Vec<SocketAddr> {
-    let sock_vec = GLOBAL_WILDCARD_TOPICS.lock().unwrap().get(topic);
+    let sock_vec = WILDCARD_TOPICS.lock().unwrap().get(topic);
     if sock_vec.is_empty() {
         // The topic doesn't match any wildcard topics.
         // Matching the topic against all wildcard filters.
-        for (filter, socket_vec) in
-            GLOBAL_WILDCARD_FILTERS.lock().unwrap().collect()
-        {
+        for (filter, socket_vec) in WILDCARD_FILTERS.lock().unwrap().collect() {
             if match_topic(topic, &filter) {
                 // Insert each socket_addr into the matching wildcard_topics.
                 for sock in socket_vec {
-                    GLOBAL_WILDCARD_TOPICS
-                        .lock()
-                        .unwrap()
-                        .insert(topic.clone(), sock);
+                    WILDCARD_TOPICS.lock().unwrap().insert(topic.clone(), sock);
                 }
             }
         }
     }
-    let wildcards = GLOBAL_WILDCARD_TOPICS.lock().unwrap().get(topic);
-    let mut concretes = GLOBAL_CONCRETE_TOPICS.lock().unwrap().get(topic);
+    let wildcards = WILDCARD_TOPICS.lock().unwrap().get(topic);
+    let mut concretes = CONCRETE_TOPICS.lock().unwrap().get(topic);
     concretes.append(&mut wildcards.clone());
     concretes.sort();
     concretes.dedup();
@@ -503,7 +498,7 @@ pub fn global_filter_insert(
     filter: &str,
     socket_addr: SocketAddr,
 ) -> Result<(), String> {
-    let mut filters = GLOBAL_FILTERS.lock().unwrap();
+    let mut filters = FILTERS.lock().unwrap();
     filters.insert(filter, socket_addr)?;
     // dbg!(filters);
     Ok(())
@@ -523,8 +518,8 @@ mod test {
         let topic_id =
             super::try_insert_topic_name("test/now".to_string()).unwrap();
         assert_eq!(topic_id, 1);
-        dbg!(super::GLOBAL_TOPIC_NAME_TO_IDS.lock().unwrap());
-        dbg!(super::GLOBAL_TOPIC_ID.lock().unwrap());
+        dbg!(super::TOPIC_NAME_TO_IDS.lock().unwrap());
+        dbg!(super::TOPIC_ID_COUNTER.lock().unwrap());
     }
     #[test]
     fn test_topic_id() {
@@ -546,8 +541,8 @@ mod test {
                 super::subscribe_with_topic_id(socket2, 2, QOS_LEVEL_1);
                 super::subscribe_with_topic_id(socket3, 3, QOS_LEVEL_0);
                 super::subscribe_with_topic_id(socket3, 3, QOS_LEVEL_3);
-                dbg!(super::GLOBAL_TOPIC_IDS.lock().unwrap());
-                dbg!(super::GLOBAL_TOPIC_IDS_QOS.lock().unwrap());
+                dbg!(super::TOPIC_IDS.lock().unwrap());
+                dbg!(super::TOPIC_IDS_QOS.lock().unwrap());
                 let result = super::get_subscribers_with_topic_id(1);
                 dbg!(result);
                 let result = super::get_subscribers_with_topic_id(2);
@@ -576,8 +571,8 @@ mod test {
         super::insert_filter("hello/world/#".to_string(), socket);
         super::insert_filter("hello/world/#".to_string(), socket2);
         super::insert_filter("hello/world/#".to_string(), socket3);
-        dbg!(super::GLOBAL_CONCRETE_TOPICS.lock().unwrap());
-        dbg!(super::GLOBAL_WILDCARD_FILTERS.lock().unwrap());
+        dbg!(super::CONCRETE_TOPICS.lock().unwrap());
+        dbg!(super::WILDCARD_FILTERS.lock().unwrap());
         let result = super::match_topics(&"hello".to_string());
         dbg!(result);
         let result = super::match_topics(&"hello/world".to_string());
@@ -589,13 +584,13 @@ mod test {
         let result = super::match_topics(&"hello/world/there".to_string());
         dbg!(result);
 
-        dbg!(super::GLOBAL_CONCRETE_TOPICS.lock().unwrap());
-        dbg!(super::GLOBAL_WILDCARD_FILTERS.lock().unwrap());
-        dbg!(super::GLOBAL_WILDCARD_TOPICS.lock().unwrap());
+        dbg!(super::CONCRETE_TOPICS.lock().unwrap());
+        dbg!(super::WILDCARD_FILTERS.lock().unwrap());
+        dbg!(super::WILDCARD_TOPICS.lock().unwrap());
         super::delete_filter(socket2);
-        dbg!(super::GLOBAL_CONCRETE_TOPICS.lock().unwrap());
-        dbg!(super::GLOBAL_WILDCARD_FILTERS.lock().unwrap());
-        dbg!(super::GLOBAL_WILDCARD_TOPICS.lock().unwrap());
+        dbg!(super::CONCRETE_TOPICS.lock().unwrap());
+        dbg!(super::WILDCARD_FILTERS.lock().unwrap());
+        dbg!(super::WILDCARD_TOPICS.lock().unwrap());
         */
     }
     #[test]
@@ -605,66 +600,60 @@ mod test {
         let socket = "127.0.0.1:1200".parse::<SocketAddr>().unwrap();
         let socket2 = "127.0.0.2:1200".parse::<SocketAddr>().unwrap();
 
-        super::GLOBAL_CONCRETE_TOPICS
+        super::CONCRETE_TOPICS
             .lock()
             .unwrap()
             .insert("/test".to_string(), socket);
         // Duplicate entry, one entry should be inserted.
-        super::GLOBAL_CONCRETE_TOPICS
+        super::CONCRETE_TOPICS
             .lock()
             .unwrap()
             .insert("/test".to_string(), socket);
-        super::GLOBAL_CONCRETE_TOPICS
+        super::CONCRETE_TOPICS
             .lock()
             .unwrap()
             .insert("/test".to_string(), socket2);
-        super::GLOBAL_CONCRETE_TOPICS
+        super::CONCRETE_TOPICS
             .lock()
             .unwrap()
             .insert("/test2".to_string(), socket);
-        super::GLOBAL_CONCRETE_TOPICS
+        super::CONCRETE_TOPICS
             .lock()
             .unwrap()
             .insert("/test2".to_string(), socket2);
-        dbg!(super::GLOBAL_CONCRETE_TOPICS.lock().unwrap());
-        let result = super::GLOBAL_CONCRETE_TOPICS
+        dbg!(super::CONCRETE_TOPICS.lock().unwrap());
+        let result = super::CONCRETE_TOPICS
             .lock()
             .unwrap()
             .get(&"/test".to_string());
         dbg!(result);
-        let result = super::GLOBAL_CONCRETE_TOPICS
-            .lock()
-            .unwrap()
-            .rev_get(&socket);
+        let result = super::CONCRETE_TOPICS.lock().unwrap().rev_get(&socket);
         dbg!(result);
-        super::GLOBAL_CONCRETE_TOPICS
+        super::CONCRETE_TOPICS
             .lock()
             .unwrap()
             .remove(&"/test".to_string(), &socket);
-        dbg!(super::GLOBAL_CONCRETE_TOPICS.lock().unwrap());
-        super::GLOBAL_CONCRETE_TOPICS
+        dbg!(super::CONCRETE_TOPICS.lock().unwrap());
+        super::CONCRETE_TOPICS
             .lock()
             .unwrap()
             .insert("/test".to_string(), socket);
-        dbg!(super::GLOBAL_CONCRETE_TOPICS.lock().unwrap());
-        super::GLOBAL_CONCRETE_TOPICS
+        dbg!(super::CONCRETE_TOPICS.lock().unwrap());
+        super::CONCRETE_TOPICS
             .lock()
             .unwrap()
             .delete(&"/test".to_string());
-        dbg!(super::GLOBAL_CONCRETE_TOPICS.lock().unwrap());
-        super::GLOBAL_CONCRETE_TOPICS
+        dbg!(super::CONCRETE_TOPICS.lock().unwrap());
+        super::CONCRETE_TOPICS
             .lock()
             .unwrap()
             .insert("/test".to_string(), socket);
-        super::GLOBAL_CONCRETE_TOPICS
+        super::CONCRETE_TOPICS
             .lock()
             .unwrap()
             .insert("/test".to_string(), socket2);
-        super::GLOBAL_CONCRETE_TOPICS
-            .lock()
-            .unwrap()
-            .rev_delete(&socket2);
-        dbg!(super::GLOBAL_CONCRETE_TOPICS.lock().unwrap());
+        super::CONCRETE_TOPICS.lock().unwrap().rev_delete(&socket2);
+        dbg!(super::CONCRETE_TOPICS.lock().unwrap());
 
         /*
 

@@ -11,7 +11,7 @@ use crate::{
 };
 
 lazy_static! {
-    pub static ref GLOBAL_RETAIN_MAP: Mutex<HashMap<TopicIdType, Retain>> =
+    pub static ref RETAIN_MAP: Mutex<HashMap<TopicIdType, Retain>> =
         Mutex::new(HashMap::new());
 }
 
@@ -43,7 +43,7 @@ impl Retain {
         msg_id: MsgIdType,
         payload: BytesMut,
     ) {
-        let mut retain_map = GLOBAL_RETAIN_MAP.lock().unwrap();
+        let mut retain_map = RETAIN_MAP.lock().unwrap();
         // if the topic_id is already in the map, replace the old retain with the new one
         // TODO check error
         retain_map
@@ -51,7 +51,7 @@ impl Retain {
         dbg!(&retain_map);
     }
     pub fn get(topic_id: TopicIdType) -> Option<Retain> {
-        let retain_map = GLOBAL_RETAIN_MAP.lock().unwrap();
+        let retain_map = RETAIN_MAP.lock().unwrap();
         match retain_map.get(&topic_id) {
             Some(retain) => Some(retain.clone()),
             None => None,
@@ -86,7 +86,7 @@ mod test {
             super::Retain::insert(topic_id, msg_id, payload);
             let retain = super::Retain::get(topic_id);
             {
-                let retain_map = super::GLOBAL_RETAIN_MAP.lock().unwrap();
+                let retain_map = super::RETAIN_MAP.lock().unwrap();
                 dbg!(retain_map);
             }
             dbg!(&retain);
@@ -99,7 +99,7 @@ mod test {
             super::Retain::insert(topic_id, msg_id, payload);
             let retain = super::Retain::get(topic_id);
             {
-                let retain_map = super::GLOBAL_RETAIN_MAP.lock().unwrap();
+                let retain_map = super::RETAIN_MAP.lock().unwrap();
                 dbg!(retain_map);
             }
             dbg!(&retain);
@@ -112,7 +112,7 @@ mod test {
             super::Retain::insert(topic_id, msg_id, payload);
             let retain = super::Retain::get(topic_id);
             {
-                let retain_map = super::GLOBAL_RETAIN_MAP.lock().unwrap();
+                let retain_map = super::RETAIN_MAP.lock().unwrap();
                 dbg!(retain_map);
             }
             dbg!(&retain);

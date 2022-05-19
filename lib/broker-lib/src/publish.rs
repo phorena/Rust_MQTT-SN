@@ -46,11 +46,12 @@ use crate::{
         TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
     },
     function,
-    message::{MsgHeader, MsgHeaderEnum},
+    msg_hdr::{MsgHeader, MsgHeaderEnum},
     pub_ack::PubAck,
     pub_msg_cache::PubMsgCache,
     pub_rec::PubRec,
     retain::Retain,
+    retransmit::RetransTimeWheel,
     MSG_LEN_PUBACK, MSG_LEN_PUBLISH_HEADER, MSG_LEN_PUBREC, MSG_TYPE_CONNACK,
     MSG_TYPE_CONNECT, MSG_TYPE_PUBACK, MSG_TYPE_PUBCOMP, MSG_TYPE_PUBLISH,
     MSG_TYPE_PUBREC, MSG_TYPE_PUBREL, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE,
@@ -318,15 +319,14 @@ impl Publish {
             // cancel it if receive a PUBACK message.
             QOS_LEVEL_1 => {
                 dbg!((&qos, QOS_LEVEL_1));
-                if let Err(why) = client.schedule_tx.try_send((
+                RetransTimeWheel::schedule(
                     remote_addr,
                     MSG_TYPE_PUBACK,
                     0,
                     msg_id,
+                    10,
                     bytes_buf.clone(),
-                )) {
-                    return Err(eformat!(client.remote_addr, why));
-                };
+                )?;
             }
             QOS_LEVEL_2 => {
                 // 4-way handshake for QoS level 2 message for the SENDER.
@@ -343,15 +343,14 @@ impl Publish {
                 // PUBREC message doesn't have topic id.
                 // For the time wheel hash, default to 0.
                 dbg!(&qos);
-                if let Err(why) = client.schedule_tx.try_send((
+                RetransTimeWheel::schedule(
                     remote_addr,
                     MSG_TYPE_PUBREC,
                     0,
                     msg_id,
+                    10,
                     bytes_buf.clone(),
-                )) {
-                    return Err(eformat!(remote_addr, why));
-                };
+                )?;
             }
             // no restransmit for Level 0 & 3.
             QOS_LEVEL_0 | QOS_LEVEL_3 => {}
@@ -376,8 +375,8 @@ impl Publish {
             // Can't return error, because not all subscribers will have error.
             // TODO error for every subscriber/message
             // TODO new tx method to reduce have try_write() run once for every subscriber.
-            match Connection::get_state(subscriber.socket_addr) {
-                Some(state) => match state {
+            match Connection::get_state(&subscriber.socket_addr) {
+                Ok(state) => match state {
                     StateEnum2::ACTIVE => {
                         // Send now
                         let _result = Publish::send(
@@ -400,9 +399,8 @@ impl Publish {
                     }
                     _ => {}
                 },
-                None => {
-                    // TODO clean up
-                    error!("state not found {:?}", subscriber.socket_addr);
+                Err(why) => {
+                    error!("{}", why);
                 }
             }
             //      }

@@ -1,19 +1,26 @@
 use crate::{
     broker_lib::MqttSnClient,
+    client_id::ClientId,
     eformat,
-    filter::{get_subscribers_with_topic_id, try_insert_topic_name},
-    flags::RETAIN_FALSE,
+    filter::{
+        delete_topic_id, delete_topic_ids_with_socket_addr,
+        get_subscribers_with_topic_id, remove_qos, subscribe_with_topic_id,
+        try_insert_topic_name,
+    },
+    flags::{flag_is_clean_session, flag_is_will, RETAIN_FALSE},
     function,
     publish::Publish,
     TopicIdType,
 };
 // use log::*;
 // use rand::Rng;
+use bisetmap::BisetMap;
 use bytes::{BufMut, Bytes, BytesMut};
 use hashbrown::HashMap;
 use std::net::{IpAddr, SocketAddr};
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::{sync::Arc, sync::Mutex};
+use trace_caller::trace;
 use uuid::v1::{Context, Timestamp};
 use uuid::Uuid;
 
@@ -84,8 +91,8 @@ lazy_static! {
 
     // TODO: for connection migration, when the client has a new socket_addr,
     //       use the ConnId to locate the connection.
-    static ref CONN_ID_HASHMAP: Mutex<HashMap<ConnId, SocketAddr>> =
-        Mutex::new(HashMap::new());
+    static ref CONN_ID_BISET_MAP: Mutex<BisetMap<ConnId, SocketAddr>> =
+        Mutex::new(BisetMap::new());
 }
 
 /// A connection is CURRENT network connection a client connects to the server.
@@ -105,12 +112,52 @@ pub struct Connection {
     pub client_id: Bytes,
     state: Arc<Mutex<StateEnum2>>,
     pub will_topic_id: Option<TopicIdType>,
-    pub will_topic: Bytes, // NOTE: this is a Bytes, not a BytesMut.
+    pub will_topic: Bytes, // *NOTE: this is a Bytes, not a BytesMut.
     pub will_message: Bytes,
     // TODO pub sleep_msg_vec: Vec<Bytes>,
 }
 
+/*
+6.3 Clean session
+With MQTT, when a client disconnects, its subscriptions are not deleted. They are persistent and valid for new
+connections, until either they are explicitly un-subscribed by the client, or the client establishes a new connection
+with the “clean session” flag set.
+In MQTT-SN the meaning of a “clean session” is extended to the Will feature, i.e. not only the subscriptions
+are persistent, but also the Will topic and the Will message. The two flags “CleanSession” and “Will” in the
+CONNECT have then the following meanings:
+• CleanSession=true, Will=true: The GW will delete all subscriptions and Will data related to the client,
+and starts prompting for new Will topic and Will message.
+• CleanSession=true, Will=false: The GW will delete all subscriptions and Will data related to the client,
+and returns CONNACK (no prompting for Will topic and Will message).
+• CleanSession=false, Will=true: The GW keeps all stored client’s data, but prompts for new Will topic and
+Will message. The newly received Will data will overwrite the stored Will data.
+• CleanSession=false, Will=false: The GW keeps all stored client’s data and returns CONNACK (no prompting for Will topic and Will message).
+Note that if a client wants to delete only its Will data at connection setup, it could send a CONNECT message
+with “CleanSession=false” and “Will=true”, and sends an empty WILLTOPIC message to the GW when prompted
+to do so. It could also send a CONNECT message with “CleanSession=false” and “Will=false”, and use the
+procedure of Section 6.4 to delete or modify the Will data.
+*/
+
 impl Connection {
+    pub fn new(
+        socket_addr: SocketAddr,
+        flags: u8,
+        protocol_id: u8,
+        duration: u16,
+        client_id: Bytes,
+    ) -> Self {
+        Connection {
+            socket_addr,
+            flags,
+            protocol_id,
+            duration,
+            client_id: client_id.clone(),
+            state: Arc::new(Mutex::new(StateEnum2::ACTIVE)),
+            will_topic_id: None,
+            will_topic: Bytes::new(),
+            will_message: Bytes::new(),
+        }
+    }
     // Insert a new connection to the HashMap
     pub fn try_insert(
         socket_addr: SocketAddr,
@@ -119,40 +166,95 @@ impl Connection {
         duration: u16,
         client_id: Bytes,
     ) -> Result<(), String> {
+        if ClientId::contains(&client_id, &socket_addr) {
+            // The existing client with same the socket_addr reconnects
+            Connection::update_state(&socket_addr, StateEnum2::ACTIVE)?;
+            if flag_is_clean_session(flags) {
+                let topic_id_vec =
+                    delete_topic_ids_with_socket_addr(&socket_addr);
+                for topic_id in topic_id_vec {
+                    let qos = remove_qos(&topic_id, &socket_addr);
+                }
+            }
+            if flag_is_will(flags) {
+                let will_topic_id =
+                    Connection::delete_will_topic_id(&socket_addr)?;
+                delete_topic_id(&will_topic_id);
+            }
+            return Ok(());
+        }
+        // default values for a new connection
+        let mut will_topic_id = None;
+        let mut will_topic = Bytes::new();
+        let mut will_message = Bytes::new();
+        // Should have one old_socket_addr, but the get() returns
+        // an array. Use for loop to traverse.
+        for old_socket_addr in ClientId::get(&client_id) {
+            // Existing client id with different socket_addr
+            dbg!(old_socket_addr);
+            // move existing subscriptions for non-clean session
+            if flag_is_clean_session(flags) {
+                // remove all the topic ids link to the old socket_addr
+                let topic_id_vec =
+                    delete_topic_ids_with_socket_addr(&old_socket_addr);
+                for topic_id in topic_id_vec {
+                    // remove each QoS entries
+                    let qos = remove_qos(&topic_id, &old_socket_addr).unwrap();
+                    // subscribe with new socket_addr
+                    let _result =
+                        subscribe_with_topic_id(socket_addr, topic_id, qos);
+                }
+            }
+            // copy will data for will flag == false
+            if !flag_is_will(flags) {
+                match CONN_HASHMAP.lock().unwrap().get(&old_socket_addr) {
+                    Some(conn) => {
+                        will_topic_id = conn.will_topic_id;
+                        will_topic = conn.will_topic.clone();
+                        will_message = conn.will_message.clone();
+                    }
+                    None => {
+                        return Err(eformat!(socket_addr, client_id));
+                    }
+                }
+            }
+        }
+        // process the connection with new socket_addr and client id
         let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
         let conn = Connection {
             socket_addr,
             flags,
             protocol_id,
             duration,
-            client_id,
-            state: Arc::new(Mutex::new(StateEnum2::DISCONNECTED)),
-            will_topic_id: None,
-            will_topic: Bytes::new(),
-            will_message: Bytes::new(),
+            client_id: client_id.clone(),
+            state: Arc::new(Mutex::new(StateEnum2::ACTIVE)),
+            will_topic_id,
+            will_topic,
+            will_message,
             // TODO  sleep_msg_vec: Vec::new(),
         };
-        match conn_hashmap.try_insert(socket_addr, conn) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(eformat!(e.entry.key(), "already exists.")),
+        if let Err(why) = conn_hashmap.try_insert(socket_addr, conn) {
+            return Err(eformat!(why.entry.key(), "already exists."));
         }
+        ClientId::insert(client_id, socket_addr);
+        Ok(())
     }
-    pub fn get_state(socket_addr: SocketAddr) -> Option<StateEnum2> {
+    pub fn get_state(socket_addr: &SocketAddr) -> Result<StateEnum2, String> {
         let conn_hashmap = CONN_HASHMAP.lock().unwrap();
-        match conn_hashmap.get(&socket_addr) {
+        match conn_hashmap.get(socket_addr) {
             Some(conn) => {
                 let state = conn.state.lock().unwrap().clone();
-                Some(state)
+                Ok(state)
             }
-            None => None,
+            None => Err(eformat!(socket_addr, "not found.")),
         }
     }
     pub fn update_state(
-        socket_addr: SocketAddr,
+        socket_addr: &SocketAddr,
         new_state: StateEnum2,
     ) -> Result<(), String> {
         let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
-        match conn_hashmap.get_mut(&socket_addr) {
+        match conn_hashmap.get_mut(socket_addr) {
             Some(conn) => {
                 *conn.state.lock().unwrap() = new_state;
                 Ok(())
@@ -164,6 +266,7 @@ impl Connection {
         let conn_hashmap = CONN_HASHMAP.lock().unwrap();
         conn_hashmap.contains_key(&socket_addr)
     }
+    #[trace]
     pub fn remove(socket_addr: SocketAddr) -> Result<Connection, String> {
         let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
         match conn_hashmap.remove(&socket_addr) {
@@ -195,6 +298,19 @@ impl Connection {
             Some(conn) => {
                 conn.will_message = Bytes::from(message);
                 Ok(())
+            }
+            None => Err(eformat!(socket_addr, "not found.")),
+        }
+    }
+    pub fn delete_will_topic_id(
+        socket_addr: &SocketAddr,
+    ) -> Result<TopicIdType, String> {
+        let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
+        match conn_hashmap.get_mut(socket_addr) {
+            Some(conn) => {
+                let topic_id = conn.will_topic_id;
+                conn.will_topic_id = None;
+                Ok(topic_id.unwrap())
             }
             None => Err(eformat!(socket_addr, "not found.")),
         }

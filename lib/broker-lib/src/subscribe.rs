@@ -57,7 +57,7 @@ use crate::{
         WILL_FALSE,
     },
     function,
-    message::{MsgHeader, MsgHeaderEnum},
+    msg_hdr::{MsgHeader, MsgHeaderEnum},
     publish::Publish,
     retain::Retain,
     sub_ack::SubAck,

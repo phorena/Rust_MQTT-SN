@@ -21,7 +21,7 @@ use std::str; // NOTE: needed for MutGetters
 use crate::{
     broker_lib::MqttSnClient,
     eformat, function,
-    message::{MsgHeader, MsgHeaderEnum},
+    msg_hdr::{MsgHeader, MsgHeaderEnum},
     ping_resp::PingResp,
     MSG_LEN_PINGREQ_HEADER, MSG_TYPE_PINGREQ,
 };

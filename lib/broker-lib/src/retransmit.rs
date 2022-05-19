@@ -1,9 +1,8 @@
-use crate::{
-    broker_lib::MqttSnClient, connection::Connection, eformat, function,
-};
-use bytes::{BufMut, BytesMut};
-use core::fmt::Debug;
+use crate::{broker_lib::MqttSnClient, eformat, function};
+use bytes::BytesMut;
+// use core::fmt::Debug;
 use core::hash::Hash;
+use custom_debug::Debug;
 use hashbrown::HashMap;
 use log::*;
 use std::net::SocketAddr;
@@ -25,15 +24,16 @@ use trace_var::trace_var;
 /// RetransmitHeader. Don't need to remove the entry in the slot
 /// because the slot entry lookup ignores missing HashMap entries.
 #[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]
-pub struct RetransmitHeader {
+struct RetransmitHeader {
     pub addr: SocketAddr,
+    #[debug(format = "0x{:x}")]
     pub msg_type: u8,
     pub topic_id: u16, // for pub and sub, default 0
     pub msg_id: u16,   // for pub and sub, default 0
 }
 
 #[derive(Debug, Clone)]
-pub struct RetransmitData {
+struct RetransmitData {
     pub bytes: BytesMut, // TODO use Bytes instead.
 }
 
@@ -98,22 +98,32 @@ impl RetransTimeWheel {
     // changed to reflect the network the client is on, (LAN or WAN),
     // or the latency pattern.
     #[inline(always)]
-    fn schedule(
-        key: RetransmitHeader,
-        val: RetransmitData,
+    pub fn schedule(
+        addr: SocketAddr,
+        msg_type: u8,
+        topic_id: u16,
+        msg_id: u16,
         duration: u16,
+        bytes: BytesMut,
     ) -> Result<(), String> {
-        // store the key in a slot of the timing wheel
+        // store the retrans_hdr in a slot of the timing wheel
         // TODO XXX change value 10 to a constant
-        let conn_duration = duration * 10;
+        let retrans_hdr = RetransmitHeader {
+            addr,
+            msg_type,
+            topic_id,
+            msg_id,
+        };
+        let val = RetransmitData { bytes };
+        let duration = duration * 10;
         let cur_counter = CURRENT_COUNTER.load(Ordering::Relaxed) as usize;
-        let index = (cur_counter + conn_duration as usize) % MAX_SLOT;
+        let index = (cur_counter + duration as usize) % MAX_SLOT;
         match TIME_WHEEL_MAP.try_lock() {
             Ok(mut map) => {
-                map.insert(key, val);
+                map.insert(retrans_hdr, val);
             }
             Err(why) => {
-                return Err(eformat!(why.to_string()));
+                return Err(eformat!(retrans_hdr, why.to_string()));
             }
         }
         match SLOT_VEC.try_lock() {
@@ -121,22 +131,24 @@ impl RetransTimeWheel {
                 let slot = &mut slot_vec[index];
                 match slot.entries.try_lock() {
                     Ok(mut entries) => {
-                        entries.push((key, duration));
+                        entries.push((retrans_hdr, duration));
                     }
                     Err(why) => {
-                        // unwind: remove the inserted key from the map
+                        // unwind: remove the inserted retrans_hdr from the map
                         if let None =
-                            TIME_WHEEL_MAP.lock().unwrap().remove(&key)
+                            TIME_WHEEL_MAP.lock().unwrap().remove(&retrans_hdr)
                         {
-                            return Err(eformat!("key not found"));
+                            return Err(eformat!(retrans_hdr, "key not found"));
                         }
-                        return Err(eformat!(why.to_string()));
+                        return Err(eformat!(retrans_hdr, why.to_string()));
                     }
                 }
             }
             Err(why) => {
-                // unwind: remove the inserted key from the map
-                if let None = TIME_WHEEL_MAP.lock().unwrap().remove(&key) {
+                // unwind: remove the inserted retrans_hdr from the map
+                if let None =
+                    TIME_WHEEL_MAP.lock().unwrap().remove(&retrans_hdr)
+                {
                     return Err(eformat!("key not found"));
                 }
                 return Err(eformat!(why.to_string()));
@@ -148,15 +160,26 @@ impl RetransTimeWheel {
     /// Modify the latest_counter in the TIME_WHEEL_MAP to the current counter.
     #[inline(always)]
     #[trace_var(index, slot, hash, vec)]
-    pub fn cancel(key: RetransmitHeader) -> Result<(), String> {
+    pub fn cancel(
+        addr: SocketAddr,
+        msg_type: u8,
+        topic_id: u16,
+        msg_id: u16,
+    ) -> Result<(), String> {
+        let retrans_hdr = RetransmitHeader {
+            addr,
+            msg_type,
+            topic_id,
+            msg_id,
+        };
         match TIME_WHEEL_MAP.try_lock() {
             Ok(mut map) => {
-                if let None = map.remove(&key) {
-                    return Err(eformat!(key.addr, "not found."));
+                if let None = map.remove(&retrans_hdr) {
+                    return Err(eformat!(retrans_hdr, "not found."));
                 }
                 Ok(())
             }
-            Err(why) => Err(eformat!(key.addr, why.to_string())),
+            Err(why) => Err(eformat!(retrans_hdr, why.to_string())),
         }
     }
 
@@ -180,10 +203,10 @@ impl RetransTimeWheel {
                     cur_counter = CURRENT_COUNTER
                         .fetch_add(1, Ordering::Relaxed)
                         as usize;
-                    let index = cur_counter % MAX_SLOT;
                     // dbg!(&cur_slot);
                     // dbg!(cur_counter);
                     let slot_vec = SLOT_VEC.lock().unwrap();
+                    let index = cur_counter % MAX_SLOT;
                     let mut slot = slot_vec[index].entries.lock().unwrap();
                     let mut map = TIME_WHEEL_MAP.lock().unwrap();
                     // process the expired connections
@@ -211,12 +234,13 @@ impl RetransTimeWheel {
                                     retrans_hdr.addr,
                                     retrans_data.bytes.clone(),
                                 )) {
-                                    error!("{}", eformat!(err));
+                                    error!("{:?} {:?}", err, retrans_hdr);
                                 }
                             }
                         } else {
                             // The connection is expired, remove the hash entry
                             map.remove(&retrans_hdr);
+                            info!("Retransmit Timeout: {:?}", retrans_hdr);
                         }
                     }
                 }

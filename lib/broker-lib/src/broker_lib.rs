@@ -2,7 +2,7 @@ use std::net::UdpSocket;
 use std::thread;
 use std::{net::SocketAddr, sync::Arc, sync::Mutex};
 
-use crate::timing_wheel::RetransTimeWheel;
+// use crate::timing_wheel::RetransTimeWheel;
 use bytes::{Bytes, BytesMut};
 use core::fmt::Debug;
 use crossbeam::channel::{unbounded, Receiver, Sender};
@@ -19,11 +19,12 @@ use crate::{
     eformat,
     function,
     keep_alive::KeepAliveTimeWheel,
-    message::MsgHeader,
+    msg_hdr::MsgHeader,
     // Connection::ConnHashMap,
     pub_ack::PubAck,
     pub_rel::PubRel,
     publish::Publish,
+    retransmit::RetransTimeWheel,
     sub_ack::SubAck,
     subscribe::Subscribe,
     will_msg::WillMsg,
@@ -72,8 +73,7 @@ pub struct MqttSnClient {
     transmit_rx: Receiver<(SocketAddr, BytesMut)>,
     // cancel_rx: Receiver<(SocketAddr, u8, u16, u16)>,
     // schedule_rx: Receiver<(SocketAddr, u8, u16, u16, BytesMut)>,
-    retrans_time_wheel: RetransTimeWheel,
-
+    // retrans_time_wheel: RetransTimeWheel,
     pub subscribe_rx: Receiver<Publish>,
     state: Arc<Mutex<u8>>,
     state_machine: StateMachine,
@@ -99,20 +99,9 @@ impl MqttSnClient {
         ) = unbounded();
         let (subscribe_tx, subscribe_rx): (Sender<Publish>, Receiver<Publish>) =
             unbounded();
-        let retrans_time_wheel = RetransTimeWheel::new(
-            100,
-            300,
-            schedule_tx.clone(),
-            schedule_rx.clone(),
-            cancel_tx.clone(),
-            cancel_rx.clone(),
-            transmit_tx.clone(),
-            transmit_rx.clone(),
-        );
         MqttSnClient {
             remote_addr,
             context: 0,
-            retrans_time_wheel,
             state: Arc::new(Mutex::new(STATE_DISCONNECT)),
             state_machine: StateMachine::new(),
             // keep_alive_time_wheel: KeepAliveTimeWheel::new(),
@@ -133,8 +122,13 @@ impl MqttSnClient {
         let builder = thread::Builder::new().name("recv_thread".into());
 
         KeepAliveTimeWheel::init();
+        dbg!("start 020");
         KeepAliveTimeWheel::run(self.clone());
+        dbg!("start 010");
+        RetransTimeWheel::init();
+        RetransTimeWheel::run(self.clone());
 
+        dbg!("start 030");
         // process input datagram from network
         let _recv_thread = builder.spawn(move || {
             // TODO optimization
@@ -289,7 +283,6 @@ impl MqttSnClient {
         let self_time_wheel = self.clone();
         let self_transmit = self.clone();
         let socket_tx = socket.try_clone().expect("couldn't clone the socket");
-        self_time_wheel.retrans_time_wheel.run();
         let builder = thread::Builder::new().name("send_thread".into());
         // process input datagram from network
         let _send_thread = builder.spawn(move || loop {

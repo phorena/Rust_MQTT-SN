@@ -55,7 +55,7 @@ use crate::{
         WILL_FALSE,
     },
     function,
-    message::{MsgHeader, MsgHeaderEnum},
+    msg_hdr::{MsgHeader, MsgHeaderEnum},
     MSG_LEN_UNSUBSCRIBE_HEADER,
     MSG_TYPE_UNSUBACK,
     MSG_TYPE_UNSUBSCRIBE,

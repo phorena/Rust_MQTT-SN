@@ -190,7 +190,7 @@ impl<KEY: Eq + Hash + Debug + Clone, VAL: Debug + Clone> TimingWheel<KEY, VAL> {
         while let Some(top) = cur_slot_lock.pop() {
             let mut hash = self.hash.lock().unwrap();
             // dbg!((top.clone(), SystemTime::now()));
-            // exponetial backup is inside the expire (lib)
+            // exponential backup is inside the expire (lib)
             // the caller doesn't have to do it
             let duration = top.1 * 2;
             let retrans_hdr = top.0;

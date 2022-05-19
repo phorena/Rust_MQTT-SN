@@ -111,7 +111,7 @@ impl Disconnect {
             let (disconnect, _read_len) =
                 DisconnWithDuration::try_read(buf, size).unwrap();
             dbg!(disconnect.clone());
-            Connection::update_state(client.remote_addr, StateEnum2::ASLEEP)?;
+            Connection::update_state(&client.remote_addr, StateEnum2::ASLEEP)?;
             KeepAliveTimeWheel::schedule(
                 client.remote_addr,
                 disconnect.duration,

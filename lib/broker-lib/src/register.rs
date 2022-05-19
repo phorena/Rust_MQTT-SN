@@ -25,7 +25,7 @@ use crate::{
     eformat,
     filter::get_topic_id_with_topic_name,
     function,
-    message::{MsgHeader, MsgHeaderEnum},
+    msg_hdr::{MsgHeader, MsgHeaderEnum},
     reg_ack::RegAck,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_REGISTER_HEADER,
