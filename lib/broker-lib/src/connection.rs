@@ -158,7 +158,6 @@ impl Connection {
             will_message: Bytes::new(),
         }
     }
-    // Insert a new connection to the HashMap
     pub fn try_insert(
         socket_addr: SocketAddr,
         flags: u8,
@@ -186,6 +185,7 @@ impl Connection {
             }
             return Ok(());
         }
+        dbg!(&socket_addr);
         // For existing client_id with different socket_addr or new client_id.
         // Default values for a new will
         let mut will_topic_id = None;
@@ -238,9 +238,11 @@ impl Connection {
             will_message,
             // TODO  sleep_msg_vec: Vec::new(),
         };
-        let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
+        dbg!(&conn);
         ClientId::insert(client_id, socket_addr);
-        if let Err(why) = conn_hashmap.try_insert(socket_addr, conn) {
+        if let Err(why) =
+            CONN_HASHMAP.lock().unwrap().try_insert(socket_addr, conn)
+        {
             return Err(eformat!(
                 socket_addr,
                 why.entry.key(),
@@ -249,6 +251,8 @@ impl Connection {
         }
         Ok(())
     }
+    // TODO avoid lookup by using the connection struct.
+    // use method on the Connection struct.
     pub fn get_state(socket_addr: &SocketAddr) -> Result<StateEnum2, String> {
         let conn_hashmap = CONN_HASHMAP.lock().unwrap();
         match conn_hashmap.get(socket_addr) {
@@ -276,9 +280,9 @@ impl Connection {
         CONN_HASHMAP.lock().unwrap().contains_key(&socket_addr)
     }
     #[trace]
-    pub fn remove(socket_addr: SocketAddr) -> Result<Connection, String> {
+    pub fn remove(socket_addr: &SocketAddr) -> Result<Connection, String> {
         let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
-        match conn_hashmap.remove(&socket_addr) {
+        match conn_hashmap.remove(socket_addr) {
             Some(val) => Ok(val),
             None => Err(eformat!(socket_addr, "not found.")),
         }
@@ -325,28 +329,39 @@ impl Connection {
             None => Err(eformat!(socket_addr, "not found.")),
         }
     }
-    pub fn publish_will(self, client: &MqttSnClient) -> Result<(), String> {
-        if let Some(topic_id) = self.will_topic_id {
-            let subscriber_vec = get_subscribers_with_topic_id(topic_id);
-            for subscriber in subscriber_vec {
-                // Can't return error, because not all subscribers will have error.
-                // TODO error for every subscriber/message
-                // TODO use Bytes not BytesMut to eliminate clone/copy.
-                // TODO new tx method to reduce have try_write() run once for every subscriber.
-                let mut msg = BytesMut::new();
-                msg.put(self.will_message.clone()); // TODO replace BytesMut with Bytes because clone doesn't copy data in Bytes
-                let _result = Publish::send(
-                    topic_id,
-                    0, // TODO what is the msg_id?
-                    subscriber.qos,
-                    RETAIN_FALSE,
-                    msg,
-                    client,
-                    subscriber.socket_addr,
-                );
+    pub fn publish_will(
+        socket_addr: &SocketAddr,
+        client: &MqttSnClient,
+    ) -> Result<(), String> {
+        let mut conn_hashmap = CONN_HASHMAP.lock().unwrap();
+        match conn_hashmap.get_mut(socket_addr) {
+            Some(conn) => {
+                // let topic_id = conn.will_topic_id;
+                if let Some(topic_id) = conn.will_topic_id {
+                    let subscriber_vec =
+                        get_subscribers_with_topic_id(topic_id);
+                    for subscriber in subscriber_vec {
+                        // Can't return error, because not all subscribers will have error.
+                        // TODO error for every subscriber/message
+                        // TODO use Bytes not BytesMut to eliminate clone/copy.
+                        // TODO new tx method to reduce have try_write() run once for every subscriber.
+                        let mut msg = BytesMut::new();
+                        msg.put(conn.will_message.clone()); // TODO replace BytesMut with Bytes because clone doesn't copy data in Bytes
+                        let _result = Publish::send(
+                            topic_id,
+                            0, // TODO what is the msg_id?
+                            subscriber.qos,
+                            RETAIN_FALSE,
+                            msg,
+                            client,
+                            subscriber.socket_addr,
+                        );
+                    }
+                }
+                return Ok(());
             }
+            None => Err(eformat!(socket_addr, "not found.")),
         }
-        Ok(())
     }
 
     pub fn debug() {

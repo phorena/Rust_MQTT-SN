@@ -27,6 +27,7 @@ use crate::{
     broker_lib::MqttSnClient,
     connection::Connection,
     connection::StateEnum2,
+    client_id::ClientId,
     eformat,
     filter::get_subscribers_with_topic_id,
     flags::RETAIN_FALSE,
@@ -82,9 +83,24 @@ impl Disconnect {
                 Disconnect::try_read(buf, size).unwrap();
             dbg!(disconnect.clone());
             Connection::debug();
-            let conn = Connection::remove(client.remote_addr)?;
+            let publish_will;
+            match Connection::get_state(&client.remote_addr) {
+                Ok(state) => {
+                    match state {
+                        StateEnum2::ACTIVE => publish_will = true,
+                        _ => publish_will = false,
+                    }
+                }
+                Err(why) => return Err(eformat!(why, &client.remote_addr)),
+            }
+            let conn = Connection::remove(&client.remote_addr)?;
+            ClientId::rev_delete(&client.remote_addr);
+            KeepAliveTimeWheel::cancel(&client.remote_addr)?;
             Connection::debug();
             Disconnect::send(client)?;
+            if publish_will == false {
+                return Ok(());
+            }
             if let Some(topic_id) = conn.will_topic_id {
                 let subscriber_vec = get_subscribers_with_topic_id(topic_id);
                 for subscriber in subscriber_vec {

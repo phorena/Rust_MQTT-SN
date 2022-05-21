@@ -13,26 +13,26 @@ lazy_static! {
 pub struct ClientId {}
 
 impl ClientId {
-    pub fn insert(key: Bytes, val: SocketAddr) {
-        CLIENT_ID_MAP.lock().unwrap().insert(key, val);
+    pub fn insert(client_id: Bytes, val: SocketAddr) {
+        CLIENT_ID_MAP.lock().unwrap().insert(client_id, val);
     }
-    pub fn key_exists(key: &Bytes) -> bool {
-        CLIENT_ID_MAP.lock().unwrap().key_exists(key)
+    pub fn exists(client_id: &Bytes) -> bool {
+        CLIENT_ID_MAP.lock().unwrap().key_exists(client_id)
     }
-    pub fn contains(key: &Bytes, val: &SocketAddr) -> bool {
-        CLIENT_ID_MAP.lock().unwrap().contains(key, val)
+    pub fn contains(client_id: &Bytes, val: &SocketAddr) -> bool {
+        CLIENT_ID_MAP.lock().unwrap().contains(client_id, val)
     }
-    pub fn get(key: &Bytes) -> Vec<SocketAddr> {
-        CLIENT_ID_MAP.lock().unwrap().get(key)
+    pub fn get(client_id: &Bytes) -> Vec<SocketAddr> {
+        CLIENT_ID_MAP.lock().unwrap().get(client_id)
     }
-    pub fn rev_get(key: &SocketAddr) -> Vec<Bytes> {
-        CLIENT_ID_MAP.lock().unwrap().rev_get(key)
+    pub fn rev_get(client_id: &SocketAddr) -> Vec<Bytes> {
+        CLIENT_ID_MAP.lock().unwrap().rev_get(client_id)
     }
-    pub fn delete(key: &Bytes) -> Vec<SocketAddr> {
-        CLIENT_ID_MAP.lock().unwrap().delete(key)
+    pub fn delete(client_id: &Bytes) -> Vec<SocketAddr> {
+        CLIENT_ID_MAP.lock().unwrap().delete(client_id)
     }
-    pub fn rev_delete(key: &SocketAddr) -> Vec<Bytes> {
-        CLIENT_ID_MAP.lock().unwrap().rev_delete(key)
+    pub fn rev_delete(client_id: &SocketAddr) -> Vec<Bytes> {
+        CLIENT_ID_MAP.lock().unwrap().rev_delete(client_id)
     }
     pub fn debug() {
         let cache = CLIENT_ID_MAP.lock().unwrap();
@@ -54,7 +54,7 @@ fn test_client_id() {
     let sock_vec = ClientId::get(&bytes);
     dbg!(sock_vec);
 
-    let val = ClientId::key_exists(&bytes);
+    let val = ClientId::exists(&bytes);
     dbg!(val);
 
     ClientId::debug();
@@ -68,6 +68,6 @@ fn test_client_id() {
     let sock_vec = ClientId::delete(&bytes);
     dbg!(sock_vec);
     ClientId::debug();
-    let val = ClientId::key_exists(&bytes);
+    let val = ClientId::exists(&bytes);
     dbg!(val);
 }

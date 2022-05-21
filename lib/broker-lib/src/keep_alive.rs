@@ -1,5 +1,6 @@
 use crate::{
-    broker_lib::MqttSnClient, connection::Connection, eformat, function,
+    broker_lib::MqttSnClient, connection::Connection, connection::StateEnum2,
+    eformat, function,
 };
 use core::fmt::Debug;
 use core::hash::Hash;
@@ -91,8 +92,8 @@ impl KeepAliveTimeWheel {
         let cur_counter = CURRENT_COUNTER.load(Ordering::Relaxed) as usize;
         let index = (cur_counter + conn_duration as usize) % MAX_SLOT;
         match TIME_WHEEL_MAP.try_lock() {
-            Ok(mut map) => {
-                map.insert(
+            Ok(mut time_wheel_map) => {
+                time_wheel_map.insert(
                     key,
                     KeepAliveVal {
                         latest_counter: cur_counter,
@@ -112,7 +113,7 @@ impl KeepAliveTimeWheel {
                         entries.push(key);
                     }
                     Err(why) => {
-                        // unwind: remove the inserted key from the map
+                        // unwind: remove the inserted key from the time_wheel_map
                         if let None =
                             TIME_WHEEL_MAP.lock().unwrap().remove(&key)
                         {
@@ -123,7 +124,7 @@ impl KeepAliveTimeWheel {
                 }
             }
             Err(why) => {
-                // unwind: remove the inserted key from the map
+                // unwind: remove the inserted key from the time_wheel_map
                 if let None = TIME_WHEEL_MAP.lock().unwrap().remove(&key) {
                     return Err(eformat!("key not found"));
                 }
@@ -132,6 +133,21 @@ impl KeepAliveTimeWheel {
         }
         return Ok(());
     }
+    /// Cancel a keep alive event. 
+    /// Call when it received a DISCONNECT message from the sender.
+    #[inline(always)]
+    #[trace_var(index, slot, hash, vec)]
+    pub fn cancel(socket_addr: &SocketAddr) -> Result<(), String> {
+        match TIME_WHEEL_MAP.try_lock() {
+            Ok(mut time_wheel_map) => {
+                match time_wheel_map.remove(socket_addr) {
+                    Some(_) => Ok(()),
+                    None => Err(eformat!( socket_addr)),
+                }
+            }
+            Err(why) => Err(eformat!(socket_addr, why.to_string())),
+        }
+    }
     /// Reschedule a keep alive event when it received a message from the sender.
     /// Modify the latest_counter in the TIME_WHEEL_MAP to the current counter.
     #[inline(always)]
@@ -139,17 +155,19 @@ impl KeepAliveTimeWheel {
     pub fn reschedule(socket_addr: SocketAddr) -> Result<(), String> {
         let latest_counter = CURRENT_COUNTER.load(Ordering::Relaxed) as usize;
         match TIME_WHEEL_MAP.try_lock() {
-            Ok(mut map) => match map.get_mut(&socket_addr) {
-                Some(conn) => {
-                    dbg!(&conn);
-                    dbg!(&latest_counter);
-                    conn.latest_counter = latest_counter;
-                    dbg!(&latest_counter);
-                    dbg!(&conn);
-                    Ok(())
+            Ok(mut time_wheel_map) => {
+                match time_wheel_map.get_mut(&socket_addr) {
+                    Some(conn) => {
+                        dbg!(&conn);
+                        dbg!(&latest_counter);
+                        conn.latest_counter = latest_counter;
+                        dbg!(&latest_counter);
+                        dbg!(&conn);
+                        Ok(())
+                    }
+                    None => Err(eformat!(socket_addr, "not found.")),
                 }
-                None => Err(eformat!(socket_addr, "not found.")),
-            },
+            }
             Err(why) => Err(eformat!(socket_addr, why.to_string())),
         }
     }
@@ -178,12 +196,12 @@ impl KeepAliveTimeWheel {
                     // dbg!(cur_counter);
                     let slot_vec = SLOT_VEC.lock().unwrap();
                     let mut slot = slot_vec[index].entries.lock().unwrap();
-                    let mut map = TIME_WHEEL_MAP.lock().unwrap();
+                    let mut time_wheel_map = TIME_WHEEL_MAP.lock().unwrap();
                     // process the expired connections
                     while let Some(socket_addr) = slot.pop() {
                         dbg!(index);
                         dbg!(socket_addr);
-                        if let Some(conn) = map.get(&socket_addr) {
+                        if let Some(conn) = time_wheel_map.get(&socket_addr) {
                             dbg!(&conn);
                             let new_counter = conn.latest_counter as usize
                                 + conn.conn_duration as usize;
@@ -212,14 +230,22 @@ impl KeepAliveTimeWheel {
                                 // Remove it from the hashmap.
                                 // TODO XXX change connection state to LOST.
                                 // remove socket_add from keep alive HashMap
-                                if let Some(conn) = map.remove(&socket_addr) {
+                                if let Some(conn) =
+                                    time_wheel_map.remove(&socket_addr)
+                                {
                                     dbg!(&conn);
-                                    dbg!(&map);
+                                    dbg!(&time_wheel_map);
                                     dbg!(&socket_addr);
-                                    match Connection::remove(socket_addr) {
-                                        Ok(conn) => {
+                                    match Connection::update_state(
+                                        &socket_addr,
+                                        StateEnum2::LOST,
+                                    ) {
+                                        Ok(_) => {
                                             let _result =
-                                                conn.publish_will(&client);
+                                                Connection::publish_will(
+                                                    &socket_addr,
+                                                    &client,
+                                                );
                                         }
                                         Err(why) => {
                                             error!(
