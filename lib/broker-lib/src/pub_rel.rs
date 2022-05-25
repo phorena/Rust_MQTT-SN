@@ -14,6 +14,8 @@ use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
 use crate::{
+    broker_lib::MqttSnClient, eformat, function, pub_comp::PubComp,
+    pub_msg_cache::PubMsgCache, publish::Publish,
     /*
     flags::{flags_set, flag_qos_level, },
     StateMachine,
@@ -39,10 +41,7 @@ use crate::{
         TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
     },
     */
-    retransmit::RetransTimeWheel,
-    broker_lib::MqttSnClient, eformat, function, pub_comp::PubComp,
-    pub_msg_cache::PubMsgCache, publish::Publish, MSG_LEN_PUBREL,
-    MSG_TYPE_PUBREL,
+    retransmit::RetransTimeWheel, MSG_LEN_PUBREL, MSG_TYPE_PUBREL,
 };
 
 #[derive(
@@ -97,15 +96,15 @@ impl PubRel {
                     {}
                 }
             }
-            // Cancel the timer for PUBREL
-            RetransTimeWheel::cancel_timer(
+            match RetransTimeWheel::cancel_timer(
                 client.remote_addr,
                 MSG_TYPE_PUBREL,
                 0,
                 msg_id,
-            )?;
-            dbg!("PUBREL cancel timer");
-            return Ok(());
+            ) {
+                Ok(()) => Ok(()),
+                Err(err) => Err(err),
+            }
         } else {
             return Err(eformat!(client.remote_addr, "Length", buf[0]));
         }

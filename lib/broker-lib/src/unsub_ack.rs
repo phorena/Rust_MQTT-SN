@@ -9,8 +9,8 @@ message. Its format is illustrated in Table 21:
 • MsgId: same value as the one contained in the corresponding UNSUBSCRIBE message.
 */
 use crate::{
-    broker_lib::MqttSnClient, eformat, function, MSG_LEN_UNSUBACK,
-    MSG_TYPE_UNSUBACK,
+    broker_lib::MqttSnClient, eformat, function, retransmit::RetransTimeWheel,
+    MSG_LEN_UNSUBACK, MSG_TYPE_UNSUBACK,
 };
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
@@ -37,16 +37,14 @@ impl UnsubAck {
         dbg!(unsub_ack.clone());
 
         if read_len == MSG_LEN_UNSUBACK as usize {
-            // XXX Cancel the retransmision scheduled.
-            //     No topic_id in unsuback message.
-            match client.cancel_tx.try_send((
+            match RetransTimeWheel::cancel_timer(
                 client.remote_addr,
                 unsub_ack.msg_type,
                 0,
                 unsub_ack.msg_id,
-            )) {
+            ) {
                 Ok(_) => Ok(unsub_ack.msg_id),
-                Err(err) => Err(eformat!(client.remote_addr, err)),
+                Err(err) => Err(err),
             }
         } else {
             Err(eformat!(client.remote_addr, "size", buf[0]))

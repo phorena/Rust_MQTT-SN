@@ -21,6 +21,7 @@ use crate::{
     broker_lib::MqttSnClient,
     eformat,
     function,
+    retransmit::RetransTimeWheel,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_PUBACK,
     MSG_TYPE_PUBACK,
@@ -77,18 +78,13 @@ impl PubAck {
         let (pub_ack, read_len) = PubAck::try_read(buf, size).unwrap();
         dbg!(pub_ack.clone());
         if read_len == MSG_LEN_PUBACK as usize {
-            match client.cancel_tx.try_send((
+            RetransTimeWheel::cancel_timer(
                 client.remote_addr,
                 pub_ack.msg_type,
                 pub_ack.topic_id,
                 pub_ack.msg_id,
-            )) {
-                // TODO process return code?
-                Ok(()) => {
-                    Ok((pub_ack.topic_id, pub_ack.msg_id, pub_ack.return_code))
-                }
-                Err(err) => Err(eformat!(client.remote_addr, err)),
-            }
+            )?;
+            Ok((pub_ack.topic_id, pub_ack.msg_id, pub_ack.return_code))
         } else {
             Err(eformat!(client.remote_addr, "len err", read_len))
         }

@@ -133,7 +133,7 @@ impl KeepAliveTimeWheel {
         }
         return Ok(());
     }
-    /// Cancel a keep alive event. 
+    /// Cancel a keep alive event.
     /// Call when it received a DISCONNECT message from the sender.
     #[inline(always)]
     #[trace_var(index, slot, hash, vec)]
@@ -142,7 +142,7 @@ impl KeepAliveTimeWheel {
             Ok(mut time_wheel_map) => {
                 match time_wheel_map.remove(socket_addr) {
                     Some(_) => Ok(()),
-                    None => Err(eformat!( socket_addr)),
+                    None => Err(eformat!(socket_addr)),
                 }
             }
             Err(why) => Err(eformat!(socket_addr, why.to_string())),

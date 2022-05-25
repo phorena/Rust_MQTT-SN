@@ -16,6 +16,7 @@ use crate::{
     broker_lib::MqttSnClient,
     eformat,
     function,
+    retransmit::RetransTimeWheel,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_CONNACK,
     MSG_TYPE_CONNACK,
@@ -81,15 +82,14 @@ impl ConnAck {
         let (conn_ack, read_len) = ConnAck::try_read(&buf, size).unwrap();
         dbg!(conn_ack.clone());
         if read_len == MSG_LEN_CONNACK as usize {
-            match client.cancel_tx.try_send((
+            RetransTimeWheel::cancel_timer(
                 client.remote_addr,
                 conn_ack.msg_type,
                 0,
                 0,
-            )) {
-                Ok(()) => Ok(()),
-                Err(err) => Err(eformat!(client.remote_addr, err)),
-            }
+            )?;
+            dbg!("connack cancel timer");
+            Ok(())
         } else {
             Err(eformat!("len err", read_len))
         }

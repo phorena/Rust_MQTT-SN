@@ -14,7 +14,6 @@ pub mod connect;
 pub mod connection;
 // pub mod ConnectionDb;
 pub mod disconnect;
-// pub mod Functions;
 // pub mod MainMachineClient;
 #[allow(non_snake_case)]
 pub mod MsgType;
@@ -44,7 +43,6 @@ pub mod retransmit;
 pub mod search_gw;
 pub mod sub_ack;
 pub mod subscribe;
-pub mod timing_wheel;
 pub mod unsub_ack;
 pub mod unsubscribe;
 pub mod will_msg;

@@ -60,6 +60,7 @@ use crate::{
     msg_hdr::{MsgHeader, MsgHeaderEnum},
     publish::Publish,
     retain::Retain,
+    retransmit::RetransTimeWheel,
     sub_ack::SubAck,
     MSG_TYPE_SUBACK,
     MSG_TYPE_SUBSCRIBE,
@@ -152,16 +153,16 @@ impl Subscribe {
         {
             return Err(eformat!(client.remote_addr, err));
         }
-        // schedule retransmit
-        match client.schedule_tx.try_send((
+        match RetransTimeWheel::schedule_timer(
             client.remote_addr,
             MSG_TYPE_SUBACK,
             0,
             0,
+            1,
             bytes_buf,
-        )) {
-            Ok(_) => Ok(()),
-            Err(err) => Err(eformat!(client.remote_addr, err)),
+        ) {
+            Ok(()) => Ok(()),
+            Err(err) => Err(err),
         }
     }
 

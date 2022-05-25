@@ -1,9 +1,8 @@
 use std::net::UdpSocket;
 use std::thread;
-use std::{net::SocketAddr, sync::Arc, sync::Mutex};
+use std::{net::SocketAddr,};
 
-// use crate::timing_wheel::RetransTimeWheel;
-use bytes::{Bytes, BytesMut};
+use bytes::{BytesMut};
 use core::fmt::Debug;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 
@@ -29,8 +28,6 @@ use crate::{
     subscribe::Subscribe,
     will_msg::WillMsg,
     will_topic::WillTopic,
-    StateMachine::{StateMachine, STATE_DISCONNECT},
-    // TimingWheel::{RetransmitData, RetransmitHeader},
     MSG_TYPE_CONNACK,
     MSG_TYPE_CONNECT,
     MSG_TYPE_DISCONNECT,
@@ -63,36 +60,19 @@ pub struct MqttSnClient {
     pub context: u16,
 
     pub transmit_tx: Sender<(SocketAddr, BytesMut)>,
-    pub cancel_tx: Sender<(SocketAddr, u8, u16, u16)>,
-    pub schedule_tx: Sender<(SocketAddr, u8, u16, u16, BytesMut)>,
-
     // Channel for subscriber to receive messages from the broker
     // publish messages.
     pub subscribe_tx: Sender<Publish>,
 
     transmit_rx: Receiver<(SocketAddr, BytesMut)>,
-    // cancel_rx: Receiver<(SocketAddr, u8, u16, u16)>,
-    // schedule_rx: Receiver<(SocketAddr, u8, u16, u16, BytesMut)>,
-    // retrans_time_wheel: RetransTimeWheel,
     pub subscribe_rx: Receiver<Publish>,
-    state: Arc<Mutex<u8>>,
-    state_machine: StateMachine,
-    // pub conn_hashmap: ConnHashMap,
-    // pub keep_alive_time_wheel: KeepAliveTimeWheel,
+    // state: Arc<Mutex<u8>>,
 }
 
 impl MqttSnClient {
     // TODO change Client to Broker
     // TODO change remote_addr to local_addr
     pub fn new(remote_addr: SocketAddr) -> Self {
-        let (cancel_tx, cancel_rx): (
-            Sender<(SocketAddr, u8, u16, u16)>,
-            Receiver<(SocketAddr, u8, u16, u16)>,
-        ) = unbounded();
-        let (schedule_tx, schedule_rx): (
-            Sender<(SocketAddr, u8, u16, u16, BytesMut)>,
-            Receiver<(SocketAddr, u8, u16, u16, BytesMut)>,
-        ) = unbounded();
         let (transmit_tx, transmit_rx): (
             Sender<(SocketAddr, BytesMut)>,
             Receiver<(SocketAddr, BytesMut)>,
@@ -102,11 +82,8 @@ impl MqttSnClient {
         MqttSnClient {
             remote_addr,
             context: 0,
-            state: Arc::new(Mutex::new(STATE_DISCONNECT)),
-            state_machine: StateMachine::new(),
+            // state: Arc::new(Mutex::new(STATE_DISCONNECT)),
             // keep_alive_time_wheel: KeepAliveTimeWheel::new(),
-            schedule_tx,
-            cancel_tx,
             transmit_tx,
             transmit_rx,
             subscribe_tx,
@@ -122,13 +99,10 @@ impl MqttSnClient {
         let builder = thread::Builder::new().name("recv_thread".into());
 
         KeepAliveTimeWheel::init();
-        dbg!("start 020");
         KeepAliveTimeWheel::run(self.clone());
-        dbg!("start 010");
         RetransTimeWheel::init();
         RetransTimeWheel::run(self.clone());
 
-        dbg!("start 030");
         // process input datagram from network
         let _recv_thread = builder.spawn(move || {
             // TODO optimization
@@ -279,6 +253,7 @@ impl MqttSnClient {
     ///    3.2. change state
     /// 4. run the rx_loop to process rx messages
     // TODO return errors
+        /*
     pub fn connect(mut self, flags: u8, client_id: String, socket: UdpSocket) {
         let self_time_wheel = self.clone();
         let self_transmit = self.clone();
@@ -338,6 +313,7 @@ impl MqttSnClient {
             }
         }
     }
+        */
 
     pub fn subscribe(
         &self,

@@ -41,6 +41,7 @@ use crate::{
     function,
     keep_alive::KeepAliveTimeWheel,
     msg_hdr::{MsgHeader, MsgHeaderEnum},
+    retransmit::RetransTimeWheel,
     will_topic_req::WillTopicReq,
     MSG_LEN_CONNECT_HEADER, MSG_TYPE_CONNACK, MSG_TYPE_CONNECT,
     RETURN_CODE_ACCEPTED,
@@ -112,17 +113,15 @@ impl Connect {
             {
                 return Err(eformat!(client.remote_addr, err));
             }
-            // schedule retransmit
-            match client.schedule_tx.try_send((
+            RetransTimeWheel::schedule_timer(
                 client.remote_addr,
                 MSG_TYPE_CONNACK,
                 0,
                 0,
+                1,
                 bytes_buf,
-            )) {
-                Ok(_) => Ok(()),
-                Err(err) => Err(eformat!(client.remote_addr, err)),
-            }
+            )?;
+            return Ok(());
         // TODO check size 1400
         } else if len < 1400 {
             let connect = Connect4 {
@@ -148,17 +147,15 @@ impl Connect {
             {
                 return Err(eformat!(client.remote_addr, err));
             }
-            // schedule retransmit
-            match client.schedule_tx.try_send((
+            RetransTimeWheel::schedule_timer(
                 client.remote_addr,
                 MSG_TYPE_CONNACK,
                 0,
                 0,
+                1,
                 bytes_buf,
-            )) {
-                Ok(_) => Ok(()),
-                Err(err) => Err(eformat!(client.remote_addr, err)),
-            }
+            )?;
+            return Ok(());
         } else {
             Err(eformat!(client.remote_addr, "client_id too long"))
         }

@@ -17,8 +17,8 @@ use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
 use crate::{
-    broker_lib::MqttSnClient, eformat, function, MSG_LEN_REGACK,
-    MSG_TYPE_REGACK,
+    broker_lib::MqttSnClient, eformat, function, retransmit::RetransTimeWheel,
+    MSG_LEN_REGACK, MSG_TYPE_REGACK,
 };
 
 #[derive(Debug, Clone, Getters, MutGetters, CopyGetters, Default)]
@@ -41,15 +41,14 @@ impl RegAck {
         dbg!(reg_ack.clone());
 
         if read_len == MSG_LEN_REGACK as usize {
-            // XXX Cancel the retransmision scheduled.
-            match client.cancel_tx.try_send((
+            match RetransTimeWheel::cancel_timer(
                 client.remote_addr,
                 reg_ack.msg_type,
                 reg_ack.topic_id,
                 reg_ack.msg_id,
-            )) {
-                Ok(_) => Ok(()),
-                Err(err) => Err(eformat!(client.remote_addr, err)),
+            ) {
+                Ok(()) => Ok(()),
+                Err(err) => Err(err),
             }
         } else {
             Err(eformat!(client.remote_addr, "size", buf[0]))

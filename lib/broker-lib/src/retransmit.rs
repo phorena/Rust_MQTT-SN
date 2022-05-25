@@ -1,4 +1,8 @@
-use crate::{broker_lib::MqttSnClient, eformat, function};
+use crate::{
+    broker_lib::MqttSnClient,
+    connection::{Connection, StateEnum2},
+    eformat, function,
+};
 use bytes::BytesMut;
 // use core::fmt::Debug;
 use core::hash::Hash;
@@ -211,6 +215,22 @@ impl RetransTimeWheel {
                     let mut map = TIME_WHEEL_MAP.lock().unwrap();
                     // process the expired connections
                     while let Some((retrans_hdr, mut duration)) = slot.pop() {
+                        match Connection::get_state(&retrans_hdr.addr) {
+                            Ok(state) => match state {
+                                StateEnum2::ACTIVE => (), // drop through
+                                _ => {
+                                    map.remove(&retrans_hdr);
+                                    info!("Retransmit Cancel: incorrect state: {:?} {:?}", state, retrans_hdr);
+                                }
+                            },
+                            Err(why) => {
+                                map.remove(&retrans_hdr);
+                                error!(
+                                    "Retransmit Cancel: {} {:?}",
+                                    why, retrans_hdr
+                                );
+                            }
+                        }
                         dbg!(index);
                         duration *= 2;
                         dbg!((duration, MAX_SLOT));
@@ -220,7 +240,7 @@ impl RetransTimeWheel {
                                 let mut new_index = (cur_counter
                                     + duration as usize)
                                     % MAX_SLOT;
-                        dbg!((new_index, index));
+                                dbg!((new_index, index));
                                 if new_index == index {
                                     // Can't lock the same slot twice
                                     // Even without lock, push() to the same slot will be popped
@@ -228,7 +248,7 @@ impl RetransTimeWheel {
                                     // Use the next slot instead.
                                     new_index = (index + 1) % MAX_SLOT;
                                 }
-                        dbg!((new_index, index));
+                                dbg!((new_index, index));
                                 let mut new_slot =
                                     slot_vec[new_index].entries.lock().unwrap();
                                 new_slot.push((retrans_hdr, duration));
@@ -238,9 +258,9 @@ impl RetransTimeWheel {
                                     retrans_data.bytes.clone(),
                                 )) {
                                     error!("{:?} {:?}", err, retrans_hdr);
-                        dbg!((new_index, index));
+                                    dbg!((new_index, index));
                                 }
-                        dbg!(retrans_hdr);
+                                dbg!(retrans_hdr);
                             }
                         } else {
                             // The connection is expired, remove the hash entry

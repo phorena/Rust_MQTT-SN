@@ -27,6 +27,7 @@ use crate::{
     function,
     msg_hdr::{MsgHeader, MsgHeaderEnum},
     reg_ack::RegAck,
+    retransmit::RetransTimeWheel,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_REGISTER_HEADER,
     MSG_TYPE_REGACK,
@@ -139,15 +140,16 @@ impl Register {
         {
             return Err(eformat!(client.remote_addr, err));
         }
-        match client.schedule_tx.try_send((
+        match RetransTimeWheel::schedule_timer(
             client.remote_addr,
             MSG_TYPE_REGACK,
             topic_id,
             msg_id,
+            1,
             buf,
-        )) {
+        ) {
             Ok(()) => Ok(()),
-            Err(err) => Err(eformat!(client.remote_addr, err)),
+            Err(err) => Err(err),
         }
     }
 }

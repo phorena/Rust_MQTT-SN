@@ -25,9 +25,9 @@ use std::mem;
 
 use crate::{
     broker_lib::MqttSnClient,
+    client_id::ClientId,
     connection::Connection,
     connection::StateEnum2,
-    client_id::ClientId,
     eformat,
     filter::get_subscribers_with_topic_id,
     flags::RETAIN_FALSE,
@@ -85,12 +85,10 @@ impl Disconnect {
             Connection::debug();
             let publish_will;
             match Connection::get_state(&client.remote_addr) {
-                Ok(state) => {
-                    match state {
-                        StateEnum2::ACTIVE => publish_will = true,
-                        _ => publish_will = false,
-                    }
-                }
+                Ok(state) => match state {
+                    StateEnum2::ACTIVE => publish_will = true,
+                    _ => publish_will = false,
+                },
                 Err(why) => return Err(eformat!(why, &client.remote_addr)),
             }
             let conn = Connection::remove(&client.remote_addr)?;

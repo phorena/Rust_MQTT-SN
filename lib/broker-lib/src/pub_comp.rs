@@ -17,6 +17,7 @@ use crate::{
     broker_lib::MqttSnClient,
     eformat,
     function,
+    retransmit::RetransTimeWheel,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_PUBCOMP,
 
@@ -80,16 +81,13 @@ impl PubComp {
         {
             // TODO verify as Big Endian
             let msg_id = buf[3] as u16 + ((buf[2] as u16) << 8);
-            match client.cancel_tx.try_send((
+            RetransTimeWheel::cancel_timer(
                 client.remote_addr,
                 MSG_TYPE_PUBCOMP,
                 0,
                 msg_id,
-            )) {
-                // TODO process return code?
-                Ok(()) => Ok(msg_id),
-                Err(err) => Err(eformat!(client.remote_addr, err)),
-            }
+            )?;
+            Ok(msg_id)
         } else {
             Err(eformat!(client.remote_addr, "size", buf[0]))
         }

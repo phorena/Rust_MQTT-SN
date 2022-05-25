@@ -20,8 +20,8 @@ contains wildcard characters)
 • ReturnCode: “accepted”, or rejection reason.
 */
 use crate::{
-    broker_lib::MqttSnClient, eformat, function, MSG_LEN_SUBACK,
-    MSG_TYPE_SUBACK,
+    broker_lib::MqttSnClient, eformat, function, retransmit::RetransTimeWheel,
+    MSG_LEN_SUBACK, MSG_TYPE_SUBACK,
 };
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
@@ -83,14 +83,14 @@ impl SubAck {
             //     No topic_id passing to send for now.
             //     because the subscribe message might not contain it.
             //     The retransmision was scheduled with 0.
-            match client.cancel_tx.try_send((
+            match RetransTimeWheel::cancel_timer(
                 client.remote_addr,
                 sub_ack.msg_type,
                 0,
                 sub_ack.msg_id,
-            )) {
+            ) {
                 Ok(_) => Ok(sub_ack.topic_id),
-                Err(err) => Err(eformat!(client.remote_addr, err)),
+                Err(err) => Err(err),
             }
             // TODO check QoS in flags
             // TODO check flags

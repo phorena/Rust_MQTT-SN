@@ -56,6 +56,7 @@ use crate::{
     },
     function,
     msg_hdr::{MsgHeader, MsgHeaderEnum},
+    retransmit::RetransTimeWheel,
     MSG_LEN_UNSUBSCRIBE_HEADER,
     MSG_TYPE_UNSUBACK,
     MSG_TYPE_UNSUBSCRIBE,
@@ -214,15 +215,16 @@ impl Unsubscribe {
             }
             // schedule retransmit
             // Unsuback returns the msg_id, but not topic_id.
-            match client.schedule_tx.try_send((
+            match RetransTimeWheel::schedule_timer(
                 client.remote_addr,
                 MSG_TYPE_UNSUBACK,
                 0,
                 msg_id,
+                1,
                 bytes_buf,
-            )) {
-                Ok(_) => Ok(()),
-                Err(err) => Err(eformat!(client.remote_addr, err)),
+            ) {
+                Ok(()) => Ok(()),
+                Err(err) => Err(err),
             }
         } else {
             Err(eformat!(client.remote_addr, "topic name too long"))
