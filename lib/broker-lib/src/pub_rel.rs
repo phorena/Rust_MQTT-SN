@@ -39,6 +39,7 @@ use crate::{
         TOPIC_ID_TYPE_RESERVED, TOPIC_ID_TYPE_SHORT, WILL_FALSE, WILL_TRUE,
     },
     */
+    retransmit::RetransTimeWheel,
     broker_lib::MqttSnClient, eformat, function, pub_comp::PubComp,
     pub_msg_cache::PubMsgCache, publish::Publish, MSG_LEN_PUBREL,
     MSG_TYPE_PUBREL,
@@ -97,15 +98,14 @@ impl PubRel {
                 }
             }
             // Cancel the timer for PUBREL
-            match client.cancel_tx.send((
+            RetransTimeWheel::cancel_timer(
                 client.remote_addr,
                 MSG_TYPE_PUBREL,
                 0,
                 msg_id,
-            )) {
-                Ok(_) => Ok(()),
-                Err(err) => Err(eformat!(client.remote_addr, err)),
-            }
+            )?;
+            dbg!("PUBREL cancel timer");
+            return Ok(());
         } else {
             return Err(eformat!(client.remote_addr, "Length", buf[0]));
         }

@@ -98,7 +98,7 @@ impl RetransTimeWheel {
     // changed to reflect the network the client is on, (LAN or WAN),
     // or the latency pattern.
     #[inline(always)]
-    pub fn schedule(
+    pub fn schedule_timer(
         addr: SocketAddr,
         msg_type: u8,
         topic_id: u16,
@@ -160,7 +160,7 @@ impl RetransTimeWheel {
     /// Modify the latest_counter in the TIME_WHEEL_MAP to the current counter.
     #[inline(always)]
     #[trace_var(index, slot, hash, vec)]
-    pub fn cancel(
+    pub fn cancel_timer(
         addr: SocketAddr,
         msg_type: u8,
         topic_id: u16,
@@ -213,12 +213,14 @@ impl RetransTimeWheel {
                     while let Some((retrans_hdr, mut duration)) = slot.pop() {
                         dbg!(index);
                         duration *= 2;
+                        dbg!((duration, MAX_SLOT));
                         if duration < (MAX_SLOT as u16) {
                             // not expired, reschedule to new slot, don't remove hash entry
                             if let Some(retrans_data) = map.get(&retrans_hdr) {
                                 let mut new_index = (cur_counter
                                     + duration as usize)
                                     % MAX_SLOT;
+                        dbg!((new_index, index));
                                 if new_index == index {
                                     // Can't lock the same slot twice
                                     // Even without lock, push() to the same slot will be popped
@@ -226,6 +228,7 @@ impl RetransTimeWheel {
                                     // Use the next slot instead.
                                     new_index = (index + 1) % MAX_SLOT;
                                 }
+                        dbg!((new_index, index));
                                 let mut new_slot =
                                     slot_vec[new_index].entries.lock().unwrap();
                                 new_slot.push((retrans_hdr, duration));
@@ -235,7 +238,9 @@ impl RetransTimeWheel {
                                     retrans_data.bytes.clone(),
                                 )) {
                                     error!("{:?} {:?}", err, retrans_hdr);
+                        dbg!((new_index, index));
                                 }
+                        dbg!(retrans_hdr);
                             }
                         } else {
                             // The connection is expired, remove the hash entry

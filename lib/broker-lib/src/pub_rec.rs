@@ -62,6 +62,7 @@ impl PubRec {
         if buf[0] == MSG_LEN_PUBREC && buf[1] == MSG_TYPE_PUBREC {
             // TODO verify as Big Endian
             let msg_id = buf[2] as u16 + ((buf[3] as u16) << 8);
+            // TODO verify need to cancel the retransmission timer
             match client.cancel_tx.try_send((
                 client.remote_addr,
                 MSG_TYPE_PUBREC,
@@ -100,7 +101,7 @@ impl PubRec {
         dbg!(&buf);
         match client
             .transmit_tx
-            .try_send((client.remote_addr, bytes.to_owned()))
+            .try_send((client.remote_addr, bytes.clone()))
         {
             Ok(()) => Ok(bytes),
             Err(err) => Err(eformat!(client.remote_addr, err)),

@@ -192,15 +192,14 @@ impl Publish {
                 let bytes = PubRec::send(publish.msg_id, client)?;
                 // PUBREL message doesn't have topic id.
                 // For the time wheel hash, default to 0.
-                if let Err(err) = client.schedule_tx.try_send((
+                RetransTimeWheel::schedule_timer(
                     client.remote_addr,
                     MSG_TYPE_PUBREL,
                     0,
                     publish.msg_id,
+                    1,
                     bytes,
-                )) {
-                    return Err(eformat!(client.remote_addr, err));
-                }
+                )?;
                 // cache the publish message and the subscribers to send when PUBREL is received
                 // from the publisher. The remote_addr and msg_id are used as the key because they
                 // are part the message.
@@ -319,7 +318,7 @@ impl Publish {
             // cancel it if receive a PUBACK message.
             QOS_LEVEL_1 => {
                 dbg!((&qos, QOS_LEVEL_1));
-                RetransTimeWheel::schedule(
+                RetransTimeWheel::schedule_timer(
                     remote_addr,
                     MSG_TYPE_PUBACK,
                     0,
@@ -343,12 +342,12 @@ impl Publish {
                 // PUBREC message doesn't have topic id.
                 // For the time wheel hash, default to 0.
                 dbg!(&qos);
-                RetransTimeWheel::schedule(
+                RetransTimeWheel::schedule_timer(
                     remote_addr,
                     MSG_TYPE_PUBREC,
                     0,
                     msg_id,
-                    10,
+                    1,
                     bytes_buf.clone(),
                 )?;
             }
