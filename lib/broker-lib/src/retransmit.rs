@@ -220,13 +220,14 @@ impl RetransTimeWheel {
                                 StateEnum2::ACTIVE => (), // drop through
                                 _ => {
                                     map.remove(&retrans_hdr);
-                                    info!("Retransmit Cancel: incorrect state: {:?} {:?}", state, retrans_hdr);
+                                    info!("Retransmit Timer Cancel: incorrect state: {:?} {:?}",
+                                    state, retrans_hdr);
                                 }
                             },
                             Err(why) => {
                                 map.remove(&retrans_hdr);
                                 error!(
-                                    "Retransmit Cancel: {} {:?}",
+                                    "Retransmit Timer Cancel: {} {:?}",
                                     why, retrans_hdr
                                 );
                             }

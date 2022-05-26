@@ -1,8 +1,8 @@
+use std::net::SocketAddr;
 use std::net::UdpSocket;
 use std::thread;
-use std::{net::SocketAddr,};
 
-use bytes::{BytesMut};
+use bytes::BytesMut;
 use core::fmt::Debug;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 
@@ -253,7 +253,7 @@ impl MqttSnClient {
     ///    3.2. change state
     /// 4. run the rx_loop to process rx messages
     // TODO return errors
-        /*
+    /*
     pub fn connect(mut self, flags: u8, client_id: String, socket: UdpSocket) {
         let self_time_wheel = self.clone();
         let self_transmit = self.clone();
