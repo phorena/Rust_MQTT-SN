@@ -13,8 +13,6 @@ pub mod conn_ack;
 pub mod connect;
 pub mod connection;
 // pub mod ConnectionDb;
-pub mod disconnect;
-// pub mod MainMachineClient;
 #[allow(non_snake_case)]
 pub mod MsgType;
 #[allow(non_snake_case)]
@@ -23,11 +21,13 @@ pub mod StateMachine;
 pub mod SubscriberDb;
 #[allow(non_snake_case)]
 pub mod TopicDb;
+pub mod disconnect;
 pub mod filter;
 pub mod flags;
 pub mod gw_info;
 pub mod keep_alive;
 pub mod msg_hdr;
+pub mod multicast;
 pub mod ping_req;
 pub mod ping_resp;
 pub mod pub_ack;

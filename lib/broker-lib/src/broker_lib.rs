@@ -28,6 +28,7 @@ use crate::{
     subscribe::Subscribe,
     will_msg::WillMsg,
     will_topic::WillTopic,
+    advertise::Advertise,
     MSG_TYPE_CONNACK,
     MSG_TYPE_CONNECT,
     MSG_TYPE_DISCONNECT,
@@ -98,10 +99,14 @@ impl MqttSnClient {
         let socket_tx = socket.try_clone().expect("couldn't clone the socket");
         let builder = thread::Builder::new().name("recv_thread".into());
 
+
+        let broadcast_socket_addr = "224.0.0.123:61000".parse::<SocketAddr>().unwrap();
+
         KeepAliveTimeWheel::init();
         KeepAliveTimeWheel::run(self.clone());
         RetransTimeWheel::init();
         RetransTimeWheel::run(self.clone());
+        Advertise::run(broadcast_socket_addr, 5, 2);
 
         // process input datagram from network
         let _recv_thread = builder.spawn(move || {
