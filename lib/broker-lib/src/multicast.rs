@@ -82,13 +82,13 @@ pub fn new_udp_socket(addr: &SocketAddr) -> io::Result<Socket> {
     Ok(socket)
 }
 
-fn multicast_listen_loop(bytes: Bytes, addr: SocketAddr) -> JoinHandle<()> {
+pub fn listen_loop(addr: SocketAddr) -> JoinHandle<()> {
     let join_handle = std::thread::Builder::new()
         .name(function!().to_string())
         .spawn(move || {
             // socket creation will go here...
             let listener = multicast_bind(addr).unwrap();
-            println!("{:?}:server: joined: {}", bytes, addr);
+            println!("server: joined: {}", addr);
 
             let mut counter = 0;
             // use while loop to check for condition
@@ -114,10 +114,7 @@ fn multicast_listen_loop(bytes: Bytes, addr: SocketAddr) -> JoinHandle<()> {
                             std::thread::sleep(Duration::from_millis(10));
                         } else {
                             // other errors
-                            error!(
-                                "{:?}:server: failed to receive: {}",
-                                bytes, err
-                            );
+                            error!("failed to receive: {}", err);
                         }
                     }
                 }
