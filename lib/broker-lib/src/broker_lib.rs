@@ -9,6 +9,7 @@ use crossbeam::channel::{unbounded, Receiver, Sender};
 use log::*;
 
 use crate::{
+    advertise::Advertise,
     // Channels::Channels,
     conn_ack::ConnAck,
     connect::Connect,
@@ -28,7 +29,6 @@ use crate::{
     subscribe::Subscribe,
     will_msg::WillMsg,
     will_topic::WillTopic,
-    advertise::Advertise,
     MSG_TYPE_CONNACK,
     MSG_TYPE_CONNECT,
     MSG_TYPE_DISCONNECT,
@@ -99,8 +99,8 @@ impl MqttSnClient {
         let socket_tx = socket.try_clone().expect("couldn't clone the socket");
         let builder = thread::Builder::new().name("recv_thread".into());
 
-
-        let broadcast_socket_addr = "224.0.0.123:61000".parse::<SocketAddr>().unwrap();
+        let broadcast_socket_addr =
+            "224.0.0.123:61000".parse::<SocketAddr>().unwrap();
 
         KeepAliveTimeWheel::init();
         KeepAliveTimeWheel::run(self.clone());

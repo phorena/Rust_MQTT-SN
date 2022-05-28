@@ -14,15 +14,16 @@ Like the SEARCHGW message the broadcast radius for this message is also indicate
 network layer when MQTT-SN gives this message for transmission.
 */
 use crate::{
-    broker_lib::MqttSnClient, eformat, function, MSG_LEN_GW_INFO_HEADER,
-    MSG_TYPE_GW_INFO,
+    broker_lib::MqttSnClient, eformat, function, multicast::new_udp_socket,
+    MSG_LEN_GW_INFO_HEADER, MSG_TYPE_GW_INFO,
 };
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
 use log::*;
-use std::str; // NOTE: needed for MutGetters
+use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 use std::net::{SocketAddr, UdpSocket};
+use std::str; // NOTE: needed for MutGetters
 
 #[derive(
     // NOTE: must include std::str for MutGetters
@@ -49,7 +50,6 @@ impl GwInfo {
         gw_id: u8,
         gw_addr: String,
         socket_addr: &SocketAddr,
-        udp_socket: &UdpSocket,
     ) -> Result<(), String> {
         let len = MSG_LEN_GW_INFO_HEADER as usize + gw_addr.len() as usize;
         if len > 255 {
@@ -60,9 +60,20 @@ impl GwInfo {
         bytes.put(buf);
         bytes.put(gw_addr.as_bytes());
         dbg!(&bytes);
-        match udp_socket.send_to(&bytes[..], socket_addr) {
-            Ok(_size) => Ok(()),
-            Err(err) => return Err(eformat!(socket_addr, err)),
+        match new_udp_socket(socket_addr) {
+            Ok(udp_socket) => {
+                match udp_socket
+                    .send_to(&bytes[..], &socket2::SockAddr::from(*socket_addr))
+                {
+                    Ok(size) if size == len => Ok(()),
+                    Ok(size) => Err(format!(
+                        "send_to: {} bytes sent, but {} bytes expected",
+                        size, len
+                    )),
+                    Err(err) => return Err(eformat!(socket_addr, err)),
+                }
+            }
+            Err(err) => Err(eformat!(socket_addr, err)),
         }
     }
     pub fn recv(

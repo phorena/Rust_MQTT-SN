@@ -1,14 +1,17 @@
+/// *NOTE: socket_addr is different from socket2::SocketAddr.
+/// * use socket2::SockAddr::from(socket_addr) to convert.
 extern crate socket2;
 
-use crate::{ eformat, function};
+use crate::{eformat, function, search_gw::SearchGw};
 
+use bytes::Bytes;
+use log::*;
 use std::io;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, UdpSocket};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Barrier};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
-use bytes::{Bytes};
 
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 
@@ -44,11 +47,7 @@ fn multicast_socket(addr: &SocketAddr) -> io::Result<UdpSocket> {
     Ok(socket.into_udp_socket())
 }
 
-pub fn broadcast_loop(
-    bytes: Bytes,
-    addr: SocketAddr,
-    duration_sec: u16,
-) {
+pub fn broadcast_loop(bytes: Bytes, addr: SocketAddr, duration_sec: u16) {
     dbg!(addr);
     let socket = multicast_socket(&addr).expect("failed to create sender");
     let duration_ms = duration_sec as u64 * 1000;
@@ -65,7 +64,7 @@ pub fn broadcast_loop(
 }
 
 // this will be common for all our sockets
-fn new_socket(addr: &SocketAddr) -> io::Result<Socket> {
+pub fn new_udp_socket(addr: &SocketAddr) -> io::Result<Socket> {
     let domain = if addr.is_ipv4() {
         Domain::ipv4()
     } else {
@@ -83,10 +82,7 @@ fn new_socket(addr: &SocketAddr) -> io::Result<Socket> {
     Ok(socket)
 }
 
-fn multicast_listen_loop(
-    bytes: Bytes,
-    addr: SocketAddr,
-) -> JoinHandle<()> {
+fn multicast_listen_loop(bytes: Bytes, addr: SocketAddr) -> JoinHandle<()> {
     let join_handle = std::thread::Builder::new()
         .name(function!().to_string())
         .spawn(move || {
@@ -106,17 +102,11 @@ fn multicast_listen_loop(
                 match listener.recv_from(&mut buf) {
                     Ok((len, remote_addr)) => {
                         let data = &buf[..len];
-
-                        // create a socket to send the response
-                        let responder = new_socket(&remote_addr)
-                            .expect("failed to create responder")
-                            .into_udp_socket();
-
-                        // we send the response that was set at the method beginning
-                        responder
-                            .send_to(&bytes[..], &remote_addr)
-                            .expect("failed to respond");
-
+                        if let Err(why) =
+                            SearchGw::recv(data, len, &remote_addr)
+                        {
+                            error!("{:?}", why);
+                        }
                     }
                     Err(err) => {
                         // recv timeout, keep looping
@@ -124,8 +114,7 @@ fn multicast_listen_loop(
                             std::thread::sleep(Duration::from_millis(10));
                         } else {
                             // other errors
-                            // TODO change to error!()
-                            println!(
+                            error!(
                                 "{:?}:server: failed to receive: {}",
                                 bytes, err
                             );

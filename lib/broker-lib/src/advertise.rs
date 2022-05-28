@@ -11,16 +11,14 @@ Table 6:
 • Duration: time interval until the next ADVERTISE is broadcasted by this gateway
 */
 use crate::{
-    broker_lib::MqttSnClient,
-    multicast,
-    MSG_LEN_ADVERTISE, MSG_TYPE_ADVERTISE,
+    broker_lib::MqttSnClient, multicast, MSG_LEN_ADVERTISE, MSG_TYPE_ADVERTISE,
 };
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
 use log::*;
 use std::mem;
-use std::net::{SocketAddr, UdpSocket, };
+use std::net::{SocketAddr, UdpSocket};
 
 #[derive(
     Debug, Clone, Getters, /*Setters,*/ MutGetters, CopyGetters, Default,
