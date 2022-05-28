@@ -13,12 +13,15 @@ Table 6:
 use crate::{
     broker_lib::MqttSnClient, eformat, function, MSG_LEN_SEARCH_GW,
     MSG_TYPE_SEARCH_GW,
+    gw_info::GwInfo,
 };
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
 use log::*;
 use std::str;
+use std::net::{SocketAddr, UdpSocket};
+use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 
 #[derive(
     Debug, Clone, Getters, /*Setters,*/ MutGetters, CopyGetters, Default,
@@ -31,28 +34,34 @@ pub struct SearchGw {
     pub radius: u8,
 }
 impl SearchGw {
-    pub fn send(radius: u8, client: &MqttSnClient) -> Result<(), String> {
+    pub fn send(radius: u8, socket_addr: &SocketAddr, udp_socket: UdpSocket) -> Result<(), String> {
         let mut bytes = BytesMut::with_capacity(MSG_LEN_SEARCH_GW as usize);
         let buf: &[u8] = &[MSG_LEN_SEARCH_GW, MSG_TYPE_SEARCH_GW, radius];
         bytes.put(buf);
-        // TODO replace BytesMut with Bytes to eliminate clone as copy
         dbg!(&buf);
-        match client
-            .transmit_tx
-            .try_send((client.remote_addr, bytes.to_owned()))
+        match udp_socket.send_to(&bytes[..], socket_addr)
         {
-            Ok(()) => Ok(()),
-            Err(err) => return Err(eformat!(client.remote_addr, err)),
+            // TODO client should send request to broker.
+            Ok(size) => Ok(()),
+            Err(err) => return Err(eformat!(socket_addr, err)),
         }
     }
     pub fn recv(
         buf: &[u8],
         size: usize,
-        client: &MqttSnClient,
+        socket_addr: &SocketAddr,
+        udp_socket: &UdpSocket,
     ) -> Result<(), String> {
-        let (search_gw, _read_fixed_len) =
-            SearchGw::try_read(buf, size).unwrap();
-        info!("{}: search gw {} ", client.remote_addr, search_gw.radius);
-        Ok(())
+        match SearchGw::try_read(buf, size) {
+            Some((search_gw, _read_fixed_len)) => {
+                info!(
+                    "{}: search gw {} with {} radius",
+                    socket_addr, search_gw.radius, search_gw.radius
+                );
+                GwInfo::send(1, "124.0.0.5:61000".to_string(), socket_addr, udp_socket);
+                Ok(())
+            }
+            None => Err(eformat!(socket_addr)),
+        }
     }
 }

@@ -1,8 +1,6 @@
-// Copyright 2018 Benjamin Fry <benjaminfry@me.com>
-extern crate lazy_static;
 extern crate socket2;
 
-use crate::{broker_lib::MqttSnClient, eformat, function};
+use crate::{ eformat, function};
 
 use std::io;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, UdpSocket};
@@ -46,21 +44,21 @@ fn multicast_socket(addr: &SocketAddr) -> io::Result<UdpSocket> {
     Ok(socket.into_udp_socket())
 }
 
-pub fn advertise_broadcast_loop(
+pub fn broadcast_loop(
     bytes: Bytes,
     addr: SocketAddr,
-    duration: u64,
+    duration_sec: u16,
 ) {
     dbg!(addr);
     let socket = multicast_socket(&addr).expect("failed to create sender");
-    let duration = duration * 1000; // convert sec to ms
+    let duration_ms = duration_sec as u64 * 1000;
     let _join_handle = std::thread::Builder::new()
         .name(function!().to_string())
         .spawn(move || {
             loop {
                 // TODO relplace expect()
                 socket.send_to(&bytes[..], &addr).expect("failed to send");
-                std::thread::sleep(Duration::from_millis(duration));
+                std::thread::sleep(Duration::from_millis(duration_ms));
             }
         })
         .unwrap();
@@ -85,44 +83,29 @@ fn new_socket(addr: &SocketAddr) -> io::Result<Socket> {
     Ok(socket)
 }
 
-fn multicast_listener(
-    response: &'static str,
-    client_done: Arc<AtomicBool>,
+fn multicast_listen_loop(
+    bytes: Bytes,
     addr: SocketAddr,
 ) -> JoinHandle<()> {
-    // A barrier to not start the client test code until after the server is running
-    let server_barrier = Arc::new(Barrier::new(2));
-    let client_barrier = Arc::clone(&server_barrier);
-
     let join_handle = std::thread::Builder::new()
         .name(function!().to_string())
         .spawn(move || {
             // socket creation will go here...
             let listener = multicast_bind(addr).unwrap();
-            println!("{}:server: joined: {}", response, addr);
-
-            server_barrier.wait();
-            println!("{}:server: is ready", response);
+            println!("{:?}:server: joined: {}", bytes, addr);
 
             let mut counter = 0;
-            // We'll be looping until the client indicates it is done.
-            while !client_done.load(std::sync::atomic::Ordering::Relaxed) {
+            // use while loop to check for condition
+            loop {
                 counter += 1;
                 dbg!(counter);
                 // test receive and response code will go here...
-                let mut buf = [0u8; 64]; // receive buffer
+                let mut buf = [0u8; 1400]; // receive buffer
 
                 // we're assuming failures were timeouts, the client_done loop will stop us
                 match listener.recv_from(&mut buf) {
                     Ok((len, remote_addr)) => {
                         let data = &buf[..len];
-
-                        println!(
-                            "{}:server: got data: {} from: {}",
-                            response,
-                            String::from_utf8_lossy(data),
-                            remote_addr
-                        );
 
                         // create a socket to send the response
                         let responder = new_socket(&remote_addr)
@@ -131,13 +114,9 @@ fn multicast_listener(
 
                         // we send the response that was set at the method beginning
                         responder
-                            .send_to(response.as_bytes(), &remote_addr)
+                            .send_to(&bytes[..], &remote_addr)
                             .expect("failed to respond");
 
-                        println!(
-                            "{}:server: sent response to: {}",
-                            response, remote_addr
-                        );
                     }
                     Err(err) => {
                         // recv timeout, keep looping
@@ -147,18 +126,15 @@ fn multicast_listener(
                             // other errors
                             // TODO change to error!()
                             println!(
-                                "{}:server: failed to receive: {}",
-                                response, err
+                                "{:?}:server: failed to receive: {}",
+                                bytes, err
                             );
                         }
                     }
                 }
             }
-            println!("{}:server: client is done", response);
         })
         .unwrap();
-
-    client_barrier.wait();
     join_handle
 }
 fn multicast_bind(addr: SocketAddr) -> io::Result<UdpSocket> {
@@ -189,7 +165,7 @@ fn multicast_bind(addr: SocketAddr) -> io::Result<UdpSocket> {
             dbg!(addr_v4);
             socket.join_multicast_v4(addr_v4, &Ipv4Addr::new(0, 0, 0, 0))?;
         }
-        IpAddr::V6(ref addr_v6) => {
+        IpAddr::V6(ref _addr_v6) => {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
                 "IPV6 is not supported",
@@ -220,7 +196,7 @@ fn test_multicast(test: &'static str, addr: IpAddr) {
     let client_done = Arc::new(AtomicBool::new(false));
     let notify = NotifyServer(Arc::clone(&client_done));
 
-    multicast_listener(test, client_done, addr);
+    // multicast_listener(test, client_done, addr);
 
     // client test code send and receive code after here
     println!("{}:client: running", test);

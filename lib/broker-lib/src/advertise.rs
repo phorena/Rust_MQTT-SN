@@ -20,7 +20,7 @@ use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
 use log::*;
 use std::mem;
-use std::net::{SocketAddr};
+use std::net::{SocketAddr, UdpSocket, };
 
 #[derive(
     Debug, Clone, Getters, /*Setters,*/ MutGetters, CopyGetters, Default,
@@ -47,7 +47,7 @@ impl Advertise {
         ];
         bytes.put(buf);
         dbg!(&buf);
-        multicast::advertise_broadcast_loop(bytes.freeze(), socket_addr, duration as u64);
+        multicast::broadcast_loop(bytes.freeze(), socket_addr, duration);
     }
     pub fn recv(
         buf: &[u8],

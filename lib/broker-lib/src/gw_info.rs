@@ -22,6 +22,7 @@ use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
 use log::*;
 use std::str; // NOTE: needed for MutGetters
+use std::net::{SocketAddr, UdpSocket};
 
 #[derive(
     // NOTE: must include std::str for MutGetters
@@ -47,7 +48,8 @@ impl GwInfo {
     pub fn send(
         gw_id: u8,
         gw_addr: String,
-        client: &MqttSnClient,
+        socket_addr: &SocketAddr,
+        udp_socket: &UdpSocket,
     ) -> Result<(), String> {
         let len = MSG_LEN_GW_INFO_HEADER as usize + gw_addr.len() as usize;
         if len > 255 {
@@ -58,9 +60,9 @@ impl GwInfo {
         bytes.put(buf);
         bytes.put(gw_addr.as_bytes());
         dbg!(&bytes);
-        match client.transmit_tx.try_send((client.remote_addr, bytes)) {
-            Ok(()) => Ok(()),
-            Err(err) => return Err(eformat!(client.remote_addr, err)),
+        match udp_socket.send_to(&bytes[..], socket_addr) {
+            Ok(_size) => Ok(()),
+            Err(err) => return Err(eformat!(socket_addr, err)),
         }
     }
     pub fn recv(
