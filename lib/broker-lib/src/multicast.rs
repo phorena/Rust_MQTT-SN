@@ -2,15 +2,15 @@
 /// * use socket2::SockAddr::from(socket_addr) to convert.
 extern crate socket2;
 
-use crate::{eformat, function, search_gw::SearchGw};
+use crate::{function, search_gw::SearchGw};
 
 use bytes::Bytes;
 use log::*;
 use std::io;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, UdpSocket};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Barrier};
-use std::thread::{self, JoinHandle};
+use std::sync::Arc;
+use std::thread::JoinHandle;
 use std::time::Duration;
 
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
@@ -97,10 +97,8 @@ pub fn listen_loop(multicast_addr: SocketAddr) -> JoinHandle<()> {
             let listener = multicast_bind(multicast_addr).unwrap();
             println!("server: joined: {}", multicast_addr);
 
-            let mut counter = 0;
             // use while loop to check for condition
             loop {
-                counter += 1;
                 // test receive and response code will go here...
                 let mut buf = [0u8; 1400]; // receive buffer
 
@@ -177,6 +175,7 @@ impl Drop for NotifyServer {
     }
 }
 
+/*
 /// Our generic test over different IPs
 fn test_multicast(test: &'static str, addr: IpAddr) {
     assert!(addr.is_multicast());
@@ -230,7 +229,7 @@ fn test_multicast(test: &'static str, addr: IpAddr) {
 fn test_ipv4_multicast() {
     test_multicast("ipv4 hello", *IPV4);
 }
-
+*/
 /*
 #[test]
 fn test_ipv6_multicast() {

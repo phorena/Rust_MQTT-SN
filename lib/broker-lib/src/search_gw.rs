@@ -20,8 +20,7 @@ use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
 use log::*;
-use socket2::{Domain, Protocol, SockAddr, Socket, Type};
-use std::net::{SocketAddr, UdpSocket};
+use std::net::SocketAddr;
 use std::str;
 
 pub const SEARCH_RADIUS_MAX: u8 = 2;
@@ -37,7 +36,7 @@ pub struct SearchGw {
     pub radius: u8,
 }
 impl SearchGw {
-    // for client to send request to broker.
+    // for client to multicast
     pub fn run(socket_addr: SocketAddr, radius: u8, duration: u16) {
         let mut bytes = BytesMut::with_capacity(MSG_LEN_SEARCH_GW as usize);
         let buf: &[u8] = &[MSG_LEN_SEARCH_GW, MSG_TYPE_SEARCH_GW, radius];

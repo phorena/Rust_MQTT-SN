@@ -21,8 +21,7 @@ use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
 use log::*;
-use socket2::{Domain, Protocol, SockAddr, Socket, Type};
-use std::net::{SocketAddr, UdpSocket};
+use std::net::SocketAddr;
 use std::str; // NOTE: needed for MutGetters
 
 #[derive(

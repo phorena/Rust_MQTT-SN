@@ -18,7 +18,7 @@ use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
 use log::*;
 use std::mem;
-use std::net::{SocketAddr, UdpSocket};
+use std::net::SocketAddr;
 
 #[derive(
     Debug, Clone, Getters, /*Setters,*/ MutGetters, CopyGetters, Default,
