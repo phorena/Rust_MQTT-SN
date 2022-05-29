@@ -1,17 +1,20 @@
 /*
-5.4.1 ADVERTISE
-Length    MsgType GwId Duration
-(octet 0) (1)     (2)  (3,4)
-Table 6: ADVERTISE Message
-The ADVERTISE message is broadcasted periodically by a gateway to advertise its presence. The time
-interval until the next broadcast time is indicated in the Duration field of this message. Its format is illustrated in
-Table 6:
+5.4.2 SEARCHGW
+Length MsgType Radius
+(octet 0) (1) (2)
+Table 7: SEARCHGW Message
+The SEARCHGW message is broadcasted by a client when it searches for a GW. The broadcast radius of the
+SEARCHGW is limited and depends on the density of the clients deployment, e.g. only 1-hop broadcast in case
+of a very dense network in which every MQTT-SN client is reachable from each other within 1-hop transmission.
+The format of a SEARCHGW message is illustrated in Table 7:
 • Length and MsgType: see Section 5.2.
-• GwId: the id of the gateway which sends this message.
-• Duration: time interval until the next ADVERTISE is broadcasted by this gateway
+• Radius: the broadcast radius of this message.
+The broadcast radius is also indicated to the underlying network layer when MQTT-SN gives this message for
+transmission.
 */
 use crate::{
-    eformat, function, gw_info::GwInfo, MSG_LEN_SEARCH_GW, MSG_TYPE_SEARCH_GW,
+    eformat, function, gw_info::GwInfo, multicast, MSG_LEN_SEARCH_GW,
+    MSG_TYPE_SEARCH_GW,
 };
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
@@ -35,23 +38,12 @@ pub struct SearchGw {
 }
 impl SearchGw {
     // for client to send request to broker.
-    pub fn send(
-        radius: u8,
-        socket_addr: &SocketAddr,
-        udp_socket: UdpSocket,
-    ) -> Result<(), String> {
+    pub fn run(socket_addr: SocketAddr, radius: u8, duration: u16) {
         let mut bytes = BytesMut::with_capacity(MSG_LEN_SEARCH_GW as usize);
         let buf: &[u8] = &[MSG_LEN_SEARCH_GW, MSG_TYPE_SEARCH_GW, radius];
         bytes.put(buf);
         dbg!(&buf);
-        match udp_socket.send_to(&bytes[..], socket_addr) {
-            Ok(size) if size == MSG_LEN_SEARCH_GW as usize => Ok(()),
-            Ok(size) => Err(format!(
-                "send_to: {} bytes sent, but {} bytes expected",
-                size, MSG_LEN_SEARCH_GW
-            )),
-            Err(err) => return Err(eformat!(socket_addr, err)),
-        }
+        multicast::broadcast_loop(bytes.freeze(), socket_addr, duration);
     }
     pub fn recv(
         buf: &[u8],

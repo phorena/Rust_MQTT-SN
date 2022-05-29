@@ -18,6 +18,7 @@ use crate::{
     disconnect::Disconnect,
     eformat,
     function,
+    gw_info::GwInfo,
     keep_alive::KeepAliveTimeWheel,
     msg_hdr::MsgHeader,
     // Connection::ConnHashMap,
@@ -25,6 +26,7 @@ use crate::{
     pub_rel::PubRel,
     publish::Publish,
     retransmit::RetransTimeWheel,
+    search_gw::SearchGw,
     sub_ack::SubAck,
     subscribe::Subscribe,
     will_msg::WillMsg,
@@ -101,12 +103,18 @@ impl MqttSnClient {
 
         let broadcast_socket_addr =
             "224.0.0.123:61000".parse::<SocketAddr>().unwrap();
+        let gateway_info_socket_addr =
+            "224.0.0.123:62000".parse::<SocketAddr>().unwrap();
 
         KeepAliveTimeWheel::init();
         KeepAliveTimeWheel::run(self.clone());
         RetransTimeWheel::init();
         RetransTimeWheel::run(self.clone());
         Advertise::run(broadcast_socket_addr, 5, 2);
+        GwInfo::run(gateway_info_socket_addr);
+
+        // client runs this to search for gateway.
+        // SearchGw::run(gateway_info_socket_addr, 2, 2);
 
         // process input datagram from network
         let _recv_thread = builder.spawn(move || {

@@ -22,14 +22,14 @@ lazy_static! {
     pub static ref IPV6: IpAddr =
         Ipv6Addr::new(0xFF02, 0, 0, 0, 0, 0, 0, 0x0123).into();
 }
-fn multicast_socket(addr: &SocketAddr) -> io::Result<UdpSocket> {
-    dbg!(addr);
-    let domain = if addr.is_ipv4() {
+fn multicast_socket(multicast_addr: &SocketAddr) -> io::Result<UdpSocket> {
+    dbg!(multicast_addr);
+    let domain = if multicast_addr.is_ipv4() {
         Domain::ipv4()
     } else {
         return Err(io::Error::new(io::ErrorKind::Other, "V6 not supported"));
     };
-    if !addr.ip().is_multicast() {
+    if !multicast_addr.ip().is_multicast() {
         return Err(io::Error::new(
             io::ErrorKind::Other,
             "Not a multicast address",
@@ -47,16 +47,23 @@ fn multicast_socket(addr: &SocketAddr) -> io::Result<UdpSocket> {
     Ok(socket.into_udp_socket())
 }
 
-pub fn broadcast_loop(bytes: Bytes, addr: SocketAddr, duration_sec: u16) {
-    dbg!(addr);
-    let socket = multicast_socket(&addr).expect("failed to create sender");
+pub fn broadcast_loop(
+    bytes: Bytes,
+    multicast_addr: SocketAddr,
+    duration_sec: u16,
+) {
+    dbg!(multicast_addr);
+    let socket =
+        multicast_socket(&multicast_addr).expect("failed to create sender");
     let duration_ms = duration_sec as u64 * 1000;
     let _join_handle = std::thread::Builder::new()
         .name(function!().to_string())
         .spawn(move || {
             loop {
                 // TODO relplace expect()
-                socket.send_to(&bytes[..], &addr).expect("failed to send");
+                socket
+                    .send_to(&bytes[..], &multicast_addr)
+                    .expect("failed to send");
                 std::thread::sleep(Duration::from_millis(duration_ms));
             }
         })
@@ -82,19 +89,18 @@ pub fn new_udp_socket(addr: &SocketAddr) -> io::Result<Socket> {
     Ok(socket)
 }
 
-pub fn listen_loop(addr: SocketAddr) -> JoinHandle<()> {
+pub fn listen_loop(multicast_addr: SocketAddr) -> JoinHandle<()> {
     let join_handle = std::thread::Builder::new()
         .name(function!().to_string())
         .spawn(move || {
             // socket creation will go here...
-            let listener = multicast_bind(addr).unwrap();
-            println!("server: joined: {}", addr);
+            let listener = multicast_bind(multicast_addr).unwrap();
+            println!("server: joined: {}", multicast_addr);
 
             let mut counter = 0;
             // use while loop to check for condition
             loop {
                 counter += 1;
-                dbg!(counter);
                 // test receive and response code will go here...
                 let mut buf = [0u8; 1400]; // receive buffer
 
@@ -123,15 +129,15 @@ pub fn listen_loop(addr: SocketAddr) -> JoinHandle<()> {
         .unwrap();
     join_handle
 }
-fn multicast_bind(addr: SocketAddr) -> io::Result<UdpSocket> {
-    let ip_addr = addr.ip();
+fn multicast_bind(multicast_addr: SocketAddr) -> io::Result<UdpSocket> {
+    let ip_addr = multicast_addr.ip();
     if !ip_addr.is_multicast() {
         return Err(io::Error::new(
             io::ErrorKind::Other,
             "Not a multicast IP address",
         ));
     }
-    let domain = if addr.is_ipv4() {
+    let domain = if multicast_addr.is_ipv4() {
         Domain::ipv4()
     } else {
         // Domain::ipv6()
@@ -158,7 +164,7 @@ fn multicast_bind(addr: SocketAddr) -> io::Result<UdpSocket> {
             ));
         }
     };
-    socket.bind(&socket2::SockAddr::from(addr))?;
+    socket.bind(&socket2::SockAddr::from(multicast_addr))?;
     // convert to standard UDP sockets
     Ok(socket.into_udp_socket())
 }
