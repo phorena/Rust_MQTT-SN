@@ -46,7 +46,7 @@ pub struct GwInfo {
 }
 impl GwInfo {
     pub fn run(socket_addr: SocketAddr) {
-        multicast::listen_loop(socket_addr);
+        multicast::gw_info_listen_loop(socket_addr);
     }
     pub fn send(
         gw_id: u8,

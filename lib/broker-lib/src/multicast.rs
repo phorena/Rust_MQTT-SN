@@ -17,11 +17,7 @@ use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 
 pub const PORT: u16 = 7645;
 pub const SOCKET_READ_TIMEOUT_MS: u64 = 100;
-lazy_static! {
-    pub static ref IPV4: IpAddr = Ipv4Addr::new(224, 0, 0, 123).into();
-    pub static ref IPV6: IpAddr =
-        Ipv6Addr::new(0xFF02, 0, 0, 0, 0, 0, 0, 0x0123).into();
-}
+
 fn multicast_socket(multicast_addr: &SocketAddr) -> io::Result<UdpSocket> {
     dbg!(multicast_addr);
     let domain = if multicast_addr.is_ipv4() {
@@ -36,14 +32,15 @@ fn multicast_socket(multicast_addr: &SocketAddr) -> io::Result<UdpSocket> {
         ));
     }
     let socket = Socket::new(domain, Type::dgram(), Some(Protocol::udp()))?;
-    // read timeouts so that we don't hang waiting for packets
+    // set read timeouts so that we don't hang waiting for packets
+    // it allows the thread to perform other tasks while waiting for packets
     socket.set_read_timeout(Some(Duration::from_millis(100)))?;
     socket.set_multicast_if_v4(&Ipv4Addr::new(0, 0, 0, 0))?;
     socket.bind(&SockAddr::from(SocketAddr::new(
         Ipv4Addr::new(0, 0, 0, 0).into(),
         0,
     )))?;
-    // convert to standard UDP sockets
+    // convert to UDP sockets
     Ok(socket.into_udp_socket())
 }
 
@@ -60,10 +57,21 @@ pub fn broadcast_loop(
         .name(function!().to_string())
         .spawn(move || {
             loop {
-                // TODO relplace expect()
-                socket
-                    .send_to(&bytes[..], &multicast_addr)
-                    .expect("failed to send");
+                match socket .send_to(&bytes[..], &multicast_addr){
+                    Ok(size) if size == bytes.len() => {
+                        ()
+                    }
+                    Ok(size) => {
+                        error!(
+                            "send_to: {} bytes sent, but {} bytes expected",
+                            size,
+                            bytes.len()
+                        );
+                    }
+                    Err(why) => {
+                        error!("{}", why);
+                    }   
+                }
                 std::thread::sleep(Duration::from_millis(duration_ms));
             }
         })
@@ -89,7 +97,7 @@ pub fn new_udp_socket(addr: &SocketAddr) -> io::Result<Socket> {
     Ok(socket)
 }
 
-pub fn listen_loop(multicast_addr: SocketAddr) -> JoinHandle<()> {
+pub fn gw_info_listen_loop(multicast_addr: SocketAddr) -> JoinHandle<()> {
     let join_handle = std::thread::Builder::new()
         .name(function!().to_string())
         .spawn(move || {
