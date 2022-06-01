@@ -21,6 +21,7 @@ use crate::{
     gw_info::GwInfo,
     keep_alive::KeepAliveTimeWheel,
     msg_hdr::MsgHeader,
+    ping_req::PingReq,
     // Connection::ConnHashMap,
     pub_ack::PubAck,
     pub_rel::PubRel,
@@ -28,13 +29,13 @@ use crate::{
     retransmit::RetransTimeWheel,
     // search_gw::SearchGw,
     sub_ack::SubAck,
-    ping_req::PingReq,
     subscribe::Subscribe,
     will_msg::WillMsg,
     will_topic::WillTopic,
     MSG_TYPE_CONNACK,
     MSG_TYPE_CONNECT,
     MSG_TYPE_DISCONNECT,
+    MSG_TYPE_PINGREQ,
     MSG_TYPE_PUBACK,
     MSG_TYPE_PUBLISH,
     MSG_TYPE_PUBREL,
@@ -42,7 +43,6 @@ use crate::{
     MSG_TYPE_SUBSCRIBE,
     MSG_TYPE_WILL_MSG,
     MSG_TYPE_WILL_TOPIC,
-    MSG_TYPE_PINGREQ,
 };
 // use trace_var::trace_var;
 
@@ -258,8 +258,19 @@ impl MqttSnClient {
                 Ok((addr, bytes)) => {
                     // TODO DTLS
                     dbg!((addr, &bytes));
-                    let result = socket_tx.send_to(&bytes[..], addr);
-                    dbg!(result);
+                    match socket_tx.send_to(&bytes[..], addr) {
+                        Ok(size) if size == bytes.len() => (),
+                        Ok(size) => {
+                            error!(
+                                "send_to: {} bytes sent, but {} bytes expected",
+                                size,
+                                bytes.len()
+                            );
+                        }
+                        Err(why) => {
+                            error!("{}", why);
+                        }
+                    }
                 }
                 Err(why) => {
                     println!("channel_rx_thread: {}", why);

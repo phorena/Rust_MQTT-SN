@@ -126,18 +126,21 @@ In MQTT-SN the meaning of a “clean session” is extended to the Will feature,
 are persistent, but also the Will topic and the Will message. The two flags “CleanSession” and “Will” in the
 CONNECT have then the following meanings:
 • CleanSession=true, Will=true: The GW will delete all subscriptions and Will data related to the client,
-and starts prompting for new Will topic and Will message.
+    and starts prompting for new Will topic and Will message.
 • CleanSession=true, Will=false: The GW will delete all subscriptions and Will data related to the client,
-and returns CONNACK (no prompting for Will topic and Will message).
+    and returns CONNACK (no prompting for Will topic and Will message).
 • CleanSession=false, Will=true: The GW keeps all stored client’s data, but prompts for new Will topic and
-Will message. The newly received Will data will overwrite the stored Will data.
-• CleanSession=false, Will=false: The GW keeps all stored client’s data and returns CONNACK (no prompting for Will topic and Will message).
+    Will message. The newly received Will data will overwrite the stored Will data.
+• CleanSession=false, Will=false: The GW keeps all stored client’s data and returns CONNACK 
+    (no prompting for Will topic and Will message).
 Note that if a client wants to delete only its Will data at connection setup, it could send a CONNECT message
 with “CleanSession=false” and “Will=true”, and sends an empty WILLTOPIC message to the GW when prompted
 to do so. It could also send a CONNECT message with “CleanSession=false” and “Will=false”, and use the
 procedure of Section 6.4 to delete or modify the Will data.
 */
-
+// TODO: separate the connection and connection table functions
+// TODO: to reduce the number of lookups.
+// TODO: use the connection in the broker loop.
 impl Connection {
     pub fn new(
         socket_addr: SocketAddr,
@@ -363,7 +366,7 @@ impl Connection {
             None => Err(eformat!(socket_addr, "not found.")),
         }
     }
-
+    #[allow(unused_must_use)]
     pub fn debug() {
         let conn_hashmap = CONN_HASHMAP.lock().unwrap();
         dbg!(conn_hashmap);

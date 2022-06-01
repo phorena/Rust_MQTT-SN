@@ -55,25 +55,21 @@ pub fn broadcast_loop(
     let duration_ms = duration_sec as u64 * 1000;
     let _join_handle = std::thread::Builder::new()
         .name(function!().to_string())
-        .spawn(move || {
-            loop {
-                match socket .send_to(&bytes[..], &multicast_addr){
-                    Ok(size) if size == bytes.len() => {
-                        ()
-                    }
-                    Ok(size) => {
-                        error!(
-                            "send_to: {} bytes sent, but {} bytes expected",
-                            size,
-                            bytes.len()
-                        );
-                    }
-                    Err(why) => {
-                        error!("{}", why);
-                    }   
+        .spawn(move || loop {
+            match socket.send_to(&bytes[..], &multicast_addr) {
+                Ok(size) if size == bytes.len() => (),
+                Ok(size) => {
+                    error!(
+                        "send_to: {} bytes sent, but {} bytes expected",
+                        size,
+                        bytes.len()
+                    );
                 }
-                std::thread::sleep(Duration::from_millis(duration_ms));
+                Err(why) => {
+                    error!("{}", why);
+                }
             }
+            std::thread::sleep(Duration::from_millis(duration_ms));
         })
         .unwrap();
 }
