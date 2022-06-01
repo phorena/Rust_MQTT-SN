@@ -40,7 +40,7 @@ impl PingResp {
     pub fn recv(
         buf: &[u8],
         size: usize,
-        client: &mut MqttSnClient,
+        client: &MqttSnClient,
     ) -> Result<(), String> {
         if size == MSG_LEN_PINGRESP as usize && buf[0] == MSG_LEN_PINGRESP {
             // TODO update ping timer.
@@ -49,7 +49,7 @@ impl PingResp {
             Err(eformat!(client.remote_addr, "len err", size))
         }
     }
-    pub fn send(client: &mut MqttSnClient) -> Result<(), String> {
+    pub fn send(client: &MqttSnClient) -> Result<(), String> {
         let buf: &[u8] = &[MSG_LEN_PINGRESP, MSG_TYPE_PINGRESP];
         let bytes = BytesMut::from(buf);
         match client.transmit_tx.try_send((client.remote_addr, bytes)) {

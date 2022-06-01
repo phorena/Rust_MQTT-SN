@@ -10,6 +10,15 @@ connected client. Its format is illustrated in Table 22:
 • ClientId: contains the client id; this field is optional and is included by a “sleeping” client when it goes
 to the “awake” state and is waiting for messages sent by the server/gateway, see Section 6.14 for further
 details.
+
+The sleep timer is stopped when the server/gateway receives a PINGREQ from the client. Like the CONNECT
+message, this PINGREQ message contains the Client Id. The identified client is then in the awake state. If the
+server/gateway has buffered messages for the client, it will sends these messages to the client. The transfer of
+messages to the client is closed by the server/gateway by means of a PINGRESP message, i.e. the server/gateway
+will consider the client as asleep and restart the sleep timer again after having sent the PINGRESP message.
+If the server/gateway does not have any messages buffered for the client, it answers immediately with a
+PINGRESP message, returns the client back to the asleep state, and restarts the sleep timer for that client.
+
 */
 
 use bytes::{BufMut, BytesMut};
@@ -51,7 +60,7 @@ impl PingReq {
     pub fn recv(
         buf: &[u8],
         size: usize,
-        client: &mut MqttSnClient,
+        client: &MqttSnClient,
         header: MsgHeader,
     ) -> Result<(), String> {
         match header.header_len {

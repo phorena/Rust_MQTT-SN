@@ -28,6 +28,7 @@ use crate::{
     retransmit::RetransTimeWheel,
     // search_gw::SearchGw,
     sub_ack::SubAck,
+    ping_req::PingReq,
     subscribe::Subscribe,
     will_msg::WillMsg,
     will_topic::WillTopic,
@@ -41,6 +42,7 @@ use crate::{
     MSG_TYPE_SUBSCRIBE,
     MSG_TYPE_WILL_MSG,
     MSG_TYPE_WILL_TOPIC,
+    MSG_TYPE_PINGREQ,
 };
 // use trace_var::trace_var;
 
@@ -164,6 +166,14 @@ impl MqttSnClient {
                                 let _result = PubAck::recv(&buf, size, &self);
                                 continue;
                             };
+                            if msg_type == MSG_TYPE_PINGREQ {
+                                if let Err(err) =
+                                    PingReq::recv(&buf, size, &self, msg_header)
+                                {
+                                    error!("{}", err);
+                                }
+                                continue;
+                            }
                             if msg_type == MSG_TYPE_SUBACK {
                                 let _result = SubAck::recv(&buf, size, &self);
                                 continue;
