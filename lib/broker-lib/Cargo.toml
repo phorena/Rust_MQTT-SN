@@ -21,13 +21,13 @@ serde_derive = "1.0"
 serde_json = "1.0"
 bincode = { path="../bincode-trunk" }
 time = "0.3.7"
-simplelog = { path="../simplelog" }
+#simplelog = { path="../simplelog" }
 log = { version="0.4.*", features=["std"] }
 num-traits = { path="../num-traits" }
 num-derive = { path="../num-derive" }
 arrayref = "0.3.6"
-strum = "0.20"
-strum_macros = "0.20"
+# strum = "0.20"
+# strum_macros = "0.20"
 num_enum = "0.5.1"
 sled = "0.34"
 getopts = "~0.2.14"
@@ -41,11 +41,15 @@ chrono = "0.4.19"
 crossbeam-utils = "0.8.7"
 
 backtrace = "0.3.64"
-trace_caller_macro = { version = "0.1.0", path = "../trace_caller/trace_caller_macro" }
-trace_caller = { version = "0.2.0", path = "../trace_caller" }
+#trace_caller_macro = { version = "0.1.0", path = "../trace_caller/trace_caller_macro" }
+#trace_caller = { version = "0.2.0", path = "../trace_caller" }
+trace_caller_macro = { version = "0.1.0", path = "/mnt/OneTB/repos/trace_caller/trace_caller_macro" }
+trace_caller = { version = "0.2.0", path = "/mnt/OneTB/repos/trace_caller" }
+
 uuid = { version = "0.8", features = ["serde", "v1", "v4"] }
 rand = "0.8.5"
 lazy_static = "1.4.0"
 hashbrown = "0.12.0"
 bisetmap = "0.1.6"
 
+webrtc-dtls = {path = "/mnt/OneTB/repos/dtls-exofense"}

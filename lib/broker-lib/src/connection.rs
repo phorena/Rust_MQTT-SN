@@ -1,16 +1,6 @@
 use crate::{
-    broker_lib::MqttSnClient,
-    client_id::ClientId,
-    eformat,
-    filter::{
-        delete_topic_id, delete_topic_ids_with_socket_addr,
-        get_subscribers_with_topic_id, remove_qos, subscribe_with_topic_id,
-        try_insert_topic_name,
-    },
-    flags::{flag_is_clean_session, flag_is_will, RETAIN_FALSE},
-    function,
-    publish::Publish,
-    TopicIdType,
+    broker_lib::MqttSnClient, client_id::ClientId, eformat, filter::*,
+    flags::*, function, publish::Publish, TopicIdType,
 };
 // use log::*;
 // use rand::Rng;
@@ -131,7 +121,7 @@ CONNECT have then the following meanings:
     and returns CONNACK (no prompting for Will topic and Will message).
 • CleanSession=false, Will=true: The GW keeps all stored client’s data, but prompts for new Will topic and
     Will message. The newly received Will data will overwrite the stored Will data.
-• CleanSession=false, Will=false: The GW keeps all stored client’s data and returns CONNACK 
+• CleanSession=false, Will=false: The GW keeps all stored client’s data and returns CONNACK
     (no prompting for Will topic and Will message).
 Note that if a client wants to delete only its Will data at connection setup, it could send a CONNECT message
 with “CleanSession=false” and “Will=true”, and sends an empty WILLTOPIC message to the GW when prompted

@@ -21,19 +21,10 @@ use std::mem;
 use std::str;
 
 use crate::{
-    broker_lib::MqttSnClient,
-    eformat,
-    filter::get_topic_id_with_topic_name,
-    function,
-    msg_hdr::{MsgHeader, MsgHeaderEnum},
-    reg_ack::RegAck,
-    retransmit::RetransTimeWheel,
-    // flags::{flags_set, flag_qos_level, },
-    MSG_LEN_REGISTER_HEADER,
-    MSG_TYPE_REGACK,
-    MSG_TYPE_REGISTER,
-    RETURN_CODE_ACCEPTED,
-    RETURN_CODE_INVALID_TOPIC_ID,
+    broker_lib::MqttSnClient, eformat, filter::get_topic_id_with_topic_name,
+    function, msg_hdr::*, reg_ack::RegAck, retransmit::RetransTimeWheel,
+    MSG_LEN_REGISTER_HEADER, MSG_TYPE_REGACK, MSG_TYPE_REGISTER,
+    RETURN_CODE_ACCEPTED, RETURN_CODE_INVALID_TOPIC_ID,
 };
 #[derive(Debug, Clone, Getters, MutGetters, CopyGetters, Default)]
 #[getset(get, set)]

@@ -28,11 +28,8 @@ use std::mem;
 use std::str; // NOTE: needed for MutGetters
 
 use crate::{
-    broker_lib::MqttSnClient,
-    eformat, function,
-    msg_hdr::{MsgHeader, MsgHeaderEnum},
-    ping_resp::PingResp,
-    MSG_LEN_PINGREQ_HEADER, MSG_TYPE_PINGREQ,
+    broker_lib::MqttSnClient, eformat, function, msg_hdr::*,
+    ping_resp::PingResp, MSG_LEN_PINGREQ_HEADER, MSG_TYPE_PINGREQ,
 };
 
 #[derive(Debug, Clone, Getters, MutGetters, CopyGetters, Default)]
