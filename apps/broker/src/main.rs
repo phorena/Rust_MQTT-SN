@@ -140,12 +140,14 @@ async fn main() -> Result<(), Error> {
     let client_loop = client.clone();
     let client_sub = client.clone();
     let client_ingress = client.clone();
+    let client_egress = client.clone();
     client_loop.broker_rx_loop(socket);
 
     // This thread reads the channel for all subscribed topics.
     // The struct Publish is recv.
     // TODO return error for subscribe and publish function calls.
         let _result = client_ingress.handle_ingress();
+        let _result = client_egress.handle_egress();
 
     let rx_thread2 = thread::spawn(move || loop {
         let _result = client_sub.subscribe_rx.recv();

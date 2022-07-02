@@ -60,6 +60,7 @@ pub enum MessageTypeEnum {
     PubAck(PubAck),
 }
 pub type IngressChannelType = (SocketAddr, Bytes, Arc<dyn Conn + Send + Sync>);
+pub type EgressChannelType = (SocketAddr, Bytes);
 
 #[derive(Clone)]
 pub struct MqttSnClient {
@@ -78,6 +79,8 @@ pub struct MqttSnClient {
     pub subscribe_rx: Receiver<Publish>,
     pub ingress_tx: Sender<IngressChannelType>,
     pub ingress_rx: Receiver<IngressChannelType>,
+    pub egress_tx: Sender<EgressChannelType>,
+    pub egress_rx: Receiver<EgressChannelType>,
     pub hub: Arc<Hub>,
     // state: Arc<Mutex<u8>>,
 }
@@ -96,6 +99,10 @@ impl MqttSnClient {
             Sender<IngressChannelType>,
             Receiver<IngressChannelType>,
         ) = unbounded();
+        let (egress_tx, egress_rx): (
+            Sender<EgressChannelType>,
+            Receiver<EgressChannelType>,
+        ) = unbounded();
         let hub = Arc::new(Hub::new(Arc::new(ingress_tx.clone())));
         MqttSnClient {
             remote_addr,
@@ -108,34 +115,24 @@ impl MqttSnClient {
             subscribe_rx,
             ingress_tx,
             ingress_rx,
+            egress_tx,
+            egress_rx,
             hub,
             // conn_hashmap: ConnHashMap::new(),
         }
     }
 
-    pub fn handle_ingress(self) {
+    pub fn handle_egress(self) {
         let h3 = Arc::clone(&self.hub);
+        // *NOTE: thread and tokio spawn are not compatible.
+        // use thread instead of tokio spawn to read from channel.
         tokio::spawn(async move {
-                        println!("1000 Empty");
+            println!("1000 Empty");
             loop {
-                match self.ingress_rx.try_recv() {
-                    Ok((addr, data, conn)) => {
-                        println!("*******************{:?} {:?}", addr, data);
-                        
-                        // listener.send(addr, data).await?;
-                        if let Err(why) = conn.send("hello".as_bytes()).await {
-                            println!("Error sending: {:?}", why);
-                        }
-                        println!("*******************{:?} {:?}", addr, data);
-                        /*
+                match self.egress_rx.try_recv() {
+                    Ok((addr, data)) => {
                         let conn2 = h3.get_conn(addr).await.unwrap();
-                        let _result = conn2
-                            .send(
-                                "hello there************************"
-                                    .as_bytes(),
-                            )
-                            .await;
-                            */
+                        let _result = conn2.send(&data[..]).await;
                     }
                     Err(TryRecvError::Empty) => {
                         continue;
@@ -146,7 +143,45 @@ impl MqttSnClient {
                     }
                 }
             }
-        }); 
+        });
+    }
+    pub fn handle_ingress(self) {
+        let h3 = Arc::clone(&self.hub);
+        // *NOTE: thread and tokio spawn are not compatible.
+        // use thread instead of tokio spawn to read from channel.
+        tokio::spawn(async move {
+            println!("1000 Empty");
+            loop {
+                match self.ingress_rx.try_recv() {
+                    Ok((addr, data, conn)) => {
+                        self.egress_tx.send((addr, data.clone())).unwrap();
+                        println!("*******************{:?} {:?}", addr, data);
+
+                        // listener.send(addr, data).await?;
+                        /*
+                        if let Err(why) = conn.send("hello".as_bytes()).await {
+                            println!("Error sending: {:?}", why);
+                        }
+                        */
+                        println!("*******************{:?} {:?}", addr, data);
+                        let conn2 = h3.get_conn(addr).await.unwrap();
+                        let _result = conn2
+                            .send(
+                                "hello there************************"
+                                    .as_bytes(),
+                            )
+                            .await;
+                    }
+                    Err(TryRecvError::Empty) => {
+                        continue;
+                    }
+                    Err(why) => {
+                        println!("{:?}", why);
+                        break;
+                    }
+                }
+            }
+        });
     }
 
     pub fn broker_rx_loop(mut self, socket: UdpSocket) {
