@@ -1,12 +1,15 @@
+use bytes::*;
+use core::fmt::Debug;
+use crossbeam::channel::*;
+use log::*;
 use std::net::SocketAddr;
 use std::net::UdpSocket;
+use std::sync::Arc;
 use std::thread;
-
-use bytes::BytesMut;
-use core::fmt::Debug;
-use crossbeam::channel::{unbounded, Receiver, Sender};
-
-use log::*;
+use util::conn::*;
+use webrtc_dtls::config::ExtendedMasterSecretType;
+use webrtc_dtls::Error;
+use webrtc_dtls::{config::Config, crypto::Certificate, listener::listen};
 
 use crate::{
     advertise::*,
@@ -19,6 +22,7 @@ use crate::{
     eformat,
     function,
     gw_info::GwInfo,
+    hub::Hub,
     keep_alive::KeepAliveTimeWheel,
     msg_hdr::MsgHeader,
     ping_req::PingReq,
@@ -55,8 +59,9 @@ pub enum MessageTypeEnum {
     Publish(Publish),
     PubAck(PubAck),
 }
+pub type IngressChannelType = (SocketAddr, Bytes, Arc<dyn Conn + Send + Sync>);
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct MqttSnClient {
     // socket: UdpSocket, // clone not implemented
     // state: AtomicU8, // clone not implemented
@@ -71,6 +76,9 @@ pub struct MqttSnClient {
 
     transmit_rx: Receiver<(SocketAddr, BytesMut)>,
     pub subscribe_rx: Receiver<Publish>,
+    pub ingress_tx: Sender<IngressChannelType>,
+    pub ingress_rx: Receiver<IngressChannelType>,
+    pub hub: Arc<Hub>,
     // state: Arc<Mutex<u8>>,
 }
 
@@ -84,6 +92,11 @@ impl MqttSnClient {
         ) = unbounded();
         let (subscribe_tx, subscribe_rx): (Sender<Publish>, Receiver<Publish>) =
             unbounded();
+        let (ingress_tx, ingress_rx): (
+            Sender<IngressChannelType>,
+            Receiver<IngressChannelType>,
+        ) = unbounded();
+        let hub = Arc::new(Hub::new(Arc::new(ingress_tx.clone())));
         MqttSnClient {
             remote_addr,
             context: 0,
@@ -93,8 +106,47 @@ impl MqttSnClient {
             transmit_rx,
             subscribe_tx,
             subscribe_rx,
+            ingress_tx,
+            ingress_rx,
+            hub,
             // conn_hashmap: ConnHashMap::new(),
         }
+    }
+
+    pub fn handle_ingress(self) {
+        let h3 = Arc::clone(&self.hub);
+        tokio::spawn(async move {
+                        println!("1000 Empty");
+            loop {
+                match self.ingress_rx.try_recv() {
+                    Ok((addr, data, conn)) => {
+                        println!("*******************{:?} {:?}", addr, data);
+                        
+                        // listener.send(addr, data).await?;
+                        if let Err(why) = conn.send("hello".as_bytes()).await {
+                            println!("Error sending: {:?}", why);
+                        }
+                        println!("*******************{:?} {:?}", addr, data);
+                        /*
+                        let conn2 = h3.get_conn(addr).await.unwrap();
+                        let _result = conn2
+                            .send(
+                                "hello there************************"
+                                    .as_bytes(),
+                            )
+                            .await;
+                            */
+                    }
+                    Err(TryRecvError::Empty) => {
+                        continue;
+                    }
+                    Err(why) => {
+                        println!("{:?}", why);
+                        break;
+                    }
+                }
+            }
+        }); 
     }
 
     pub fn broker_rx_loop(mut self, socket: UdpSocket) {

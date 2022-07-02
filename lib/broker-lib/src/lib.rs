@@ -25,6 +25,7 @@ pub mod disconnect;
 pub mod filter;
 pub mod flags;
 pub mod gw_info;
+pub mod hub;
 pub mod keep_alive;
 pub mod msg_hdr;
 pub mod multicast;
