@@ -17,16 +17,16 @@ use custom_debug::Debug;
 
 #[derive(Debug, Copy, Clone)]
 pub enum MsgHeaderEnum {
-    Short = 2,
-    Long = 4,
+    Short = 2, // 2 byte header
+    Long = 4, // 4 byte header
 }
 
 #[derive(Debug, Copy, Clone)]
 pub struct MsgHeader {
     pub len: u16,
-    pub header_len: MsgHeaderEnum,
     #[debug(format = "0x{:x}")]
     pub msg_type: u8,
+    pub header_len: MsgHeaderEnum,
 }
 
 impl MsgHeader {
