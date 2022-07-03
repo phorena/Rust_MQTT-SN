@@ -99,10 +99,8 @@ impl MqttSnClient {
             Sender<IngressChannelType>,
             Receiver<IngressChannelType>,
         ) = unbounded();
-        let (egress_tx, egress_rx): (
-            Sender<EgressChannelType>,
-            Receiver<EgressChannelType>,
-        ) = unbounded();
+        let (egress_tx, egress_rx): (Sender<EgressChannelType>, Receiver<EgressChannelType>) =
+            unbounded();
         let hub = Arc::new(Hub::new(Arc::new(ingress_tx.clone())));
         MqttSnClient {
             remote_addr,
@@ -127,48 +125,13 @@ impl MqttSnClient {
         // *NOTE: thread and tokio spawn are not compatible.
         // use thread instead of tokio spawn to read from channel.
         tokio::spawn(async move {
-            println!("1000 Empty");
             loop {
                 match self.egress_rx.try_recv() {
                     Ok((addr, data)) => {
                         let conn2 = h3.get_conn(addr).await.unwrap();
-                        let _result = conn2.send(&data[..]).await;
-                    }
-                    Err(TryRecvError::Empty) => {
-                        continue;
-                    }
-                    Err(why) => {
-                        println!("{:?}", why);
-                        break;
-                    }
-                }
-            }
-        });
-    }
-    pub fn handle_ingress(self) {
-        let h3 = Arc::clone(&self.hub);
-        // *NOTE: thread and tokio spawn are not compatible.
-        // use thread instead of tokio spawn to read from channel.
-        tokio::spawn(async move {
-            println!("1000 Empty");
-            loop {
-                match self.ingress_rx.try_recv() {
-                    Ok((addr, data, conn)) => {
-                        self.egress_tx.send((addr, data.clone())).unwrap();
-                        println!("*******************{:?} {:?}", addr, data);
-
-                        // listener.send(addr, data).await?;
-                        /*
-                        if let Err(why) = conn.send("hello".as_bytes()).await {
-                            println!("Error sending: {:?}", why);
-                        }
-                        */
-                        println!("*******************{:?} {:?}", addr, data);
-                        let conn2 = h3.get_conn(addr).await.unwrap();
                         let _result = conn2
                             .send(
-                                "hello there************************"
-                                    .as_bytes(),
+                                &data[..]
                             )
                             .await;
                     }
@@ -181,7 +144,163 @@ impl MqttSnClient {
                     }
                 }
             }
-        });
+        }); 
+    }
+    pub fn handle_ingress(mut self) {
+        let h3 = Arc::clone(&self.hub);
+        // *NOTE: thread and tokio spawn are not compatible.
+        // use thread instead of tokio spawn to read from channel.
+        tokio::spawn(async move {
+                        println!("1000 Empty");
+            loop {
+                match self.ingress_rx.try_recv() {
+                    Ok((addr, bytes, conn)) => {
+                        self.remote_addr = addr;
+                        let _result = KeepAliveTimeWheel::reschedule(addr);
+                        // Decode message header
+                        let buf = &bytes[..];
+                        let size = bytes.len();
+                        let msg_header = match MsgHeader::try_read(&buf, size) {
+                            Ok(header) => header,
+                            Err(e) => {
+                                error!("{}", e);
+                                continue;
+                            }
+                        };
+                        dbg!(msg_header);
+
+                        let msg_type = msg_header.msg_type;
+                        // Existing connection?
+                        if Connection::contains_key(addr) {
+                            dbg!(&msg_header);
+                            dbg_buf!(buf, size);
+                            if msg_type == MSG_TYPE_PUBLISH {
+                                if let Err(err) =
+                                    Publish::recv(&buf, size, &self, msg_header)
+                                {
+                                    error!("{}", err);
+                                }
+                                continue;
+                            };
+                            if msg_type == MSG_TYPE_PUBREL {
+                                if let Err(err) =
+                                    PubRel::recv(&buf, size, &self)
+                                {
+                                    error!("{}", err);
+                                }
+                                continue;
+                            };
+                            if msg_type == MSG_TYPE_PUBACK {
+                                let _result = PubAck::recv(&buf, size, &self);
+                                continue;
+                            };
+                            if msg_type == MSG_TYPE_PINGREQ {
+                                if let Err(err) =
+                                    PingReq::recv(&buf, size, &self, msg_header)
+                                {
+                                    error!("{}", err);
+                                }
+                                continue;
+                            }
+                            if msg_type == MSG_TYPE_SUBACK {
+                                let _result = SubAck::recv(&buf, size, &self);
+                                continue;
+                            };
+                            if msg_type == MSG_TYPE_SUBSCRIBE {
+                                let _result = Subscribe::recv(
+                                    &buf, size, &self, msg_header,
+                                );
+                                continue;
+                            };
+                            if msg_type == MSG_TYPE_DISCONNECT {
+                                let _result =
+                                    Disconnect::recv(&buf, size, &mut self);
+                                continue;
+                            };
+                            if msg_type == MSG_TYPE_WILL_TOPIC {
+                                if let Err(why) = WillTopic::recv(&buf, size, &self) {
+                                    error!("{}", why);
+                                }
+                                continue;
+                            }
+                            if msg_type == MSG_TYPE_WILL_MSG {
+                                if let Err(why) = WillMsg::recv(&buf, size, &self) {
+                                    error!("{}", why);
+                                }
+                                continue;
+                            }
+                            if msg_type == MSG_TYPE_CONNACK {
+                                match ConnAck::recv(&buf, size, &self) {
+                                    // Broker shouldn't receive ConnAck
+                                    // because it doesn't send Connect for now.
+                                    Ok(_) => {
+                                        error!("Broker shouldn't receive ConnAck {:?}", addr);
+                                    }
+                                    Err(why) => error!("ConnAck {:?}", why),
+                                }
+                                continue;
+                            };
+                            error!( "{}", eformat!( addr, "message type not supported:", msg_type));
+                        } else {
+                            // New connection, not in the connection hashmap.
+                            if msg_type == MSG_TYPE_CONNECT {
+                                if let Err(err) = Connect::recv(
+                                    &buf, size, &mut self, msg_header,
+                                ) {
+                                    error!("{}", err);
+                                }
+                                //let clone_socket = socket.try_clone().expect("couldn't clone the socket");
+                                // clone_socket.connect(addr).unwrap();
+                                continue;
+                            }
+                            if msg_type == MSG_TYPE_PUBLISH {
+                                if let Err(err) = Publish::recv(
+                                    &buf, size, &mut self, msg_header,
+                                ) {
+                                    error!("{}", err);
+                                }
+                                continue;
+                            } else {
+                                error!(
+                                    "{}",
+                                    eformat!(
+                                        addr,
+                                        "Not in connection map",
+                                        msg_type
+                                    )
+                                );
+                                continue;
+                            }
+                        }
+
+                        /*
+                        println!("*******************{:?} {:?}", addr, bytes);
+                        self.egress_tx.send((addr, bytes.clone())).unwrap();
+                        
+                        // listener.send(addr, bytes).await?;
+                        if let Err(why) = conn.send("hello".as_bytes()).await {
+                            println!("Error sending: {:?}", why);
+                        }
+                        println!("*******************{:?} {:?}", addr, bytes);
+                        let conn2 = h3.get_conn(addr).await.unwrap();
+                        let _result = conn2
+                            .send(
+                                "hello there************************"
+                                    .as_bytes(),
+                            )
+                            .await;
+                        */
+                    }
+                    Err(TryRecvError::Empty) => {
+                        continue;
+                    }
+                    Err(why) => {
+                        println!("{:?}", why);
+                        break;
+                    }
+                }
+            }
+        }); 
     }
 
     pub fn broker_rx_loop(mut self, socket: UdpSocket) {
@@ -206,6 +325,7 @@ impl MqttSnClient {
         // SearchGw::run(gateway_info_socket_addr, 2, 2);
 
         // process input datagram from network
+        let new_self = self.clone();
         let _recv_thread = builder.spawn(move || {
             // TODO optimization
             // recv_from(&mut buf[2..], size -2 ) instead of recv_from(&mut buf size).
@@ -229,8 +349,8 @@ impl MqttSnClient {
                             }
                         };
                         let msg_type = msg_header.msg_type;
+                        // Existing connection?
                         if Connection::contains_key(addr) {
-                            // Existing connection
                             dbg!(&msg_header);
                             dbg_buf!(buf, size);
                             if msg_type == MSG_TYPE_PUBLISH {
@@ -340,11 +460,16 @@ impl MqttSnClient {
         });
         let builder = thread::Builder::new().name("transmit_rx_thread".into());
         // process input datagram from network
+        let egress_tx = new_self.egress_tx.clone();
         let _transmit_rx_thread = builder.spawn(move || loop {
             match self_transmit.transmit_rx.recv() {
                 Ok((addr, bytes)) => {
                     // TODO DTLS
                     dbg!((addr, &bytes));
+
+                    let new_bytes = bytes.clone().freeze();
+                    egress_tx.send((addr, new_bytes)).unwrap();
+
                     match socket_tx.send_to(&bytes[..], addr) {
                         Ok(size) if size == bytes.len() => (),
                         Ok(size) => {
