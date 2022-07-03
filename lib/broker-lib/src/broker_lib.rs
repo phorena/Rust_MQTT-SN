@@ -7,9 +7,6 @@ use std::net::UdpSocket;
 use std::sync::Arc;
 use std::thread;
 use util::conn::*;
-use webrtc_dtls::config::ExtendedMasterSecretType;
-use webrtc_dtls::Error;
-use webrtc_dtls::{config::Config, crypto::Certificate, listener::listen};
 
 use crate::{
     advertise::*,
@@ -95,10 +92,15 @@ impl MqttSnClient {
         ) = unbounded();
         let (subscribe_tx, subscribe_rx): (Sender<Publish>, Receiver<Publish>) =
             unbounded();
+        // Channel for ingress messages.
+        // Incoming messages from the socket are sent from this channel for processing. 
+        // Multiple consumer threads can receive from this channel.
         let (ingress_tx, ingress_rx): (
             Sender<IngressChannelType>,
             Receiver<IngressChannelType>,
         ) = unbounded();
+        // Channel for egress messages.
+        // Outgoing messages to the socket are sent to this channel for sending.
         let (egress_tx, egress_rx): (Sender<EgressChannelType>, Receiver<EgressChannelType>) =
             unbounded();
         let hub = Arc::new(Hub::new(Arc::new(ingress_tx.clone())));
@@ -147,14 +149,13 @@ impl MqttSnClient {
         }); 
     }
     pub fn handle_ingress(mut self) {
-        let h3 = Arc::clone(&self.hub);
         // *NOTE: thread and tokio spawn are not compatible.
         // use thread instead of tokio spawn to read from channel.
         tokio::spawn(async move {
                         println!("1000 Empty");
             loop {
                 match self.ingress_rx.try_recv() {
-                    Ok((addr, bytes, conn)) => {
+                    Ok((addr, bytes, _conn)) => {
                         self.remote_addr = addr;
                         let _result = KeepAliveTimeWheel::reschedule(addr);
                         // Decode message header
