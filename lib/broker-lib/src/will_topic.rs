@@ -20,7 +20,8 @@ An empty WILLTOPIC message is a WILLTOPIC message without Flags and WillTopic fi
 */
 use crate::{
     broker_lib::MqttSnClient, connection::Connection, eformat, function,
-    will_msg_req::WillMsgReq, MSG_LEN_WILL_TOPIC_HEADER, MSG_TYPE_WILL_TOPIC,
+    msg_hdr::MsgHeader, will_msg_req::WillMsgReq, MSG_LEN_WILL_TOPIC_HEADER,
+    MSG_TYPE_WILL_TOPIC,
 };
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
@@ -57,7 +58,9 @@ impl WillTopic {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
+        let remote_socket_addr = msg_header.remote_socket_addr;
         if size < 256 {
             let (will, mut len) = WillTopic::try_read(buf, size).unwrap();
             dbg!(&will);
@@ -65,14 +68,14 @@ impl WillTopic {
             len += will.will_topic.len() as usize;
             if size == len as usize {
                 Connection::update_will_topic(
-                    client.remote_addr,
+                    remote_socket_addr,
                     will.will_topic,
                 )?;
-                WillMsgReq::send(client)?;
+                WillMsgReq::send(client, msg_header)?;
                 Ok(())
             } else {
                 Err(eformat!(
-                    client.remote_addr,
+                    remote_socket_addr,
                     "2-bytes len not supported",
                     size
                 ))
@@ -81,19 +84,19 @@ impl WillTopic {
             let (will, len) = WillTopic4::try_read(buf, size).unwrap();
             if size == len as usize && will.one == 1 {
                 Connection::update_will_topic(
-                    client.remote_addr,
+                    remote_socket_addr,
                     will.will_topic,
                 )?;
                 Ok(())
             } else {
                 Err(eformat!(
-                    client.remote_addr,
+                    remote_socket_addr,
                     "2-bytes len not supported",
                     size
                 ))
             }
         } else {
-            Err(eformat!(client.remote_addr, "len err", size))
+            Err(eformat!(remote_socket_addr, "len err", size))
         }
     }
 
@@ -101,9 +104,11 @@ impl WillTopic {
         flags: u8,
         will_topic: String,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
         let len: usize =
             MSG_LEN_WILL_TOPIC_HEADER as usize + will_topic.len() as usize;
+        let remote_socket_addr = msg_header.remote_socket_addr;
         if len < 256 {
             let will = WillTopic {
                 len: len as u8,
@@ -114,11 +119,11 @@ impl WillTopic {
             let mut bytes = BytesMut::with_capacity(len);
             will.try_write(&mut bytes);
             match client
-                .transmit_tx
-                .try_send((client.remote_addr, bytes.to_owned()))
+                .egress_tx
+                .try_send((remote_socket_addr, bytes.to_owned()))
             {
                 Ok(()) => Ok(()),
-                Err(err) => Err(eformat!(client.remote_addr, err)),
+                Err(err) => Err(eformat!(remote_socket_addr, err)),
             }
         } else if len < 1400 {
             let will = WillTopic4 {
@@ -131,14 +136,14 @@ impl WillTopic {
             let mut bytes = BytesMut::with_capacity(len);
             will.try_write(&mut bytes);
             match client
-                .transmit_tx
-                .try_send((client.remote_addr, bytes.to_owned()))
+                .egress_tx
+                .try_send((remote_socket_addr, bytes.to_owned()))
             {
                 Ok(()) => Ok(()),
-                Err(err) => Err(eformat!(client.remote_addr, err)),
+                Err(err) => Err(eformat!(remote_socket_addr, err)),
             }
         } else {
-            Err(eformat!(client.remote_addr, "len err", len))
+            Err(eformat!(remote_socket_addr, "len err", len))
         }
     }
 }

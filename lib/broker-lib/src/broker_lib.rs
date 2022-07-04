@@ -57,14 +57,14 @@ pub enum MessageTypeEnum {
     PubAck(PubAck),
 }
 pub type IngressChannelType = (SocketAddr, Bytes, Arc<dyn Conn + Send + Sync>);
-pub type EgressChannelType = (SocketAddr, Bytes);
+pub type EgressChannelType = (SocketAddr, BytesMut);
 
 #[derive(Clone)]
 pub struct MqttSnClient {
-    pub remote_addr: SocketAddr,
+    // pub remote_addr: SocketAddr,
     pub transmit_tx: Sender<(SocketAddr, BytesMut)>,
     pub subscribe_tx: Sender<Publish>,
-    transmit_rx: Receiver<(SocketAddr, BytesMut)>,
+    pub transmit_rx: Receiver<(SocketAddr, BytesMut)>,
     pub subscribe_rx: Receiver<Publish>,
     pub ingress_tx: Sender<IngressChannelType>,
     pub ingress_rx: Receiver<IngressChannelType>,
@@ -98,7 +98,7 @@ impl MqttSnClient {
         ) = unbounded();
         let hub = Arc::new(Hub::new(Arc::new(ingress_tx.clone())));
         MqttSnClient {
-            remote_addr,
+            // remote_addr,
             transmit_tx,
             transmit_rx,
             subscribe_tx,
@@ -112,18 +112,18 @@ impl MqttSnClient {
     }
 
     pub fn handle_egress(self) {
-        let h3 = Arc::clone(&self.hub);
+        let hub2 = Arc::clone(&self.hub);
         // *NOTE: thread and tokio spawn are not compatible.
         // use thread instead of tokio spawn to read from channel.
         tokio::spawn(async move {
             loop {
                 match self.egress_rx.recv() {
                     Ok((addr, data)) => {
-                        let conn2 = h3.get_conn(addr).await.unwrap();
-                        let _result = conn2.send(&data[..]).await;
+                        let dtls_conn = hub2.get_conn(addr).await.unwrap();
+                        let _result = dtls_conn.send(&data[..]).await;
                     }
                     Err(why) => {
-                        println!("{:?}", why);
+                        error!("{}", eformat!(why));
                         break;
                     }
                 }
@@ -136,25 +136,26 @@ impl MqttSnClient {
         tokio::spawn(async move {
             loop {
                 match self.ingress_rx.recv() {
-                    Ok((addr, bytes, _conn)) => {
-                        self.remote_addr = addr;
+                    Ok((addr, bytes, conn)) => {
+                        // self.remote_addr = addr;
                         let _result = KeepAliveTimeWheel::reschedule(addr);
                         // Decode message header
                         let buf = &bytes[..];
                         let size = bytes.len();
-                        let msg_header = match MsgHeader::try_read(&buf, size) {
-                            Ok(header) => header,
-                            Err(e) => {
-                                error!("{}", e);
-                                continue;
-                            }
-                        };
-                        dbg!(msg_header);
+                        let msg_header =
+                            match MsgHeader::try_read(&buf, size, addr, conn) {
+                                Ok(header) => header,
+                                Err(e) => {
+                                    error!("{}", e);
+                                    continue;
+                                }
+                            };
+                        // dbg!(msg_header);
 
                         let msg_type = msg_header.msg_type;
                         // Existing connection?
                         if Connection::contains_key(addr) {
-                            dbg!(&msg_header);
+                            //     dbg!(&msg_header);
                             dbg_buf!(buf, size);
                             if msg_type == MSG_TYPE_PUBLISH {
                                 if let Err(err) =
@@ -166,14 +167,14 @@ impl MqttSnClient {
                             };
                             if msg_type == MSG_TYPE_PUBREL {
                                 if let Err(err) =
-                                    PubRel::recv(&buf, size, &self)
+                                    PubRel::recv(&buf, size, &self, msg_header)
                                 {
                                     error!("{}", err);
                                 }
                                 continue;
                             };
                             if msg_type == MSG_TYPE_PUBACK {
-                                let _result = PubAck::recv(&buf, size, &self);
+                                PubRel::recv(&buf, size, &self, msg_header);
                                 continue;
                             };
                             if msg_type == MSG_TYPE_PINGREQ {
@@ -185,7 +186,7 @@ impl MqttSnClient {
                                 continue;
                             }
                             if msg_type == MSG_TYPE_SUBACK {
-                                let _result = SubAck::recv(&buf, size, &self);
+                                PubRel::recv(&buf, size, &self, msg_header);
                                 continue;
                             };
                             if msg_type == MSG_TYPE_SUBSCRIBE {
@@ -196,12 +197,12 @@ impl MqttSnClient {
                             };
                             if msg_type == MSG_TYPE_DISCONNECT {
                                 let _result =
-                                    Disconnect::recv(&buf, size, &mut self);
+                                    PubRel::recv(&buf, size, &self, msg_header);
                                 continue;
                             };
                             if msg_type == MSG_TYPE_WILL_TOPIC {
                                 if let Err(why) =
-                                    WillTopic::recv(&buf, size, &self)
+                                    PubRel::recv(&buf, size, &self, msg_header)
                                 {
                                     error!("{}", why);
                                 }
@@ -209,14 +210,16 @@ impl MqttSnClient {
                             }
                             if msg_type == MSG_TYPE_WILL_MSG {
                                 if let Err(why) =
-                                    WillMsg::recv(&buf, size, &self)
+                                    PubRel::recv(&buf, size, &self, msg_header)
                                 {
                                     error!("{}", why);
                                 }
                                 continue;
                             }
                             if msg_type == MSG_TYPE_CONNACK {
-                                match ConnAck::recv(&buf, size, &self) {
+                                match PubRel::recv(
+                                    &buf, size, &self, msg_header,
+                                ) {
                                     // Broker shouldn't receive ConnAck
                                     // because it doesn't send Connect for now.
                                     Ok(_) => {
@@ -297,6 +300,7 @@ impl MqttSnClient {
         // SearchGw::run(gateway_info_socket_addr, 2, 2);
 
         // process input datagram from network
+        /*
         let new_self = self.clone();
         let _recv_thread = builder.spawn(move || {
             // TODO optimization
@@ -313,7 +317,7 @@ impl MqttSnClient {
                         self.remote_addr = addr;
                         let _result = KeepAliveTimeWheel::reschedule(addr);
                         // Decode message header
-                        let msg_header = match MsgHeader::try_read(&buf, size) {
+                        let msg_header = match MsgHeader::try_read(&buf, size, addr, conn) {
                             Ok(header) => header,
                             Err(e) => {
                                 error!("{}", e);
@@ -430,16 +434,17 @@ impl MqttSnClient {
                 }
             }
         });
+        */
         let builder = thread::Builder::new().name("transmit_rx_thread".into());
         // process input datagram from network
-        let egress_tx = new_self.egress_tx.clone();
+        let egress_tx = self.egress_tx.clone();
         let _transmit_rx_thread = builder.spawn(move || loop {
             match self_transmit.transmit_rx.recv() {
                 Ok((addr, bytes)) => {
                     // TODO DTLS
                     dbg!((addr, &bytes));
 
-                    let new_bytes = bytes.clone().freeze();
+                    let new_bytes = bytes.clone();
                     egress_tx.send((addr, new_bytes)).unwrap();
 
                     match socket_tx.send_to(&bytes[..], addr) {
@@ -463,14 +468,6 @@ impl MqttSnClient {
         });
     }
 
-    /// Connect to a remote broker
-    /// 1. send connect message
-    /// 2. schedule retransmit
-    /// 3. wait for CONNACK
-    ///    3.1. receive CONNACK message
-    ///    3.2. change state
-    /// 4. run the rx_loop to process rx messages
-    // TODO return errors
     /*
     pub fn connect(mut self, flags: u8, client_id: String, socket: UdpSocket) {
         let self_time_wheel = self.clone();
@@ -533,6 +530,7 @@ impl MqttSnClient {
     }
         */
 
+    /* XXX TODO client code.
     pub fn subscribe(
         &self,
         topic: String,
@@ -543,7 +541,6 @@ impl MqttSnClient {
         let _result = Subscribe::send(topic, msg_id, qos, retain, self);
         &self.subscribe_rx
     }
-    /* XXX TODO client code.
     pub fn publish(
         &self,
         topic_id: u16,

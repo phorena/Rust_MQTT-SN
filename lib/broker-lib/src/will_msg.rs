@@ -10,8 +10,8 @@ to the GW. Its format is shown in Table 13:
 */
 use crate::{
     broker_lib::MqttSnClient, conn_ack::ConnAck, connection::Connection,
-    eformat, function, MSG_LEN_WILL_MSG_HEADER, MSG_TYPE_WILL_MSG,
-    RETURN_CODE_ACCEPTED,
+    eformat, function, msg_hdr::MsgHeader, MSG_LEN_WILL_MSG_HEADER,
+    MSG_TYPE_WILL_MSG, RETURN_CODE_ACCEPTED,
 };
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
@@ -44,17 +44,19 @@ impl WillMsg {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
+        let remote_socket_addr = msg_header.remote_socket_addr;
         if size < 256 {
             let (will, mut len) = WillMsg::try_read(buf, size).unwrap();
             len += will.msg.len() as usize;
             if size == len as usize {
-                Connection::update_will_msg(client.remote_addr, will.msg)?;
-                ConnAck::send(client, RETURN_CODE_ACCEPTED)?;
+                Connection::update_will_msg(remote_socket_addr, will.msg)?;
+                ConnAck::send(client, msg_header, RETURN_CODE_ACCEPTED)?;
                 Ok(())
             } else {
                 Err(eformat!(
-                    client.remote_addr,
+                    remote_socket_addr,
                     "2-bytes len not supported",
                     size
                 ))
@@ -63,23 +65,28 @@ impl WillMsg {
             let (will, mut len) = WillMsg4::try_read(buf, size).unwrap();
             len += will.msg.len() as usize;
             if size == len as usize && will.one == 1 {
-                Connection::update_will_msg(client.remote_addr, will.msg)?;
-                ConnAck::send(client, RETURN_CODE_ACCEPTED)?;
+                Connection::update_will_msg(remote_socket_addr, will.msg)?;
+                ConnAck::send(client, msg_header, RETURN_CODE_ACCEPTED)?;
                 Ok(())
             } else {
                 Err(eformat!(
-                    client.remote_addr,
+                    remote_socket_addr,
                     "4-bytes len not supported",
                     size
                 ))
             }
         } else {
-            Err(eformat!(client.remote_addr, "msg too long", size))
+            Err(eformat!(remote_socket_addr, "msg too long", size))
         }
     }
-    pub fn send(msg: String, client: &MqttSnClient) -> Result<(), String> {
+    pub fn send(
+        msg: String,
+        client: &MqttSnClient,
+        msg_header: MsgHeader,
+    ) -> Result<(), String> {
         let len: usize = MSG_LEN_WILL_MSG_HEADER as usize + msg.len() as usize;
         let mut bytes = BytesMut::with_capacity(len);
+        let remote_socket_addr = msg_header.remote_socket_addr;
         if len < 256 {
             let will = WillMsg {
                 len: len as u8,
@@ -96,14 +103,14 @@ impl WillMsg {
             };
             will.try_write(&mut bytes);
         } else {
-            return Err(eformat!(client.remote_addr, "len err", len));
+            return Err(eformat!(remote_socket_addr, "len err", len));
         }
         match client
-            .transmit_tx
-            .try_send((client.remote_addr, bytes.to_owned()))
+            .egress_tx
+            .try_send((remote_socket_addr, bytes.to_owned()))
         {
             Ok(()) => Ok(()),
-            Err(err) => Err(eformat!(client.remote_addr, err)),
+            Err(err) => Err(eformat!(remote_socket_addr, err)),
         }
     }
 }

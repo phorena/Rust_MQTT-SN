@@ -20,8 +20,9 @@ it is exactly 2 octets long). It is used by a client to delete its Will topic an
 */
 use crate::{
     broker_lib::MqttSnClient, connection::Connection, eformat, function,
-    will_topic_resp::WillTopicResp, MSG_LEN_WILL_TOPIC_UPD_HEADER,
-    MSG_TYPE_WILL_TOPIC_UPD, RETURN_CODE_ACCEPTED,
+    msg_hdr::MsgHeader, will_topic_resp::WillTopicResp,
+    MSG_LEN_WILL_TOPIC_UPD_HEADER, MSG_TYPE_WILL_TOPIC_UPD,
+    RETURN_CODE_ACCEPTED,
 };
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
@@ -57,19 +58,21 @@ impl WillTopicUpd {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
+        let remote_socket_addr = msg_header.remote_socket_addr;
         if size < 256 {
             let (will, len) = WillTopicUpd::try_read(buf, size).unwrap();
             if size == len as usize {
                 Connection::update_will_topic(
-                    client.remote_addr,
+                    remote_socket_addr,
                     will.will_topic,
                 )?;
-                WillTopicResp::send(RETURN_CODE_ACCEPTED, client)?;
+                WillTopicResp::send(RETURN_CODE_ACCEPTED, client, msg_header)?;
                 Ok(())
             } else {
                 Err(eformat!(
-                    client.remote_addr,
+                    remote_socket_addr,
                     "2-bytes len not supported",
                     size
                 ))
@@ -78,29 +81,31 @@ impl WillTopicUpd {
             let (will, len) = WillTopicUpd4::try_read(buf, size).unwrap();
             if size == len as usize && will.one == 1 {
                 Connection::update_will_topic(
-                    client.remote_addr,
+                    remote_socket_addr,
                     will.will_topic,
                 )?;
-                WillTopicResp::send(RETURN_CODE_ACCEPTED, client)?;
+                WillTopicResp::send(RETURN_CODE_ACCEPTED, client, msg_header)?;
                 Ok(())
             } else {
                 Err(eformat!(
-                    client.remote_addr,
+                    remote_socket_addr,
                     "4-bytes len not supported",
                     size
                 ))
             }
         } else {
-            Err(eformat!(client.remote_addr, "len too big", size))
+            Err(eformat!(remote_socket_addr, "len too big", size))
         }
     }
     pub fn send(
         flags: u8,
         will_topic: String,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
         let len: usize =
             MSG_LEN_WILL_TOPIC_UPD_HEADER as usize + will_topic.len() as usize;
+        let remote_socket_addr = msg_header.remote_socket_addr;
         if len < 256 {
             let will = WillTopicUpd {
                 len: len as u8,
@@ -111,11 +116,11 @@ impl WillTopicUpd {
             let mut bytes = BytesMut::with_capacity(len);
             will.try_write(&mut bytes);
             match client
-                .transmit_tx
-                .try_send((client.remote_addr, bytes.to_owned()))
+                .egress_tx
+                .try_send((remote_socket_addr, bytes.to_owned()))
             {
                 Ok(()) => Ok(()),
-                Err(err) => Err(eformat!(client.remote_addr, err)),
+                Err(err) => Err(eformat!(remote_socket_addr, err)),
             }
         } else if len < 1400 {
             let will = WillTopicUpd4 {
@@ -128,14 +133,14 @@ impl WillTopicUpd {
             let mut bytes = BytesMut::with_capacity(len);
             will.try_write(&mut bytes);
             match client
-                .transmit_tx
-                .try_send((client.remote_addr, bytes.to_owned()))
+                .egress_tx
+                .try_send((remote_socket_addr, bytes.to_owned()))
             {
                 Ok(()) => Ok(()),
-                Err(err) => Err(eformat!(client.remote_addr, err)),
+                Err(err) => Err(eformat!(remote_socket_addr, err)),
             }
         } else {
-            Err(eformat!(client.remote_addr, "len err", len))
+            Err(eformat!(remote_socket_addr, "len err", len))
         }
     }
 }

@@ -11,8 +11,8 @@ messages for that client, see Section 6.14 for further details.
 */
 
 use crate::{
-    broker_lib::MqttSnClient, eformat, function, MSG_LEN_PINGRESP,
-    MSG_TYPE_PINGRESP,
+    broker_lib::MqttSnClient, eformat, function, msg_hdr::MsgHeader,
+    MSG_LEN_PINGRESP, MSG_TYPE_PINGRESP,
 };
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
@@ -41,20 +41,26 @@ impl PingResp {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
+        let remote_socket_addr = msg_header.remote_socket_addr;
         if size == MSG_LEN_PINGRESP as usize && buf[0] == MSG_LEN_PINGRESP {
             // TODO update ping timer.
             Ok(())
         } else {
-            Err(eformat!(client.remote_addr, "len err", size))
+            Err(eformat!(remote_socket_addr, "len err", size))
         }
     }
-    pub fn send(client: &MqttSnClient) -> Result<(), String> {
+    pub fn send(
+        client: &MqttSnClient,
+        msg_header: MsgHeader,
+    ) -> Result<(), String> {
+        let remote_socket_addr = msg_header.remote_socket_addr;
         let buf: &[u8] = &[MSG_LEN_PINGRESP, MSG_TYPE_PINGRESP];
         let bytes = BytesMut::from(buf);
-        match client.transmit_tx.try_send((client.remote_addr, bytes)) {
+        match client.egress_tx.try_send((remote_socket_addr, bytes)) {
             Ok(()) => Ok(()),
-            Err(err) => Err(eformat!(client.remote_addr, err)),
+            Err(err) => Err(eformat!(remote_socket_addr, err)),
         }
     }
 }

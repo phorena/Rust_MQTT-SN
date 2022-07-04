@@ -93,7 +93,7 @@ async fn main() -> Result<(), Error> {
             Arg::with_name("host")
                 .required_unless("FULLHELP")
                 .takes_value(true)
-                .default_value("127.0.0.1:4444")
+                .default_value("127.0.0.1:61003")
                 .long("host")
                 .help("DTLS host name."),
         );

@@ -40,7 +40,7 @@ use crate::{
     flags::flag_is_will,
     function,
     keep_alive::KeepAliveTimeWheel,
-    msg_hdr::{MsgHeader, MsgHeaderEnum},
+    msg_hdr::{MsgHeader, MsgHeaderLenEnum},
     retransmit::RetransTimeWheel,
     will_topic_req::WillTopicReq,
     MSG_LEN_CONNECT_HEADER, MSG_TYPE_CONNACK, MSG_TYPE_CONNECT,
@@ -88,8 +88,10 @@ impl Connect {
         duration: u16,
         client_id: Bytes,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
         let len = client_id.len() + MSG_LEN_CONNECT_HEADER as usize;
+        let remote_addr = msg_header.remote_socket_addr;
         if len < 256 {
             let connect = Connect {
                 len: len as u8,
@@ -108,13 +110,13 @@ impl Connect {
             dbg!(bytes_buf.clone());
             // transmit to network
             if let Err(err) = client
-                .transmit_tx
-                .try_send((client.remote_addr, bytes_buf.to_owned()))
+                .egress_tx
+                .try_send((remote_addr, bytes_buf.to_owned()))
             {
-                return Err(eformat!(client.remote_addr, err));
+                return Err(eformat!(remote_addr, err));
             }
             RetransTimeWheel::schedule_timer(
-                client.remote_addr,
+                remote_addr,
                 MSG_TYPE_CONNACK,
                 0,
                 0,
@@ -142,13 +144,13 @@ impl Connect {
             dbg!(bytes_buf.clone());
             // transmit to network
             if let Err(err) = client
-                .transmit_tx
-                .try_send((client.remote_addr, bytes_buf.to_owned()))
+                .egress_tx
+                .try_send((remote_addr, bytes_buf.to_owned()))
             {
-                return Err(eformat!(client.remote_addr, err));
+                return Err(eformat!(remote_addr, err));
             }
             RetransTimeWheel::schedule_timer(
-                client.remote_addr,
+                remote_addr,
                 MSG_TYPE_CONNACK,
                 0,
                 0,
@@ -157,7 +159,7 @@ impl Connect {
             )?;
             return Ok(());
         } else {
-            Err(eformat!(client.remote_addr, "client_id too long"))
+            Err(eformat!(remote_addr, "client_id too long"))
         }
     }
 
@@ -170,30 +172,31 @@ impl Connect {
     ) -> Result<(), String> {
         dbg_buf!(buf, size);
         let (connect, _read_fixed_len) = match msg_header.header_len {
-            MsgHeaderEnum::Short => Connect::try_read(buf, size).unwrap(),
-            MsgHeaderEnum::Long => {
+            MsgHeaderLenEnum::Short => Connect::try_read(buf, size).unwrap(),
+            MsgHeaderLenEnum::Long => {
                 // *NOTE* The len is no long valid. Use msg_header.len instead.
                 Connect::try_read(&buf[2..], size - 2).unwrap()
             }
         };
         // TODO check size vs len
-        dbg!(msg_header);
+        // dbg!(msg_header);
         dbg!(&connect);
         // Create a new connection will messages and conn_ack messages.
+        let remote_addr = msg_header.remote_socket_addr;
         Connection::try_insert(
-            client.remote_addr,
+            remote_addr,
             connect.flags,
             connect.protocol_id,
             connect.duration,
             connect.client_id,
         )?;
-        KeepAliveTimeWheel::schedule(client.remote_addr, connect.duration)?;
+        KeepAliveTimeWheel::schedule(remote_addr, connect.duration)?;
         if flag_is_will(connect.flags) {
             // Client set the Will Flag, so the GW must send a Will Topic Request message.
-            WillTopicReq::send(client)?;
+            WillTopicReq::send(client, msg_header)?;
         } else {
             // Client did not set the Will Flag, so the GW must send a Connect Ack message.
-            ConnAck::send(client, RETURN_CODE_ACCEPTED)?;
+            ConnAck::send(client, msg_header, RETURN_CODE_ACCEPTED)?;
         }
         Ok(())
     }

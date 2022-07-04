@@ -14,7 +14,7 @@ Like the SEARCHGW message the broadcast radius for this message is also indicate
 network layer when MQTT-SN gives this message for transmission.
 */
 use crate::{
-    broker_lib::MqttSnClient, eformat, function, multicast,
+    broker_lib::MqttSnClient, eformat, function, msg_hdr::MsgHeader, multicast,
     multicast::new_udp_socket, MSG_LEN_GW_INFO_HEADER, MSG_TYPE_GW_INFO,
 };
 use bytes::{BufMut, BytesMut};
@@ -83,11 +83,12 @@ impl GwInfo {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
         let (gw_info, _read_fixed_len) = GwInfo::try_read(buf, size).unwrap();
         info!(
             "{}: {} with {}",
-            client.remote_addr, gw_info.gw_id, gw_info.gw_addr
+            msg_header.remote_socket_addr, gw_info.gw_id, gw_info.gw_addr
         );
         Ok(())
     }

@@ -69,11 +69,11 @@ impl Register {
         let register: Register;
         let _read_fixed_len: usize;
         match msg_header.header_len {
-            MsgHeaderEnum::Short => {
+            MsgHeaderLenEnum::Short => {
                 (register, _read_fixed_len) =
                     Register::try_read(buf, size).unwrap();
             }
-            MsgHeaderEnum::Long => {
+            MsgHeaderLenEnum::Long => {
                 (register, _read_fixed_len) =
                     Register::try_read(&buf[3..], size).unwrap();
             }
@@ -85,6 +85,7 @@ impl Register {
                     register.msg_id,
                     RETURN_CODE_ACCEPTED,
                     client,
+                    msg_header,
                 )?;
             }
             None => {
@@ -93,6 +94,7 @@ impl Register {
                     register.msg_id,
                     RETURN_CODE_INVALID_TOPIC_ID,
                     client,
+                    msg_header,
                 )?;
             }
         };
@@ -103,6 +105,7 @@ impl Register {
         msg_id: u16,
         topic_name: String,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
         // new way to format a message
         let len = MSG_LEN_REGISTER_HEADER as usize + topic_name.len() as usize;
@@ -119,6 +122,7 @@ impl Register {
         } else {
             return Err(eformat!("len is too big", len));
         }
+        let remote_socket_addr = msg_header.remote_socket_addr;
         buf.put_u8(MSG_TYPE_REGISTER);
         buf.put_u16(topic_id);
         buf.put_u16(msg_id);
@@ -126,13 +130,13 @@ impl Register {
         // transmit to network
         // transmit message to remote address
         if let Err(err) = client
-            .transmit_tx
-            .try_send((client.remote_addr, buf.to_owned()))
+            .egress_tx
+            .try_send((remote_socket_addr, buf.to_owned()))
         {
-            return Err(eformat!(client.remote_addr, err));
+            return Err(eformat!(remote_socket_addr, err));
         }
         match RetransTimeWheel::schedule_timer(
-            client.remote_addr,
+            remote_socket_addr,
             MSG_TYPE_REGACK,
             topic_id,
             msg_id,

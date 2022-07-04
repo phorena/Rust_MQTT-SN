@@ -21,6 +21,7 @@ use crate::{
     broker_lib::MqttSnClient,
     eformat,
     function,
+    msg_hdr::MsgHeader,
     retransmit::RetransTimeWheel,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_PUBACK,
@@ -74,19 +75,21 @@ impl PubAck {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(u16, u16, u8), String> {
+        let remote_socket_addr = msg_header.remote_socket_addr;
         let (pub_ack, read_len) = PubAck::try_read(buf, size).unwrap();
         dbg!(pub_ack.clone());
         if read_len == MSG_LEN_PUBACK as usize {
             RetransTimeWheel::cancel_timer(
-                client.remote_addr,
+                remote_socket_addr,
                 pub_ack.msg_type,
                 pub_ack.topic_id,
                 pub_ack.msg_id,
             )?;
             Ok((pub_ack.topic_id, pub_ack.msg_id, pub_ack.return_code))
         } else {
-            Err(eformat!(client.remote_addr, "len err", read_len))
+            Err(eformat!(remote_socket_addr, "len err", read_len))
         }
     }
     #[inline(always)]
@@ -95,7 +98,9 @@ impl PubAck {
         msg_id: u16,
         return_code: u8,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
+        let remote_socket_addr = msg_header.remote_socket_addr;
         // faster implementation
         // TODO verify big-endian or little-endian for u16 numbers
         let msg_id_byte_1 = msg_id as u8;
@@ -117,9 +122,9 @@ impl PubAck {
             return_code,
         ];
         bytes.put(buf);
-        match client.transmit_tx.try_send((client.remote_addr, bytes)) {
+        match client.egress_tx.try_send((remote_socket_addr, bytes)) {
             Ok(()) => Ok(()),
-            Err(err) => return Err(eformat!(client.remote_addr, err)),
+            Err(err) => return Err(eformat!(remote_socket_addr, err)),
         }
     }
 }

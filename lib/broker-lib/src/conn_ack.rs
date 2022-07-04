@@ -16,6 +16,7 @@ use crate::{
     broker_lib::MqttSnClient,
     eformat,
     function,
+    msg_hdr::MsgHeader,
     retransmit::RetransTimeWheel,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_CONNACK,
@@ -78,12 +79,13 @@ impl ConnAck {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
         let (conn_ack, read_len) = ConnAck::try_read(&buf, size).unwrap();
         dbg!(conn_ack.clone());
         if read_len == MSG_LEN_CONNACK as usize {
             RetransTimeWheel::cancel_timer(
-                client.remote_addr,
+                msg_header.remote_socket_addr,
                 conn_ack.msg_type,
                 0,
                 0,
@@ -96,7 +98,11 @@ impl ConnAck {
     }
 
     #[inline(always)]
-    pub fn send(client: &MqttSnClient, return_code: u8) -> Result<(), String> {
+    pub fn send(
+        client: &MqttSnClient,
+        msg_header: MsgHeader,
+        return_code: u8,
+    ) -> Result<(), String> {
         let connack = ConnAck {
             len: MSG_LEN_CONNACK,
             msg_type: MSG_TYPE_CONNACK,
@@ -108,11 +114,11 @@ impl ConnAck {
         dbg!(bytes_buf.clone());
         // transmit to network
         match client
-            .transmit_tx
-            .try_send((client.remote_addr, bytes_buf.to_owned()))
+            .egress_tx
+            .try_send((msg_header.remote_socket_addr, bytes_buf.to_owned()))
         {
             Ok(()) => Ok(()),
-            Err(err) => Err(eformat!(client.remote_addr, err)),
+            Err(err) => Err(eformat!(msg_header.remote_socket_addr, err)),
         }
     }
 }

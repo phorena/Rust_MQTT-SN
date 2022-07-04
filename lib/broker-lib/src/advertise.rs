@@ -11,7 +11,8 @@ Table 6:
 • Duration: time interval until the next ADVERTISE is broadcasted by this gateway
 */
 use crate::{
-    broker_lib::MqttSnClient, multicast, MSG_LEN_ADVERTISE, MSG_TYPE_ADVERTISE,
+    broker_lib::MqttSnClient, msg_hdr::MsgHeader, multicast, MSG_LEN_ADVERTISE,
+    MSG_TYPE_ADVERTISE,
 };
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
@@ -51,12 +52,13 @@ impl Advertise {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
         let (advertise, _read_fixed_len) =
             Advertise::try_read(buf, size).unwrap();
         info!(
             "{}: advertise {} with {} id",
-            client.remote_addr, advertise.gw_id, advertise.duration
+            msg_header.remote_socket_addr, advertise.gw_id, advertise.duration
         );
         Ok(())
     }

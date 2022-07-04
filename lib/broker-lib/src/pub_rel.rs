@@ -14,9 +14,9 @@ use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
 use crate::{
-    broker_lib::MqttSnClient, eformat, function, pub_comp::PubComp,
-    pub_msg_cache::PubMsgCache, publish::Publish, retransmit::RetransTimeWheel,
-    MSG_LEN_PUBREL, MSG_TYPE_PUBREL,
+    broker_lib::MqttSnClient, eformat, function, msg_hdr::MsgHeader,
+    pub_comp::PubComp, pub_msg_cache::PubMsgCache, publish::Publish,
+    retransmit::RetransTimeWheel, MSG_LEN_PUBREL, MSG_TYPE_PUBREL,
 };
 
 #[derive(
@@ -50,14 +50,16 @@ impl PubRel {
         buf: &[u8],
         _size: usize,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
+        let remote_socket_addr = msg_header.remote_socket_addr;
         if buf[0] == MSG_LEN_PUBREL && buf[1] == MSG_TYPE_PUBREL {
             // TODO verify as Big Endian
             let msg_id = buf[3] as u16 + ((buf[2] as u16) << 8);
             // Send PUBCOMP to publisher
-            PubComp::send(msg_id, client)?;
+            PubComp::send(msg_id, client, msg_header)?;
             // Send publish message to subscribers.
-            match PubMsgCache::remove((client.remote_addr, msg_id)) {
+            match PubMsgCache::remove((remote_socket_addr, msg_id)) {
                 Some(pub_msg_cache) => {
                     dbg!(&pub_msg_cache);
                     Publish::send_msg_to_subscribers(
@@ -72,7 +74,7 @@ impl PubRel {
                 }
             }
             match RetransTimeWheel::cancel_timer(
-                client.remote_addr,
+                remote_socket_addr,
                 MSG_TYPE_PUBREL,
                 0,
                 msg_id,
@@ -81,14 +83,19 @@ impl PubRel {
                 Err(err) => Err(err),
             }
         } else {
-            return Err(eformat!(client.remote_addr, "Length", buf[0]));
+            return Err(eformat!(remote_socket_addr, "Length", buf[0]));
         }
     }
     #[inline(always)]
-    pub fn send(msg_id: u16, client: &MqttSnClient) -> Result<(), String> {
+    pub fn send(
+        msg_id: u16,
+        client: &MqttSnClient,
+        msg_header: MsgHeader,
+    ) -> Result<(), String> {
         // faster implementation
         // TODO verify big-endian or little-endian for u16 numbers
         // XXX order of statements performance
+        let remote_socket_addr = msg_header.remote_socket_addr;
         let msg_id_byte_0 = msg_id as u8;
         let msg_id_byte_1 = (msg_id >> 8) as u8;
         // message format
@@ -101,12 +108,12 @@ impl PubRel {
             msg_id_byte_0,
         ];
         bytes.put(buf);
-        match client.transmit_tx.send((client.remote_addr, bytes)) {
+        match client.egress_tx.send((remote_socket_addr, bytes)) {
             Ok(_) => Ok(()),
             Err(e) => Err(format!(
                 "{}-{}:",
                 //function!(),
-                client.remote_addr,
+                remote_socket_addr,
                 e
             )),
         }

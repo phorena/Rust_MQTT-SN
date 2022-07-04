@@ -20,8 +20,8 @@ contains wildcard characters)
 • ReturnCode: “accepted”, or rejection reason.
 */
 use crate::{
-    broker_lib::MqttSnClient, eformat, function, retransmit::RetransTimeWheel,
-    MSG_LEN_SUBACK, MSG_TYPE_SUBACK,
+    broker_lib::MqttSnClient, eformat, function, msg_hdr::MsgHeader,
+    retransmit::RetransTimeWheel, MSG_LEN_SUBACK, MSG_TYPE_SUBACK,
 };
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
@@ -74,8 +74,10 @@ impl SubAck {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<u16, String> {
         let (sub_ack, read_len) = SubAck::try_read(buf, size).unwrap();
+        let remote_socket_addr = msg_header.remote_socket_addr;
         dbg!(sub_ack.clone());
 
         if read_len == MSG_LEN_SUBACK as usize {
@@ -84,7 +86,7 @@ impl SubAck {
             //     because the subscribe message might not contain it.
             //     The retransmision was scheduled with 0.
             match RetransTimeWheel::cancel_timer(
-                client.remote_addr,
+                remote_socket_addr,
                 sub_ack.msg_type,
                 0,
                 sub_ack.msg_id,
@@ -95,13 +97,14 @@ impl SubAck {
             // TODO check QoS in flags
             // TODO check flags
         } else {
-            Err(eformat!(client.remote_addr, "size", buf[0]))
+            Err(eformat!(remote_socket_addr, "size", buf[0]))
         }
     }
 
     // TODO error checking and return
     pub fn send(
         client: &MqttSnClient,
+        msg_header: MsgHeader,
         flags: u8,
         topic_id: u16,
         msg_id: u16,
@@ -115,18 +118,19 @@ impl SubAck {
             msg_id,
             return_code,
         };
+        let remote_socket_addr = msg_header.remote_socket_addr;
         let mut bytes_buf = BytesMut::with_capacity(MSG_LEN_SUBACK as usize);
         dbg!(sub_ack.clone());
         sub_ack.try_write(&mut bytes_buf);
         dbg!(bytes_buf.clone());
-        dbg!(client.remote_addr);
+        dbg!(remote_socket_addr);
         // transmit to network
         match client
-            .transmit_tx
-            .try_send((client.remote_addr, bytes_buf.to_owned()))
+            .egress_tx
+            .try_send((remote_socket_addr, bytes_buf.to_owned()))
         {
             Ok(_) => Ok(()),
-            Err(err) => Err(eformat!(client.remote_addr, err)),
+            Err(err) => Err(eformat!(remote_socket_addr, err)),
         }
     }
 }

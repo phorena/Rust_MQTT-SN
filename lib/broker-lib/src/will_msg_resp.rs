@@ -10,8 +10,8 @@ use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
 
 use crate::{
-    broker_lib::MqttSnClient, eformat, function, ReturnCodeConst,
-    MSG_LEN_WILL_MSG_RESP, MSG_TYPE_WILL_MSG_RESP,
+    broker_lib::MqttSnClient, eformat, function, msg_hdr::MsgHeader,
+    ReturnCodeConst, MSG_LEN_WILL_MSG_RESP, MSG_TYPE_WILL_MSG_RESP,
 };
 #[derive(Debug, Clone, Copy, Getters, MutGetters, CopyGetters, Default)]
 #[getset(get, set)]
@@ -27,18 +27,21 @@ impl WillMsgResp {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
         if size == MSG_LEN_WILL_MSG_RESP as usize
             && buf[0] == MSG_LEN_WILL_MSG_RESP
         {
             Ok(())
         } else {
-            Err(eformat!(client.remote_addr, "len err", size))
+            let remote_socket_addr = msg_header.remote_socket_addr;
+            Err(eformat!(remote_socket_addr, "len err", size))
         }
     }
     pub fn send(
         return_code: ReturnCodeConst,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
         let will = WillMsgResp {
             len: MSG_LEN_WILL_MSG_RESP as u8,
@@ -47,16 +50,17 @@ impl WillMsgResp {
         };
         let mut bytes = BytesMut::with_capacity(MSG_LEN_WILL_MSG_RESP as usize);
         dbg!(will.clone());
+        let remote_socket_addr = msg_header.remote_socket_addr;
         will.try_write(&mut bytes);
         dbg!(bytes.clone());
-        dbg!(client.remote_addr);
+        dbg!(remote_socket_addr);
         // transmit to network
         match client
-            .transmit_tx
-            .try_send((client.remote_addr, bytes.to_owned()))
+            .egress_tx
+            .try_send((remote_socket_addr, bytes.to_owned()))
         {
             Ok(()) => Ok(()),
-            Err(err) => Err(eformat!(client.remote_addr, err)),
+            Err(err) => Err(eformat!(remote_socket_addr, err)),
         }
     }
 }

@@ -9,8 +9,8 @@ message. Its format is illustrated in Table 21:
 • MsgId: same value as the one contained in the corresponding UNSUBSCRIBE message.
 */
 use crate::{
-    broker_lib::MqttSnClient, eformat, function, retransmit::RetransTimeWheel,
-    MSG_LEN_UNSUBACK, MSG_TYPE_UNSUBACK,
+    broker_lib::MqttSnClient, eformat, function, msg_hdr::MsgHeader,
+    retransmit::RetransTimeWheel, MSG_LEN_UNSUBACK, MSG_TYPE_UNSUBACK,
 };
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
@@ -32,13 +32,15 @@ impl UnsubAck {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<u16, String> {
         let (unsub_ack, read_len) = UnsubAck::try_read(buf, size).unwrap();
         dbg!(unsub_ack.clone());
+        let remote_socket_addr = msg_header.remote_socket_addr;
 
         if read_len == MSG_LEN_UNSUBACK as usize {
             match RetransTimeWheel::cancel_timer(
-                client.remote_addr,
+                remote_socket_addr,
                 unsub_ack.msg_type,
                 0,
                 unsub_ack.msg_id,
@@ -47,10 +49,15 @@ impl UnsubAck {
                 Err(err) => Err(err),
             }
         } else {
-            Err(eformat!(client.remote_addr, "size", buf[0]))
+            Err(eformat!(remote_socket_addr, "size", buf[0]))
         }
     }
-    pub fn send(client: &MqttSnClient, msg_id: u16) -> Result<(), String> {
+    pub fn send(
+        client: &MqttSnClient,
+        msg_header: MsgHeader,
+        msg_id: u16,
+    ) -> Result<(), String> {
+        let remote_socket_addr = msg_header.remote_socket_addr;
         let mut bytes_buf = BytesMut::with_capacity(MSG_LEN_UNSUBACK as usize);
         let unsub_ack = UnsubAck {
             len: MSG_LEN_UNSUBACK,
@@ -60,14 +67,14 @@ impl UnsubAck {
         dbg!(unsub_ack.clone());
         unsub_ack.try_write(&mut bytes_buf);
         dbg!(bytes_buf.clone());
-        dbg!(client.remote_addr);
+        dbg!(remote_socket_addr);
         // transmit to network
         match client
-            .transmit_tx
-            .try_send((client.remote_addr, bytes_buf.to_owned()))
+            .egress_tx
+            .try_send((remote_socket_addr, bytes_buf.to_owned()))
         {
             Ok(_) => Ok(()),
-            Err(err) => Err(eformat!(client.remote_addr, err)),
+            Err(err) => Err(eformat!(remote_socket_addr, err)),
         }
     }
 }

@@ -14,26 +14,36 @@ and not by the maximum length that could be encoded by MQTT-SN.
 
 use crate::{eformat, function};
 use custom_debug::Debug;
+use std::net::SocketAddr;
+use std::sync::Arc;
+use util::conn::*;
 
 #[derive(Debug, Copy, Clone)]
-pub enum MsgHeaderEnum {
+pub enum MsgHeaderLenEnum {
     Short = 2, // 2 byte header
-    Long = 4, // 4 byte header
+    Long = 4,  // 4 byte header
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Clone)]
 pub struct MsgHeader {
+    pub remote_socket_addr: SocketAddr,
+    conn: Arc<dyn Conn + Send + Sync>,
     pub len: u16,
-    #[debug(format = "0x{:x}")]
+    // #[debug(format = "0x{:x}")]
     pub msg_type: u8,
-    pub header_len: MsgHeaderEnum,
+    pub header_len: MsgHeaderLenEnum,
 }
 
 impl MsgHeader {
-    pub fn try_read(buf: &[u8], size: usize) -> Result<MsgHeader, String> {
+    pub fn try_read(
+        buf: &[u8],
+        size: usize,
+        remote_socket_addr: SocketAddr,
+        conn: Arc<dyn Conn + Send + Sync>,
+    ) -> Result<MsgHeader, String> {
         let len;
         let msg_type;
-        let mut header_len = MsgHeaderEnum::Short;
+        let mut header_len = MsgHeaderLenEnum::Short;
         if size >= 2 {
             // Determine 2 or 4 byte header.
             if buf[0] != 1 {
@@ -42,10 +52,12 @@ impl MsgHeader {
             } else {
                 len = (buf[1] as u16) << 8 | buf[2] as u16;
                 msg_type = buf[3] as u8;
-                header_len = MsgHeaderEnum::Long;
+                header_len = MsgHeaderLenEnum::Long;
             }
             if size == len as usize {
                 return Ok(MsgHeader {
+                    remote_socket_addr,
+                    conn,
                     len,
                     header_len,
                     msg_type,
@@ -60,7 +72,7 @@ impl MsgHeader {
         }
     }
 }
-
+/*
 #[cfg(test)]
 mod test {
     #[test]
@@ -81,3 +93,4 @@ mod test {
         dbg!(&bytes[5..]);
     }
 }
+*/

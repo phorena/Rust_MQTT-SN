@@ -145,8 +145,8 @@ impl Publish {
         msg_header: MsgHeader,
     ) -> Result<(), String> {
         let (mut publish, _read_fixed_len) = match msg_header.header_len {
-            MsgHeaderEnum::Short => Publish::try_read(buf, size).unwrap(),
-            MsgHeaderEnum::Long => {
+            MsgHeaderLenEnum::Short => Publish::try_read(buf, size).unwrap(),
+            MsgHeaderLenEnum::Long => {
                 Publish::try_read(&buf[2..], size - 2).unwrap()
             }
         };
@@ -154,6 +154,7 @@ impl Publish {
         // * shift to eliminate the need the long struct.
         // * Use the len from the msg_header.
         publish.len = 0;
+        let remote_socket_addr = msg_header.remote_socket_addr;
         dbg!((size, _read_fixed_len));
         dbg!(publish.clone());
         let subscriber_vec = get_subscribers_with_topic_id(publish.topic_id);
@@ -173,11 +174,11 @@ impl Publish {
                 // 4. Send PUBLISH message to subscribers from PUBREL.rx.
 
                 //dbg!(&client);
-                let bytes = PubRec::send(publish.msg_id, client)?;
+                let bytes = PubRec::send(publish.msg_id, client, msg_header)?;
                 // PUBREL message doesn't have topic id.
                 // For the time wheel hash, default to 0.
                 RetransTimeWheel::schedule_timer(
-                    client.remote_addr,
+                    remote_socket_addr,
                     MSG_TYPE_PUBREL,
                     0,
                     publish.msg_id,
@@ -192,7 +193,7 @@ impl Publish {
                     publish,
                     subscriber_vec,
                 };
-                PubMsgCache::try_insert((client.remote_addr, msg_id), cache)?;
+                PubMsgCache::try_insert((remote_socket_addr, msg_id), cache)?;
                 return Ok(());
             }
             QOS_LEVEL_1 => {
@@ -202,12 +203,13 @@ impl Publish {
                     publish.msg_id,
                     RETURN_CODE_ACCEPTED,
                     client,
+                    msg_header,
                 )?;
             }
             QOS_LEVEL_0 => {}
             QOS_LEVEL_3 => {
                 return Err(eformat!(
-                    client.remote_addr,
+                    remote_socket_addr,
                     "QoS level 3 is not supported"
                 ));
             }
@@ -342,7 +344,7 @@ impl Publish {
             }
         }
         // transmit message to remote address
-        match client.transmit_tx.try_send((remote_addr, bytes_buf)) {
+        match client.egress_tx.try_send((remote_addr, bytes_buf)) {
             Ok(_) => Ok(()),
             Err(why) => Err(eformat!(remote_addr, why)),
         }

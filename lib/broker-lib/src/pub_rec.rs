@@ -17,6 +17,7 @@ use crate::{
     broker_lib::MqttSnClient,
     eformat,
     function,
+    msg_hdr::MsgHeader,
     retransmit::RetransTimeWheel,
     // flags::{flags_set, flag_qos_level, },
     MSG_LEN_PUBREC,
@@ -59,13 +60,15 @@ impl PubRec {
         buf: &[u8],
         _size: usize,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<u16, String> {
+        let remote_socket_addr = msg_header.remote_socket_addr;
         if buf[0] == MSG_LEN_PUBREC && buf[1] == MSG_TYPE_PUBREC {
             // TODO verify as Big Endian
             let msg_id = buf[2] as u16 + ((buf[3] as u16) << 8);
             // TODO verify need to cancel the retransmission timer
             match RetransTimeWheel::cancel_timer(
-                client.remote_addr,
+                remote_socket_addr,
                 MSG_TYPE_PUBREC,
                 0,
                 msg_id,
@@ -74,13 +77,14 @@ impl PubRec {
                 Err(err) => Err(err),
             }
         } else {
-            Err(eformat!(client.remote_addr, "size", buf[0]))
+            Err(eformat!(remote_socket_addr, "size", buf[0]))
         }
     }
     #[inline(always)]
     pub fn send(
         msg_id: u16,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<BytesMut, String> {
         // faster implementation
         // TODO verify big-endian or little-endian for u16 numbers
@@ -97,15 +101,16 @@ impl PubRec {
             msg_id_byte_0,
         ];
         dbg!(&buf);
+        let remote_socket_addr = msg_header.remote_socket_addr;
         bytes.put(buf);
         // TODO replace BytesMut with Bytes to eliminate clone as copy
         dbg!(&buf);
         match client
-            .transmit_tx
-            .try_send((client.remote_addr, bytes.clone()))
+            .egress_tx
+            .try_send((remote_socket_addr, bytes.clone()))
         {
             Ok(()) => Ok(bytes),
-            Err(err) => Err(eformat!(client.remote_addr, err)),
+            Err(err) => Err(eformat!(remote_socket_addr, err)),
         }
     }
 }

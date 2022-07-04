@@ -250,7 +250,7 @@ impl RetransTimeWheel {
                                     slot_vec[new_index].entries.lock().unwrap();
                                 new_slot.push((retrans_hdr, duration));
                                 // Retransmit the message to the receiver.
-                                if let Err(err) = client.transmit_tx.send((
+                                if let Err(err) = client.egress_tx.send((
                                     retrans_hdr.addr,
                                     retrans_data.bytes.clone(),
                                 )) {

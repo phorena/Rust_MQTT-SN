@@ -28,8 +28,8 @@ use std::mem;
 use std::str; // NOTE: needed for MutGetters
 
 use crate::{
-    broker_lib::MqttSnClient, eformat, function, msg_hdr::*,
-    ping_resp::PingResp, MSG_LEN_PINGREQ_HEADER, MSG_TYPE_PINGREQ,
+    broker_lib::MqttSnClient, eformat, function, msg_hdr::MsgHeader,
+    msg_hdr::*, ping_resp::PingResp, MSG_LEN_PINGREQ_HEADER, MSG_TYPE_PINGREQ,
 };
 
 #[derive(Debug, Clone, Getters, MutGetters, CopyGetters, Default)]
@@ -58,27 +58,30 @@ impl PingReq {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
-        header: MsgHeader,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
-        match header.header_len {
-            MsgHeaderEnum::Short => {
+        match msg_header.header_len {
+            MsgHeaderLenEnum::Short => {
                 // TODO update ping timer.
                 let (_ping_req, _read_fixed_len) =
                     PingReq::try_read(buf, size).unwrap();
             }
-            MsgHeaderEnum::Long => {
+            MsgHeaderLenEnum::Long => {
                 // TODO update ping timer.
                 let (_ping_req, _read_fixed_len) =
                     PingReq4::try_read(buf, size).unwrap();
             }
         }
-        PingResp::send(client)?;
+        PingResp::send(client, msg_header)?;
         Ok(())
     }
+    #[inline(always)]
     pub fn send(
         client_id: String,
         client: &mut MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
+        let remote_socket_addr = msg_header.remote_socket_addr;
         let len = client_id.len() + MSG_LEN_PINGREQ_HEADER as usize;
         let mut bytes = BytesMut::with_capacity(len);
         if len < 256 {
@@ -89,14 +92,14 @@ impl PingReq {
             };
             ping_req.try_write(&mut bytes);
             match client
-                .transmit_tx
-                .try_send((client.remote_addr, bytes.to_owned()))
+                .egress_tx
+                .try_send((remote_socket_addr, bytes.to_owned()))
             {
                 Ok(_) => Ok(()),
-                Err(err) => Err(eformat!(client.remote_addr, err)),
+                Err(err) => Err(eformat!(remote_socket_addr, err)),
             }
         } else {
-            Err(eformat!(client.remote_addr, "len too long", len))
+            Err(eformat!(remote_socket_addr, "len too long", len))
         }
     }
 }

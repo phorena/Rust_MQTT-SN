@@ -98,13 +98,13 @@ impl Unsubscribe {
         let unsubscribe: Unsubscribe;
         let _read_fixed_len: usize;
         match msg_header.header_len {
-            MsgHeaderEnum::Short =>
+            MsgHeaderLenEnum::Short =>
             // TODO replace unwrap
             {
                 (unsubscribe, _read_fixed_len) =
                     Unsubscribe::try_read(buf, size).unwrap()
             }
-            MsgHeaderEnum::Long =>
+            MsgHeaderLenEnum::Long =>
             // TODO replace unwrap
             // For the 4-byte header, parse the body ignoring the first 2 bytes and
             // don't use the length field for the unsubscribe struct.
@@ -114,11 +114,12 @@ impl Unsubscribe {
                     Unsubscribe::try_read(&buf[3..], size).unwrap()
             }
         }
+        let remote_socket_addr = msg_header.remote_socket_addr;
         dbg!(unsubscribe.clone());
         match flag_topic_id_type(unsubscribe.flags) {
             TOPIC_ID_TYPE_NORMAL => {
                 unsubscribe_with_topic_name(
-                    client.remote_addr,
+                    remote_socket_addr,
                     unsubscribe.topic_name,
                 )?;
             }
@@ -127,14 +128,14 @@ impl Unsubscribe {
                     Ok(topic_id) => {
                         dbg!(topic_id);
                         unsubscribe_with_topic_id(
-                            client.remote_addr,
+                            remote_socket_addr,
                             topic_id,
                         )?;
                         return Ok(());
                     }
                     Err(err) => {
                         return Err(eformat!(
-                            client.remote_addr,
+                            remote_socket_addr,
                             "error parsing topic_id",
                             err,
                             unsubscribe.topic_name
@@ -144,19 +145,19 @@ impl Unsubscribe {
             }
             TOPIC_ID_TYPE_SHORT => {
                 return Err(eformat!(
-                    client.remote_addr,
+                    remote_socket_addr,
                     "topic Id short topic name not supported"
                 ));
             }
             TOPIC_ID_TYPE_RESERVED => {
                 return Err(eformat!(
-                    client.remote_addr,
+                    remote_socket_addr,
                     "topic Id reserved type"
                 ));
             }
             _ => {
                 return Err(eformat!(
-                    client.remote_addr,
+                    remote_socket_addr,
                     "topic Id unknown type"
                 ));
             }
@@ -171,7 +172,9 @@ impl Unsubscribe {
         qos: u8,
         retain: u8,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
+        let remote_socket_addr = msg_header.remote_socket_addr;
         if topic.len() + (MSG_LEN_UNSUBSCRIBE_HEADER as usize) < 256 {
             let unsubscribe = Unsubscribe::new(qos, retain, msg_id, topic);
             dbg!(&unsubscribe);
@@ -180,15 +183,15 @@ impl Unsubscribe {
             unsubscribe.try_write(&mut bytes_buf);
             // transmit to network
             if let Err(err) = client
-                .transmit_tx
-                .try_send((client.remote_addr, bytes_buf.to_owned()))
+                .egress_tx
+                .try_send((remote_socket_addr, bytes_buf.to_owned()))
             {
-                return Err(eformat!(client.remote_addr, err));
+                return Err(eformat!(remote_socket_addr, err));
             }
             // schedule retransmit
             // Unsuback returns the msg_id, but not topic_id.
             match RetransTimeWheel::schedule_timer(
-                client.remote_addr,
+                remote_socket_addr,
                 MSG_TYPE_UNSUBACK,
                 0,
                 msg_id,
@@ -199,7 +202,7 @@ impl Unsubscribe {
                 Err(err) => Err(err),
             }
         } else {
-            Err(eformat!(client.remote_addr, "topic name too long"))
+            Err(eformat!(remote_socket_addr, "topic name too long"))
         }
     }
 }

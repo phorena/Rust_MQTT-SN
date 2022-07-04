@@ -33,6 +33,7 @@ use crate::{
     flags::RETAIN_FALSE,
     function,
     keep_alive::KeepAliveTimeWheel,
+    msg_hdr::MsgHeader,
     publish::Publish,
     MSG_LEN_DISCONNECT,
     MSG_LEN_DISCONNECT_DURATION,
@@ -77,25 +78,27 @@ impl Disconnect {
         buf: &[u8],
         size: usize,
         client: &mut MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
+        let remote_addr = msg_header.remote_socket_addr;
         if size == MSG_LEN_DISCONNECT as usize {
             let (disconnect, _read_len) =
                 Disconnect::try_read(buf, size).unwrap();
             dbg!(disconnect.clone());
             Connection::debug();
             let publish_will;
-            match Connection::get_state(&client.remote_addr) {
+            match Connection::get_state(&remote_addr) {
                 Ok(state) => match state {
                     StateEnum2::ACTIVE => publish_will = true,
                     _ => publish_will = false,
                 },
-                Err(why) => return Err(eformat!(why, &client.remote_addr)),
+                Err(why) => return Err(eformat!(why, &remote_addr)),
             }
-            let conn = Connection::remove(&client.remote_addr)?;
-            ClientId::rev_delete(&client.remote_addr);
-            KeepAliveTimeWheel::cancel(&client.remote_addr)?;
+            let conn = Connection::remove(&remote_addr)?;
+            ClientId::rev_delete(&remote_addr);
+            KeepAliveTimeWheel::cancel(&remote_addr)?;
             Connection::debug();
-            Disconnect::send(client)?;
+            Disconnect::send(client, msg_header)?;
             if publish_will == false {
                 return Ok(());
             }
@@ -125,36 +128,37 @@ impl Disconnect {
             let (disconnect, _read_len) =
                 DisconnWithDuration::try_read(buf, size).unwrap();
             dbg!(disconnect.clone());
-            Connection::update_state(&client.remote_addr, StateEnum2::ASLEEP)?;
-            KeepAliveTimeWheel::schedule(
-                client.remote_addr,
-                disconnect.duration,
-            )?;
-            Disconnect::send(client)?;
+            Connection::update_state(&remote_addr, StateEnum2::ASLEEP)?;
+            KeepAliveTimeWheel::schedule(remote_addr, disconnect.duration)?;
+            Disconnect::send(client, msg_header)?;
             Ok(())
         } else {
             Err(eformat!("len err", size))
         }
     }
 
-    pub fn send(client: &MqttSnClient) -> Result<(), String> {
+    pub fn send(
+        client: &MqttSnClient,
+        msg_header: MsgHeader,
+    ) -> Result<(), String> {
         let disconnect = Disconnect {
             len: MSG_LEN_DISCONNECT as u8,
             msg_type: MSG_TYPE_DISCONNECT,
         };
+        let remote_addr = msg_header.remote_socket_addr;
         let mut bytes_buf =
             BytesMut::with_capacity(MSG_LEN_DISCONNECT as usize);
         dbg!(disconnect.clone());
         disconnect.try_write(&mut bytes_buf);
         dbg!(bytes_buf.clone());
-        dbg!(client.remote_addr);
+        dbg!(remote_addr);
         // transmit to network
         match client
-            .transmit_tx
-            .try_send((client.remote_addr, bytes_buf.to_owned()))
+            .egress_tx
+            .try_send((remote_addr, bytes_buf.to_owned()))
         {
             Ok(()) => Ok(()),
-            Err(err) => Err(eformat!(client.remote_addr, err)),
+            Err(err) => Err(eformat!(remote_addr, err)),
         }
     }
 }

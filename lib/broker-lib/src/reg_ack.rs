@@ -17,8 +17,8 @@ use getset::{CopyGetters, Getters, MutGetters};
 use std::mem;
 
 use crate::{
-    broker_lib::MqttSnClient, eformat, function, retransmit::RetransTimeWheel,
-    MSG_LEN_REGACK, MSG_TYPE_REGACK,
+    broker_lib::MqttSnClient, eformat, function, msg_hdr::MsgHeader,
+    retransmit::RetransTimeWheel, MSG_LEN_REGACK, MSG_TYPE_REGACK,
 };
 
 #[derive(Debug, Clone, Getters, MutGetters, CopyGetters, Default)]
@@ -36,13 +36,15 @@ impl RegAck {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
         let (reg_ack, read_len) = RegAck::try_read(buf, size).unwrap();
         dbg!(reg_ack.clone());
 
+        let remote_socket_addr = msg_header.remote_socket_addr;
         if read_len == MSG_LEN_REGACK as usize {
             match RetransTimeWheel::cancel_timer(
-                client.remote_addr,
+                remote_socket_addr,
                 reg_ack.msg_type,
                 reg_ack.topic_id,
                 reg_ack.msg_id,
@@ -51,7 +53,7 @@ impl RegAck {
                 Err(err) => Err(err),
             }
         } else {
-            Err(eformat!(client.remote_addr, "size", buf[0]))
+            Err(eformat!(remote_socket_addr, "size", buf[0]))
         }
     }
     pub fn send(
@@ -59,7 +61,9 @@ impl RegAck {
         msg_id: u16,
         return_code: u8,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
+        let remote_socket_addr = msg_header.remote_socket_addr;
         let reg_ack = RegAck {
             len: MSG_LEN_REGACK,
             msg_type: MSG_TYPE_REGACK,
@@ -71,14 +75,14 @@ impl RegAck {
         dbg!(reg_ack.clone());
         reg_ack.try_write(&mut bytes_buf);
         dbg!(bytes_buf.clone());
-        dbg!(client.remote_addr);
+        dbg!(remote_socket_addr);
         // transmit to network
         match client
-            .transmit_tx
-            .try_send((client.remote_addr, bytes_buf.to_owned()))
+            .egress_tx
+            .try_send((remote_socket_addr, bytes_buf.to_owned()))
         {
             Ok(_) => Ok(()),
-            Err(err) => Err(eformat!(client.remote_addr, err)),
+            Err(err) => Err(eformat!(remote_socket_addr, err)),
         }
     }
 }

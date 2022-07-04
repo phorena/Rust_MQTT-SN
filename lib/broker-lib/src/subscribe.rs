@@ -109,20 +109,22 @@ impl Subscribe {
         qos: u8,
         retain: u8,
         client: &MqttSnClient,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
         let subscribe = Subscribe::new(qos, retain, msg_id, topic);
+        let remote_socket_addr = msg_header.remote_socket_addr;
         dbg!(&subscribe);
         let mut bytes_buf = BytesMut::with_capacity(subscribe.len as usize);
         subscribe.try_write(&mut bytes_buf);
         // transmit to network
         if let Err(err) = client
-            .transmit_tx
-            .try_send((client.remote_addr, bytes_buf.to_owned()))
+            .egress_tx
+            .try_send((remote_socket_addr, bytes_buf.to_owned()))
         {
-            return Err(eformat!(client.remote_addr, err));
+            return Err(eformat!(remote_socket_addr, err));
         }
         match RetransTimeWheel::schedule_timer(
-            client.remote_addr,
+            remote_socket_addr,
             MSG_TYPE_SUBACK,
             0,
             0,
@@ -140,15 +142,16 @@ impl Subscribe {
         buf: &[u8],
         size: usize,
         client: &MqttSnClient,
-        header: MsgHeader,
+        msg_header: MsgHeader,
     ) -> Result<(), String> {
         // TODO replace unwrap
-        let (subscribe, read_fixed_len) = match header.header_len {
-            MsgHeaderEnum::Short => Subscribe::try_read(buf, size).unwrap(),
-            MsgHeaderEnum::Long => {
+        let (subscribe, read_fixed_len) = match msg_header.header_len {
+            MsgHeaderLenEnum::Short => Subscribe::try_read(buf, size).unwrap(),
+            MsgHeaderLenEnum::Long => {
                 Subscribe::try_read(&buf[2..], size - 2).unwrap()
             }
         };
+        let remote_socket_addr = msg_header.remote_socket_addr;
         dbg!(subscribe.clone());
         dbg!(subscribe.clone().topic_name);
         let read_len = read_fixed_len + subscribe.topic_name.len();
@@ -165,7 +168,7 @@ impl Subscribe {
                     // or new.
                     let topic_id = try_insert_topic_name(subscribe.topic_name)?;
                     subscribe_with_topic_id(
-                        client.remote_addr,
+                        remote_socket_addr,
                         topic_id,
                         flag_qos_level(subscribe.flags),
                     )?;
@@ -174,6 +177,7 @@ impl Subscribe {
                     // return the same flags as received.
                     SubAck::send(
                         client,
+                        msg_header,
                         subscribe.flags,
                         topic_id,
                         subscribe.msg_id,
@@ -190,7 +194,7 @@ impl Subscribe {
                     dbg!(id.len());
                     if id.len() != 2 {
                         return Err(eformat!(
-                            client.remote_addr,
+                            remote_socket_addr,
                             "Invalid topic_name length: {}",
                             id.len()
                         ));
@@ -203,13 +207,14 @@ impl Subscribe {
                     // Pre-defined topic type(integer): save remote_addr and
                     // topic_id to the hash map.
                     subscribe_with_topic_id(
-                        client.remote_addr,
+                        remote_socket_addr,
                         topic_id,
                         flag_qos_level(subscribe.flags),
                     )?;
                     dbg!(topic_id);
                     SubAck::send(
                         client,
+                        msg_header,
                         subscribe.flags,
                         topic_id,
                         subscribe.msg_id,
@@ -225,7 +230,7 @@ impl Subscribe {
                             RETAIN_FALSE,
                             msg.payload,
                             client,
-                            client.remote_addr,
+                            remote_socket_addr,
                         )?;
                     }
                     return Ok(());
@@ -233,21 +238,21 @@ impl Subscribe {
                 TOPIC_ID_TYPE_SHORT => {
                     dbg!(flag_topic_id_type(subscribe.flags));
                     return Err(eformat!(
-                        client.remote_addr,
+                        remote_socket_addr,
                         "topic Id short topic name not supported"
                     ));
                 }
                 TOPIC_ID_TYPE_RESERVED => {
                     dbg!(flag_topic_id_type(subscribe.flags));
                     return Err(eformat!(
-                        client.remote_addr,
+                        remote_socket_addr,
                         "topic Id reserved type"
                     ));
                 }
                 _ => {
                     dbg!(flag_topic_id_type(subscribe.flags));
                     return Err(eformat!(
-                        client.remote_addr,
+                        remote_socket_addr,
                         "topic Id unknown type"
                     ));
                 }
@@ -255,7 +260,7 @@ impl Subscribe {
         } else {
             // TODO clean up, length check is not needed,
             // if it's check else where, it's not needed here.
-            return Err(eformat!(client.remote_addr, "wrong size"));
+            return Err(eformat!(remote_socket_addr, "wrong size"));
         }
     }
 }
