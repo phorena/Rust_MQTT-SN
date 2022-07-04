@@ -81,7 +81,7 @@ impl PubComp {
         size: usize,
         client: &MqttSnClient,
         msg_header: MsgHeader,
-    ) -> Result<u16, String> {
+    ) -> Result<(), String> {
         let remote_socket_addr = msg_header.remote_socket_addr;
         if buf[0] == MSG_LEN_PUBCOMP
             && buf[1] == MSG_TYPE_PUBCOMP
@@ -95,7 +95,7 @@ impl PubComp {
                 0,
                 msg_id,
             )?;
-            Ok(msg_id)
+            Ok(())
         } else {
             Err(eformat!(remote_socket_addr, "size", buf[0]))
         }

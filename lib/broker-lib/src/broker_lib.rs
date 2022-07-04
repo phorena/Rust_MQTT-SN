@@ -23,16 +23,29 @@ use crate::{
     keep_alive::KeepAliveTimeWheel,
     msg_hdr::MsgHeader,
     ping_req::PingReq,
+    ping_resp::PingResp,
     // Connection::ConnHashMap,
     pub_ack::PubAck,
+    pub_comp::PubComp,
+    pub_rec::PubRec,
     pub_rel::PubRel,
     publish::Publish,
+    reg_ack::RegAck,
+    register::Register,
     retransmit::RetransTimeWheel,
-    // search_gw::SearchGw,
+    search_gw::SearchGw,
     sub_ack::SubAck,
     subscribe::Subscribe,
+    unsub_ack::UnsubAck,
+    unsubscribe::Unsubscribe,
     will_msg::WillMsg,
+    will_msg_req::WillMsgReq,
+    will_msg_resp::WillMsgResp,
+    will_msg_upd::WillMsgUpd,
     will_topic::WillTopic,
+    will_topic_req::WillTopicReq,
+    will_topic_resp::WillTopicResp,
+    will_topic_upd::WillTopicUpd,
     MSG_TYPE_CONNACK,
     MSG_TYPE_CONNECT,
     MSG_TYPE_DISCONNECT,
@@ -47,6 +60,19 @@ use crate::{
 };
 // use trace_var::trace_var;
 
+fn reserved(
+    buf: &[u8],
+    size: usize,
+    client: &MqttSnClient,
+    msg_header: MsgHeader,
+) -> Result<(), String> {
+    Err(eformat!(
+        msg_header.remote_socket_addr,
+        "reserved",
+        msg_header.msg_type
+    ))
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum MessageTypeEnum {
     Connect(Connect),
@@ -54,7 +80,7 @@ pub enum MessageTypeEnum {
     Subscribe(Subscribe),
     SubAck(SubAck),
     Publish(Publish),
-    PubAck(PubAck),
+    PubAck2(PubAck),
 }
 pub type IngressChannelType = (SocketAddr, Bytes, Arc<dyn Conn + Send + Sync>);
 pub type EgressChannelType = (SocketAddr, BytesMut);
@@ -76,7 +102,7 @@ pub struct MqttSnClient {
 impl MqttSnClient {
     // TODO change Client to Broker
     // TODO change remote_addr to local_addr
-    pub fn new(remote_addr: SocketAddr) -> Self {
+    pub fn new() -> Self {
         let (transmit_tx, transmit_rx): (
             Sender<(SocketAddr, BytesMut)>,
             Receiver<(SocketAddr, BytesMut)>,
@@ -133,6 +159,47 @@ impl MqttSnClient {
     pub fn handle_ingress(mut self) {
         // *NOTE: thread and tokio spawn are not compatible.
         // use thread instead of tokio spawn to read from channel.
+
+        let functions: Vec<
+            fn(
+                buf: &[u8],
+                size: usize,
+                client: &MqttSnClient,
+                msg_header: MsgHeader,
+            ) -> Result<(), String>,
+        > = vec![
+            Advertise::recv,     // 0x00
+            GwInfo::recv,        // 0x01
+            GwInfo::recv,        // 0x02
+            reserved,            // 0x03
+            Connect::recv,       // 0x04
+            ConnAck::recv,       // 0x05
+            WillTopicReq::recv,  // 0x06
+            WillTopic::recv,     // 0x07
+            WillMsgReq::recv,    // 0x08
+            WillMsg::recv,       // 0x09
+            Register::recv,      // 0x0A
+            RegAck::recv,        // 0x0B
+            Publish::recv,       // 0x0C
+            PubAck::recv,        // 0x0D
+            reserved,            // 0x0E
+            PubRec::recv,        // 0x0F
+            PubRel::recv,        // 0x10
+            reserved,            // 0x11
+            Subscribe::recv,     // 0x12
+            SubAck::recv,        // 0x13
+            Unsubscribe::recv,   // 0x14
+            UnsubAck::recv,      // 0x15
+            PingReq::recv,       // 0x16
+            PingResp::recv,      // 0x17
+            Disconnect::recv,    // 0x18
+            reserved,            // 0x19
+            WillTopicUpd::recv,  // 0x1A
+            WillTopicResp::recv, // 0x1B
+            WillMsgUpd::recv,    // 0x1C
+            WillMsgResp::recv,   // 0x1D
+        ];
+
         tokio::spawn(async move {
             loop {
                 match self.ingress_rx.recv() {
@@ -174,7 +241,11 @@ impl MqttSnClient {
                                 continue;
                             };
                             if msg_type == MSG_TYPE_PUBACK {
-                                PubRel::recv(&buf, size, &self, msg_header);
+                                if let Err(err) =
+                                    PubAck::recv(&buf, size, &self, msg_header)
+                                {
+                                    error!("{}", err);
+                                }
                                 continue;
                             };
                             if msg_type == MSG_TYPE_PINGREQ {
@@ -186,38 +257,47 @@ impl MqttSnClient {
                                 continue;
                             }
                             if msg_type == MSG_TYPE_SUBACK {
-                                PubRel::recv(&buf, size, &self, msg_header);
+                                if let Err(err) =
+                                    SubAck::recv(&buf, size, &self, msg_header)
+                                {
+                                    error!("{}", err);
+                                }
                                 continue;
                             };
                             if msg_type == MSG_TYPE_SUBSCRIBE {
-                                let _result = Subscribe::recv(
+                                if let Err(err) = Subscribe::recv(
                                     &buf, size, &self, msg_header,
-                                );
+                                ) {
+                                    error!("{}", err);
+                                }
                                 continue;
                             };
                             if msg_type == MSG_TYPE_DISCONNECT {
-                                let _result =
-                                    PubRel::recv(&buf, size, &self, msg_header);
+                                if let Err(err) = Disconnect::recv(
+                                    &buf, size, &self, msg_header,
+                                ) {
+                                    error!("{}", err);
+                                }
                                 continue;
                             };
                             if msg_type == MSG_TYPE_WILL_TOPIC {
-                                if let Err(why) =
-                                    PubRel::recv(&buf, size, &self, msg_header)
-                                {
+                                if let Err(why) = WillTopic::recv(
+                                    &buf, size, &self, msg_header,
+                                ) {
                                     error!("{}", why);
                                 }
                                 continue;
                             }
                             if msg_type == MSG_TYPE_WILL_MSG {
                                 if let Err(why) =
-                                    PubRel::recv(&buf, size, &self, msg_header)
+                                    WillMsg::recv(&buf, size, &self, msg_header)
                                 {
                                     error!("{}", why);
                                 }
                                 continue;
                             }
                             if msg_type == MSG_TYPE_CONNACK {
-                                match PubRel::recv(
+                                match ConnAck::recv(
                                     &buf, size, &self, msg_header,
                                 ) {
                                     // Broker shouldn't receive ConnAck
@@ -278,7 +358,7 @@ impl MqttSnClient {
         });
     }
 
-    pub fn broker_rx_loop(mut self, socket: UdpSocket) {
+    pub fn broker_rx_loop(self, socket: UdpSocket) {
         let self_transmit = self.clone();
         // name for easy debug
         let socket_tx = socket.try_clone().expect("couldn't clone the socket");

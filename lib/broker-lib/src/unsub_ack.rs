@@ -33,7 +33,7 @@ impl UnsubAck {
         size: usize,
         client: &MqttSnClient,
         msg_header: MsgHeader,
-    ) -> Result<u16, String> {
+    ) -> Result<(), String> {
         let (unsub_ack, read_len) = UnsubAck::try_read(buf, size).unwrap();
         dbg!(unsub_ack.clone());
         let remote_socket_addr = msg_header.remote_socket_addr;
@@ -45,7 +45,7 @@ impl UnsubAck {
                 0,
                 unsub_ack.msg_id,
             ) {
-                Ok(_) => Ok(unsub_ack.msg_id),
+                Ok(_) => Ok(()),
                 Err(err) => Err(err),
             }
         } else {

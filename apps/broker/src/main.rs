@@ -121,7 +121,7 @@ async fn main() -> Result<(), Error> {
     let remote_addr = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
     let socket = UdpSocket::bind("0.0.0.0:60000").unwrap();
 
-    let client = MqttSnClient::new(remote_addr);
+    let client = MqttSnClient::new();
 
 
 

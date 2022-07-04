@@ -61,7 +61,7 @@ impl PubRec {
         _size: usize,
         client: &MqttSnClient,
         msg_header: MsgHeader,
-    ) -> Result<u16, String> {
+    ) -> Result<(), String> {
         let remote_socket_addr = msg_header.remote_socket_addr;
         if buf[0] == MSG_LEN_PUBREC && buf[1] == MSG_TYPE_PUBREC {
             // TODO verify as Big Endian
@@ -73,7 +73,7 @@ impl PubRec {
                 0,
                 msg_id,
             ) {
-                Ok(()) => Ok(msg_id),
+                Ok(()) => Ok(()),
                 Err(err) => Err(err),
             }
         } else {

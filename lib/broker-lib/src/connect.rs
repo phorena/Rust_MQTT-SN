@@ -167,7 +167,7 @@ impl Connect {
     pub fn recv(
         buf: &[u8],
         size: usize,
-        client: &mut MqttSnClient,
+        client: &MqttSnClient,
         msg_header: MsgHeader,
     ) -> Result<(), String> {
         dbg_buf!(buf, size);

@@ -75,7 +75,7 @@ impl SubAck {
         size: usize,
         client: &MqttSnClient,
         msg_header: MsgHeader,
-    ) -> Result<u16, String> {
+    ) -> Result<(), String> {
         let (sub_ack, read_len) = SubAck::try_read(buf, size).unwrap();
         let remote_socket_addr = msg_header.remote_socket_addr;
         dbg!(sub_ack.clone());
@@ -91,7 +91,7 @@ impl SubAck {
                 0,
                 sub_ack.msg_id,
             ) {
-                Ok(_) => Ok(sub_ack.topic_id),
+                Ok(_) => Ok(()),
                 Err(err) => Err(err),
             }
             // TODO check QoS in flags

@@ -76,7 +76,7 @@ impl PubAck {
         size: usize,
         client: &MqttSnClient,
         msg_header: MsgHeader,
-    ) -> Result<(u16, u16, u8), String> {
+    ) -> Result<(), String> {
         let remote_socket_addr = msg_header.remote_socket_addr;
         let (pub_ack, read_len) = PubAck::try_read(buf, size).unwrap();
         dbg!(pub_ack.clone());
@@ -87,7 +87,7 @@ impl PubAck {
                 pub_ack.topic_id,
                 pub_ack.msg_id,
             )?;
-            Ok((pub_ack.topic_id, pub_ack.msg_id, pub_ack.return_code))
+            Ok(())
         } else {
             Err(eformat!(remote_socket_addr, "len err", read_len))
         }

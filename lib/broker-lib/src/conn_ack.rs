@@ -115,7 +115,7 @@ impl ConnAck {
         // transmit to network
         match client
             .egress_tx
-            .try_send((msg_header.remote_socket_addr, bytes_buf.to_owned()))
+            .try_send((msg_header.remote_socket_addr, bytes_buf))
         {
             Ok(()) => Ok(()),
             Err(err) => Err(eformat!(msg_header.remote_socket_addr, err)),
