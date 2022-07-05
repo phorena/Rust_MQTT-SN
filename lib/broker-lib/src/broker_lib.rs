@@ -156,7 +156,7 @@ impl MqttSnClient {
             }
         });
     }
-    pub fn handle_ingress(mut self) {
+    pub fn handle_ingress(self) {
         // *NOTE: thread and tokio spawn are not compatible.
         // use thread instead of tokio spawn to read from channel.
 
@@ -204,11 +204,11 @@ impl MqttSnClient {
             loop {
                 match self.ingress_rx.recv() {
                     Ok((addr, bytes, conn)) => {
-                        // self.remote_addr = addr;
-                        let _result = KeepAliveTimeWheel::reschedule(addr);
-                        // Decode message header
                         let buf = &bytes[..];
                         let size = bytes.len();
+                        // Update the last seen time of the client.
+                        let _result = KeepAliveTimeWheel::reschedule(addr);
+                        // Parse the message header: length, and message type.
                         let msg_header =
                             match MsgHeader::try_read(&buf, size, addr, conn) {
                                 Ok(header) => header,
@@ -217,140 +217,44 @@ impl MqttSnClient {
                                     continue;
                                 }
                             };
-                        // dbg!(msg_header);
-
                         let msg_type = msg_header.msg_type;
-                        // Existing connection?
+                        let fn_index = msg_header.msg_type as usize;
+                        // Existing MQTT-SN connection or new connection.
+                        // DTLS connection is created at lower layer.
                         if Connection::contains_key(addr) {
-                            //     dbg!(&msg_header);
-                            dbg_buf!(buf, size);
-                            if msg_type == MSG_TYPE_PUBLISH {
-                                if let Err(err) =
-                                    Publish::recv(&buf, size, &self, msg_header)
-                                {
-                                    error!("{}", err);
-                                }
-                                continue;
-                            };
-                            if msg_type == MSG_TYPE_PUBREL {
-                                if let Err(err) =
-                                    PubRel::recv(&buf, size, &self, msg_header)
-                                {
-                                    error!("{}", err);
-                                }
-                                continue;
-                            };
-                            if msg_type == MSG_TYPE_PUBACK {
-                                if let Err(err) =
-                                    PubAck::recv(&buf, size, &self, msg_header)
-                                {
-                                    error!("{}", err);
-                                }
-                                continue;
-                            };
-                            if msg_type == MSG_TYPE_PINGREQ {
-                                if let Err(err) =
-                                    PingReq::recv(&buf, size, &self, msg_header)
-                                {
-                                    error!("{}", err);
-                                }
-                                continue;
-                            }
-                            if msg_type == MSG_TYPE_SUBACK {
-                                if let Err(err) =
-                                    SubAck::recv(&buf, size, &self, msg_header)
-                                {
-                                    error!("{}", err);
-                                }
-                                continue;
-                            };
-                            if msg_type == MSG_TYPE_SUBSCRIBE {
-                                if let Err(err) = Subscribe::recv(
-                                    &buf, size, &self, msg_header,
-                                ) {
-                                    error!("{}", err);
-                                }
-                                continue;
-                            };
-                            if msg_type == MSG_TYPE_DISCONNECT {
-                                if let Err(err) = Disconnect::recv(
-                                    &buf, size, &self, msg_header,
-                                ) {
-                                    error!("{}", err);
-                                }
-                                continue;
-                            };
-                            if msg_type == MSG_TYPE_WILL_TOPIC {
-                                if let Err(why) = WillTopic::recv(
-                                    &buf, size, &self, msg_header,
-                                ) {
-                                    error!("{}", why);
-                                }
-                                continue;
-                            }
-                            if msg_type == MSG_TYPE_WILL_MSG {
-                                if let Err(why) =
-                                    WillMsg::recv(&buf, size, &self, msg_header)
-                                {
-                                    error!("{}", why);
-                                }
-                                continue;
-                            }
-                            if msg_type == MSG_TYPE_CONNACK {
-                                match ConnAck::recv(
-                                    &buf, size, &self, msg_header,
-                                ) {
-                                    // Broker shouldn't receive ConnAck
-                                    // because it doesn't send Connect for now.
-                                    Ok(_) => {
-                                        error!("Broker shouldn't receive ConnAck {:?}", addr);
-                                    }
-                                    Err(why) => error!("ConnAck {:?}", why),
-                                }
-                                continue;
-                            };
-                            error!(
-                                "{}",
-                                eformat!(
-                                    addr,
-                                    "message type not supported:",
-                                    msg_type
-                                )
-                            );
-                        } else {
-                            // New connection, not in the connection hashmap.
+                            // New connection.
+                            // TODO: the broadcast messages doesn't have connection.
+                            // TODO: broadcast messages are not encrypted.
                             if msg_type == MSG_TYPE_CONNECT {
-                                if let Err(err) = Connect::recv(
-                                    &buf, size, &mut self, msg_header,
-                                ) {
-                                    error!("{}", err);
-                                }
-                                //let clone_socket = socket.try_clone().expect("couldn't clone the socket");
-                                // clone_socket.connect(addr).unwrap();
+                                error!("{}", "Connect message received twice.");
                                 continue;
                             }
-                            if msg_type == MSG_TYPE_PUBLISH {
-                                if let Err(err) = Publish::recv(
-                                    &buf, size, &mut self, msg_header,
-                                ) {
-                                    error!("{}", err);
-                                }
-                                continue;
-                            } else {
-                                error!(
-                                    "{}",
-                                    eformat!(
-                                        addr,
-                                        "Not in connection map",
-                                        msg_type
-                                    )
-                                );
+                        } else {
+                            // Existing connection shouldn't receive CONNECT message.
+                            if msg_type != MSG_TYPE_CONNECT {
+                                error!("{}", "No connection found");
                                 continue;
                             }
                         }
+                        if fn_index >= functions.len() {
+                            error!(
+                                "{}",
+                                eformat!(
+                                    msg_header.remote_socket_addr,
+                                    "Invalid message type",
+                                    fn_index
+                                )
+                            );
+                            continue;
+                        }
+                        let result = functions[fn_index](&buf, size, &self, msg_header.clone());
+                        if result.is_err() {
+                            error!("{}", result.unwrap_err());
+                        }
+                        continue;
                     }
                     Err(why) => {
-                        println!("{:?}", why);
+                        error!("{:?}", why);
                         break;
                     }
                 }
