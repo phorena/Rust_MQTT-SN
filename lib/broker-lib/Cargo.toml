@@ -1,21 +1,20 @@
 [package]
 name = "broker-lib"
 version = "0.1.0"
-edition = "2021"
+edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+tikv-client = "0.1.0"
 rust-fsm = { path="../fsm" }
 getset = { path="../getset" }
 # mqtt-sn-lib = { path="../mqtt-sn-lib"}
 custom_debug = { path="../custom_debug" }
 modular-bitfield = { path="../modular-bitfield" }
-tokio = { version="1.0.0", features=["full", "tracing"] }
 tokio-util = { version="0.6.3", features=["full"] }
 tokio-stream = { version="0.1" }
 bytes = "1.1.0"
-futures = { version="0.3.0", features=["thread-pool"] }
 serde = { version="1.0", features=["derive"] }
 serde_derive = "1.0"
 serde_json = "1.0"
@@ -54,3 +53,19 @@ bisetmap = "0.1.6"
 
 webrtc-dtls = {path = "../../../dtls-exofense"}
 util = { package = "webrtc-util", version = "0.5.0", default-features = false, features = [ "conn" ] }
+# tikv-client = {path = "/mnt/OneTB/rust/tikv/client_rust_master" }      
+# async-trait = "0.1"
+# derive-new = "0.5"
+# either = "1.6"
+# fail = "0.4"
+# futures = { version = "0.3", features = ["async-await", "thread-pool"] }
+# futures-timer = "3.0"
+# grpcio = { version = "0.9", features = [ "secure", "prost-codec", "use-bindgen", "openssl-vendored" ], default-features = false }
+# prometheus = { version = "0.12", features = [ "push", "process" ], default-features = false }
+# regex = "1"
+# semver = "0.11"
+# slog = { version = "2.3", features = ["max_level_trace", "release_max_level_debug"] }
+# slog-term = { version = "2.4" }
+tokio = { version = "1.7.0", features = ["full", "tracing", "sync", "rt-multi-thread", "macros" ] }
+async-recursion = "0.3"
+

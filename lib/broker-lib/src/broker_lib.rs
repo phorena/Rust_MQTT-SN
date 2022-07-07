@@ -46,24 +46,14 @@ use crate::{
     will_topic_req::WillTopicReq,
     will_topic_resp::WillTopicResp,
     will_topic_upd::WillTopicUpd,
-    MSG_TYPE_CONNACK,
     MSG_TYPE_CONNECT,
-    MSG_TYPE_DISCONNECT,
-    MSG_TYPE_PINGREQ,
-    MSG_TYPE_PUBACK,
-    MSG_TYPE_PUBLISH,
-    MSG_TYPE_PUBREL,
-    MSG_TYPE_SUBACK,
-    MSG_TYPE_SUBSCRIBE,
-    MSG_TYPE_WILL_MSG,
-    MSG_TYPE_WILL_TOPIC,
 };
 // use trace_var::trace_var;
 
 fn reserved(
-    buf: &[u8],
-    size: usize,
-    client: &MqttSnClient,
+    _buf: &[u8],
+    _size: usize,
+    _client: &MqttSnClient,
     msg_header: MsgHeader,
 ) -> Result<(), String> {
     Err(eformat!(
@@ -247,7 +237,12 @@ impl MqttSnClient {
                             );
                             continue;
                         }
-                        let result = functions[fn_index](&buf, size, &self, msg_header.clone());
+                        let result = functions[fn_index](
+                            &buf,
+                            size,
+                            &self,
+                            msg_header.clone(),
+                        );
                         if result.is_err() {
                             error!("{}", result.unwrap_err());
                         }
@@ -255,7 +250,7 @@ impl MqttSnClient {
                     }
                     Err(why) => {
                         error!("{:?}", why);
-                        break;
+                        continue;
                     }
                 }
             }

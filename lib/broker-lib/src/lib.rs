@@ -44,6 +44,7 @@ pub mod retransmit;
 pub mod search_gw;
 pub mod sub_ack;
 pub mod subscribe;
+pub mod tikv;
 pub mod unsub_ack;
 pub mod unsubscribe;
 pub mod will_msg;
