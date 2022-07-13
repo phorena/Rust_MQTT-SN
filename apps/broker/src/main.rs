@@ -26,6 +26,7 @@ use webrtc_dtls::{config::Config, crypto::Certificate, listener::listen};
 use env_logger::*;
 use std::io::Write;
 use clap::{App, AppSettings, Arg};
+// use mongodb::{bson::doc, sync::Client};
 
 
 // use DTLS::dtls_client::DtlsClient;
@@ -62,6 +63,23 @@ fn mpmc() {
     */
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+
+    // Get a handle to the cluster
+    /*
+    let client = Client::with_uri_str(
+        "mongodb+srv://mongo-1001:JKLsWUuUnjdYbvem@cluster0.elom9.mongodb.net/?retryWrites=true&w=majority",
+    ).unwrap();
+    // Ping the server to see if you can connect to the cluster
+    client
+        .database("admin")
+        .run_command(doc! {"ping": 1}, None);
+    println!("Connected successfully.");
+    // List the names of the databases in that cluster
+    for db_name in client.list_database_names(None, None).unwrap() {
+        println!("{}", db_name);
+    }
+    */
+
     env_logger::Builder::new()
         .format(|buf, record| {
             writeln!(

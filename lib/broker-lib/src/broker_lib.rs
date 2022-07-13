@@ -47,6 +47,7 @@ use crate::{
     will_topic_resp::WillTopicResp,
     will_topic_upd::WillTopicUpd,
     MSG_TYPE_CONNECT,
+    tikv::TiKV,
 };
 // use trace_var::trace_var;
 
@@ -87,6 +88,7 @@ pub struct MqttSnClient {
     pub egress_tx: Sender<EgressChannelType>,
     pub egress_rx: Receiver<EgressChannelType>,
     pub hub: Arc<Hub>,
+//     pub db: Arc<TiKV>,
 }
 
 impl MqttSnClient {
@@ -113,6 +115,7 @@ impl MqttSnClient {
             Receiver<EgressChannelType>,
         ) = unbounded();
         let hub = Arc::new(Hub::new(Arc::new(ingress_tx.clone())));
+        // let db:Arc<TiKV> = Arc::new(TiKV::new());
         MqttSnClient {
             // remote_addr,
             transmit_tx,
@@ -124,6 +127,8 @@ impl MqttSnClient {
             egress_tx,
             egress_rx,
             hub,
+            // db,
+            
         }
     }
 

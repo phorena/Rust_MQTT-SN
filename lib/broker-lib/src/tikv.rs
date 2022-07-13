@@ -1,8 +1,4 @@
-// Copyright 2018 TiKV Project Authors. Licensed under Apache-2.0.
-
-// mod common;
-
-// use crate::common::parse_args;
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use tikv_client::{
     BoundRange, Config, Key, KvPair, TransactionClient as Client, Value,
@@ -14,19 +10,31 @@ struct Entity {
     y: f32,
 }
 
-struct TiKV {
+
+lazy_static! {
+    static ref DB: TiKV = {
+        tokio::runtime::Runtime::new().unwrap().block_on(async {
+            let ti_kv = TiKV::new().await;
+
+            ti_kv
+        })
+    };
+}
+
+pub struct TiKV {
     client: Client,
     config: Config,
 }
+
 impl TiKV {
-    async fn new() -> Self {
+    pub async fn new() -> TiKV {
         let config = Config::default();
 
         let client =
             Client::new_with_config(vec!["localhost:2379"], config.clone())
                 .await
                 .expect("Could not connect to tikv");
-        Self { client, config }
+        TiKV { client, config }
     }
     async fn put(&self, key: Key, value: Value) {
         let mut txn = self
