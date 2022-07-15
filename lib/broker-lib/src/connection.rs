@@ -345,7 +345,7 @@ impl Connection {
                             0, // TODO what is the msg_id?
                             subscriber.qos,
                             RETAIN_FALSE,
-                            msg,
+                            msg.freeze(),
                             client,
                             subscriber.socket_addr,
                         );

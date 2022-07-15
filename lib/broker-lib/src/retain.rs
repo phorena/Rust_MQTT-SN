@@ -1,9 +1,15 @@
-use bytes::BytesMut;
+use bytes::Bytes;
+use crossbeam::channel::*;
 use hashbrown::HashMap;
 use std::sync::Mutex;
+use std::thread;
+use log::*;
 
 use crate::{
+    broker_lib::MqttSnClient,
     flags::QoSConst,
+    flags::*,
+    publish::Publish,
     MsgIdType,
     // eformat,
     // function,
@@ -20,7 +26,7 @@ pub struct Retain {
     pub qos: QoSConst,
     pub topic_id: TopicIdType,
     pub msg_id: MsgIdType,
-    pub payload: BytesMut,
+    pub payload: Bytes,
 }
 
 impl Retain {
@@ -28,7 +34,7 @@ impl Retain {
         qos: QoSConst,
         topic_id: TopicIdType,
         msg_id: MsgIdType,
-        payload: BytesMut,
+        payload: Bytes,
     ) -> Self {
         Self {
             qos,
@@ -37,6 +43,7 @@ impl Retain {
             payload,
         }
     }
+    /*
     pub fn insert(
         qos: QoSConst,
         topic_id: TopicIdType,
@@ -57,7 +64,106 @@ impl Retain {
             None => None,
         }
     }
+    */
 }
+
+#[derive(Debug, Clone)]
+pub struct RetainDb {
+    hash_map: HashMap<TopicIdType, Retain>,
+}
+impl RetainDb {
+    pub fn new() -> Self {
+        Self {
+            hash_map: HashMap::new(),
+        }
+    }
+    pub fn insert(&mut self, retain: Retain) {
+        self.hash_map.insert(retain.topic_id, retain);
+    }
+    pub fn get(&self, topic_id: &TopicIdType) -> Option<&Retain> {
+        self.hash_map.get(topic_id).clone()
+    }
+    pub fn run2(&mut self, client: MqttSnClient) {
+        let client2 = client.clone();
+        let mut self2 = self.clone();
+        let _sub_thread = thread::spawn(move || loop {
+            select! {
+            recv(&client2.sub_retain_rx) -> msg => {
+                println!("3000 **************************************************");
+                dbg!(&msg);
+                match msg {
+                    Ok((socket_addr, topic_id)) => {
+                        if let Some(retain) = self2.hash_map.get(&topic_id) {
+                            let _result = Publish::send(
+                                retain.topic_id,
+                                retain.msg_id,
+                                retain.qos,
+                                RETAIN_FALSE,
+                                retain.payload.clone(),
+                                &client2,
+                                socket_addr,
+                            );
+                        }
+                    }
+                    Err(err) => {
+                        error!("{}", err);
+                    }
+                }
+            }
+            recv(&client2.pub_retain_rx) -> retain => {
+                match retain {
+                    Ok(retain) => {
+                        println!("3001 **************************************************");
+                        dbg!(&retain);
+                        self2.hash_map.insert(retain.topic_id, retain);
+                    }
+                    Err(err) => {
+                        error!("{}", err);
+                    }
+                }
+            }
+            }
+        });
+    }
+    pub fn run(&mut self, client: MqttSnClient) {
+        let client2 = client.clone();
+        let mut self2 = self.clone();
+        let _sub_thread = thread::spawn(move || loop {
+            match client2.pub_retain_rx.recv() {
+                Ok(retain) => {
+                    println!("2000 **************************************************");
+                    self2.hash_map.insert(retain.topic_id, retain);
+                }
+                Err(e) => {
+                    eprintln!("{}", e);
+                }
+            }
+        });
+        let client2 = client.clone();
+        let self2 = self.clone();
+        let _pub_thread = thread::spawn(move || loop {
+            match client2.sub_retain_rx.recv() {
+                Ok((socket_addr, topic_id)) => {
+                    if let Some(retain) = self2.hash_map.get(&topic_id) {
+                        let _result = Publish::send(
+                            retain.topic_id,
+                            retain.msg_id,
+                            retain.qos,
+                            RETAIN_FALSE,
+                            retain.payload.clone(),
+                            &client2,
+                            socket_addr,
+                        );
+                    }
+                }
+                Err(e) => {
+                    eprintln!("{}", e);
+                }
+            }
+        });
+    }
+}
+
 #[cfg(test)]
 mod test {
     /*

@@ -19,7 +19,7 @@ coded 0x0000.
 • Data: the published data.
 */
 #![allow(unused_imports)]
-use bytes::{BufMut, BytesMut};
+use bytes::{BufMut, Bytes, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
 use log::*;
@@ -219,12 +219,15 @@ impl Publish {
             }
         }
         if flag_is_retain(publish.flags) {
-            Retain::insert(
-                flag_qos_level(publish.flags),
-                publish.topic_id,
-                publish.msg_id,
-                publish.data.clone(),
-            );
+            println!("1000 **************************************************");
+            if let Err(err) = client.pub_retain_tx.try_send(Retain {
+                qos: flag_qos_level(publish.flags),
+                topic_id: publish.topic_id,
+                msg_id: publish.msg_id,
+                payload: publish.data.clone().freeze(),
+            }) {
+                error!("{}", err); // TODO log it
+            }
         }
         Publish::send_msg_to_subscribers(subscriber_vec, publish, client)?;
 
@@ -245,7 +248,8 @@ impl Publish {
         msg_id: u16,
         qos: u8,
         retain: u8,
-        data: BytesMut,
+        // data: BytesMut,
+        data: Bytes,
         client: &MqttSnClient, // contains the address of the publisher
         remote_addr: SocketAddr, // address of the subscriber
     ) -> Result<(), String> {
@@ -369,7 +373,7 @@ impl Publish {
                             publish.msg_id,
                             subscriber.qos,
                             RETAIN_FALSE,
-                            publish.data.clone(),
+                            publish.data.clone().freeze(),
                             client,
                             subscriber.socket_addr,
                         );

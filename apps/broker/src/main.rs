@@ -33,6 +33,7 @@ use clap::{App, AppSettings, Arg};
 use broker_lib::{
     broker_lib::MqttSnClient,
     hub::Hub,
+    retain::RetainDb,
 };
 // use BrokerLib::MqttSnClient;
 
@@ -141,6 +142,8 @@ async fn main() -> Result<(), Error> {
 
     let client = MqttSnClient::new();
 
+        let mut retain_db = RetainDb::new();
+        retain_db.run2(client.clone());
 
 
     let listener = Arc::new(listen(host, cfg).await?);

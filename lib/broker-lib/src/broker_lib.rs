@@ -32,10 +32,13 @@ use crate::{
     publish::Publish,
     reg_ack::RegAck,
     register::Register,
+    retain::Retain,
+    retain::RetainDb,
     retransmit::RetransTimeWheel,
     search_gw::SearchGw,
     sub_ack::SubAck,
     subscribe::Subscribe,
+    // tikv::TiKV,
     unsub_ack::UnsubAck,
     unsubscribe::Unsubscribe,
     will_msg::WillMsg,
@@ -46,8 +49,8 @@ use crate::{
     will_topic_req::WillTopicReq,
     will_topic_resp::WillTopicResp,
     will_topic_upd::WillTopicUpd,
+    TopicIdType,
     MSG_TYPE_CONNECT,
-    tikv::TiKV,
 };
 // use trace_var::trace_var;
 
@@ -87,8 +90,14 @@ pub struct MqttSnClient {
     pub ingress_rx: Receiver<IngressChannelType>,
     pub egress_tx: Sender<EgressChannelType>,
     pub egress_rx: Receiver<EgressChannelType>,
+    pub pub_retain_tx: Sender<Retain>,
+    pub pub_retain_rx: Receiver<Retain>,
+    pub sub_retain_tx: Sender<(SocketAddr, TopicIdType)>,
+    pub sub_retain_rx: Receiver<(SocketAddr, TopicIdType)>,
+
     pub hub: Arc<Hub>,
-//     pub db: Arc<TiKV>,
+    pub retain_db: RetainDb,
+    //     pub db: Arc<TiKV>,
 }
 
 impl MqttSnClient {
@@ -114,7 +123,16 @@ impl MqttSnClient {
             Sender<EgressChannelType>,
             Receiver<EgressChannelType>,
         ) = unbounded();
+        // Channel for subscribe retain messages.
+        let (pub_retain_tx, pub_retain_rx): (Sender<Retain>, Receiver<Retain>) =
+            unbounded();
+        // Channel for publish retain messages.
+        let (sub_retain_tx, sub_retain_rx): (
+            Sender<(SocketAddr, TopicIdType)>,
+            Receiver<(SocketAddr, TopicIdType)>,
+        ) = unbounded();
         let hub = Arc::new(Hub::new(Arc::new(ingress_tx.clone())));
+        let retain_db = RetainDb::new();
         // let db:Arc<TiKV> = Arc::new(TiKV::new());
         MqttSnClient {
             // remote_addr,
@@ -126,9 +144,13 @@ impl MqttSnClient {
             ingress_rx,
             egress_tx,
             egress_rx,
+            sub_retain_tx,
+            sub_retain_rx,
+            pub_retain_tx,
+            pub_retain_rx,
             hub,
+            retain_db,
             // db,
-            
         }
     }
 
@@ -279,6 +301,8 @@ impl MqttSnClient {
         RetransTimeWheel::run(self.clone());
         Advertise::run(broadcast_socket_addr, 5, 2);
         GwInfo::run(gateway_info_socket_addr);
+
+        // self.retain_db.run2(&mut self.clone());
 
         // client runs this to search for gateway.
         // SearchGw::run(gateway_info_socket_addr, 2, 2);

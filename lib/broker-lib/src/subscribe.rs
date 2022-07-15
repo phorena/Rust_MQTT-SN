@@ -23,6 +23,7 @@ Table 19: SUBSCRIBE and UNSUBSCRIBE Messages
 use bytes::{BufMut, BytesMut};
 use custom_debug::Debug;
 use getset::{CopyGetters, Getters, MutGetters};
+use log::*;
 use std::mem;
 use std::str;
 
@@ -186,7 +187,7 @@ impl Subscribe {
                     return Ok(());
                 }
                 TOPIC_ID_TYPE_PRE_DEFINED => {
-                    // Pre-defined topic type(u16/2 bytes) in the topic_id field.
+                    // Pre-defined topic type(u16, 2 bytes) in the topic_id field.
                     // The struct has topic_name field only. We have to convert it to
                     // topic_id.
                     let id = subscribe.topic_name.chars().as_str();
@@ -221,17 +222,12 @@ impl Subscribe {
                         RETURN_CODE_ACCEPTED,
                     )?;
                     dbg!(topic_id);
-                    if let Some(msg) = Retain::get(topic_id) {
-                        dbg!(topic_id);
-                        Publish::send(
-                            msg.topic_id,
-                            msg.msg_id,
-                            msg.qos,
-                            RETAIN_FALSE,
-                            msg.payload,
-                            client,
-                            remote_socket_addr,
-                        )?;
+                    // check for retained topic
+                    if let Err(err) = client
+                        .sub_retain_tx
+                        .try_send((remote_socket_addr, topic_id))
+                    {
+                        error!("{}", err); // TODO log it
                     }
                     return Ok(());
                 }
