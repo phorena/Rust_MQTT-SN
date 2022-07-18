@@ -32,8 +32,8 @@ use crate::{
     publish::Publish,
     reg_ack::RegAck,
     register::Register,
-    retain::Retain,
-    retain::RetainDb,
+    retain_cache::Retain,
+    retain_cache::RetainCache,
     retransmit::RetransTimeWheel,
     search_gw::SearchGw,
     sub_ack::SubAck,
@@ -96,7 +96,7 @@ pub struct MqttSnClient {
     pub sub_retain_rx: Receiver<(SocketAddr, TopicIdType)>,
 
     pub hub: Arc<Hub>,
-    pub retain_db: RetainDb,
+    pub retain_cache: RetainCache,
     //     pub db: Arc<TiKV>,
 }
 
@@ -132,7 +132,7 @@ impl MqttSnClient {
             Receiver<(SocketAddr, TopicIdType)>,
         ) = unbounded();
         let hub = Arc::new(Hub::new(Arc::new(ingress_tx.clone())));
-        let retain_db = RetainDb::new();
+        let retain_cache = RetainCache::new();
         // let db:Arc<TiKV> = Arc::new(TiKV::new());
         MqttSnClient {
             // remote_addr,
@@ -149,7 +149,7 @@ impl MqttSnClient {
             pub_retain_tx,
             pub_retain_rx,
             hub,
-            retain_db,
+            retain_cache,
             // db,
         }
     }
@@ -302,7 +302,7 @@ impl MqttSnClient {
         Advertise::run(broadcast_socket_addr, 5, 2);
         GwInfo::run(gateway_info_socket_addr);
 
-        // self.retain_db.run2(&mut self.clone());
+        // self.retain_cache.run2(&mut self.clone());
 
         // client runs this to search for gateway.
         // SearchGw::run(gateway_info_socket_addr, 2, 2);

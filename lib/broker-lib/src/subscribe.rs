@@ -32,8 +32,9 @@ use trace_caller::trace;
 
 use crate::{
     broker_lib::MqttSnClient, eformat, filter::*, flags::*, function,
-    msg_hdr::*, publish::Publish, retain::Retain, retransmit::RetransTimeWheel,
-    sub_ack::SubAck, MSG_TYPE_SUBACK, MSG_TYPE_SUBSCRIBE, RETURN_CODE_ACCEPTED,
+    msg_hdr::*, publish::Publish, retain_cache::RetainCache,
+    retransmit::RetransTimeWheel, sub_ack::SubAck, MSG_TYPE_SUBACK,
+    MSG_TYPE_SUBSCRIBE, RETURN_CODE_ACCEPTED,
 };
 
 #[derive(

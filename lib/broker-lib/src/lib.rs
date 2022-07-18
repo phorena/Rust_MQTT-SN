@@ -39,7 +39,7 @@ pub mod pub_rel;
 pub mod publish;
 pub mod reg_ack;
 pub mod register;
-pub mod retain;
+pub mod retain_cache;
 pub mod retransmit;
 pub mod search_gw;
 pub mod sub_ack;

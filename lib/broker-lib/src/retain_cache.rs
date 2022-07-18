@@ -1,9 +1,9 @@
 use bytes::Bytes;
 use crossbeam::channel::*;
 use hashbrown::HashMap;
+use log::*;
 use std::sync::Mutex;
 use std::thread;
-use log::*;
 
 use crate::{
     broker_lib::MqttSnClient,
@@ -29,49 +29,11 @@ pub struct Retain {
     pub payload: Bytes,
 }
 
-impl Retain {
-    pub fn new(
-        qos: QoSConst,
-        topic_id: TopicIdType,
-        msg_id: MsgIdType,
-        payload: Bytes,
-    ) -> Self {
-        Self {
-            qos,
-            topic_id,
-            msg_id,
-            payload,
-        }
-    }
-    /*
-    pub fn insert(
-        qos: QoSConst,
-        topic_id: TopicIdType,
-        msg_id: MsgIdType,
-        payload: BytesMut,
-    ) {
-        let mut retain_map = RETAIN_MAP.lock().unwrap();
-        // if the topic_id is already in the map, replace the old retain with the new one
-        // TODO check error
-        retain_map
-            .insert(topic_id, Retain::new(qos, topic_id, msg_id, payload));
-        dbg!(&retain_map);
-    }
-    pub fn get(topic_id: TopicIdType) -> Option<Retain> {
-        let retain_map = RETAIN_MAP.lock().unwrap();
-        match retain_map.get(&topic_id) {
-            Some(retain) => Some(retain.clone()),
-            None => None,
-        }
-    }
-    */
-}
-
 #[derive(Debug, Clone)]
-pub struct RetainDb {
+pub struct RetainCache {
     hash_map: HashMap<TopicIdType, Retain>,
 }
-impl RetainDb {
+impl RetainCache {
     pub fn new() -> Self {
         Self {
             hash_map: HashMap::new(),
@@ -88,40 +50,40 @@ impl RetainDb {
         let mut self2 = self.clone();
         let _sub_thread = thread::spawn(move || loop {
             select! {
-            recv(&client2.sub_retain_rx) -> msg => {
-                println!("3000 **************************************************");
-                dbg!(&msg);
-                match msg {
-                    Ok((socket_addr, topic_id)) => {
-                        if let Some(retain) = self2.hash_map.get(&topic_id) {
-                            let _result = Publish::send(
-                                retain.topic_id,
-                                retain.msg_id,
-                                retain.qos,
-                                RETAIN_FALSE,
-                                retain.payload.clone(),
-                                &client2,
-                                socket_addr,
-                            );
+                recv(&client2.sub_retain_rx) -> msg => {
+                    println!("3000 **************************************************");
+                    dbg!(&msg);
+                    match msg {
+                        Ok((socket_addr, topic_id)) => {
+                            if let Some(retain) = self2.hash_map.get(&topic_id) {
+                                let _result = Publish::send(
+                                    retain.topic_id,
+                                    retain.msg_id,
+                                    retain.qos,
+                                    RETAIN_FALSE,
+                                    retain.payload.clone(),
+                                    &client2,
+                                    socket_addr,
+                                );
+                            }
+                        }
+                        Err(err) => {
+                            error!("{}", err);
                         }
                     }
-                    Err(err) => {
-                        error!("{}", err);
+                }
+                recv(&client2.pub_retain_rx) -> retain => {
+                    match retain {
+                        Ok(retain) => {
+                            println!("3001 **************************************************");
+                            dbg!(&retain);
+                            self2.hash_map.insert(retain.topic_id, retain);
+                        }
+                        Err(err) => {
+                            error!("{}", err);
+                        }
                     }
                 }
-            }
-            recv(&client2.pub_retain_rx) -> retain => {
-                match retain {
-                    Ok(retain) => {
-                        println!("3001 **************************************************");
-                        dbg!(&retain);
-                        self2.hash_map.insert(retain.topic_id, retain);
-                    }
-                    Err(err) => {
-                        error!("{}", err);
-                    }
-                }
-            }
             }
         });
     }

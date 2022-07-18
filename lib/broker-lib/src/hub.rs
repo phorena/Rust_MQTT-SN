@@ -20,7 +20,6 @@ pub struct Hub {
 }
 
 impl Hub {
-    /// new builds a new hub
     pub fn new(
         channel_tx: Arc<
             Sender<(SocketAddr, Bytes, Arc<dyn Conn + Send + Sync>)>,
