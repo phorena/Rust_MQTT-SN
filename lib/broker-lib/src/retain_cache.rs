@@ -14,6 +14,7 @@ use crate::{
     // eformat,
     // function,
     TopicIdType,
+    mongodb::*,
 };
 
 lazy_static! {
@@ -32,30 +33,36 @@ pub struct Retain {
 #[derive(Debug, Clone)]
 pub struct RetainCache {
     hash_map: HashMap<TopicIdType, Retain>,
+    db: RetainDb,
 }
 impl RetainCache {
-    pub fn new() -> Self {
+    pub fn new(url: &str) -> Self {
         Self {
             hash_map: HashMap::new(),
+            db: RetainDb::new(url),
         }
     }
-    pub fn insert(&mut self, retain: Retain) {
-        self.hash_map.insert(retain.topic_id, retain);
+    fn insert(&mut self, retain: Retain) {
+        self.hash_map.insert(retain.topic_id, retain.clone());
+        self.db.upsert(retain.qos, retain.topic_id,
+         "msg_id".to_string(), retain.msg_id.to_string(), &retain.payload[..]);
     }
-    pub fn get(&self, topic_id: &TopicIdType) -> Option<&Retain> {
+    fn get(&self, topic_id: &TopicIdType) -> Option<&Retain> {
         self.hash_map.get(topic_id).clone()
     }
-    pub fn run2(&mut self, client: MqttSnClient) {
+    pub fn run(&mut self, client: MqttSnClient) {
         let client2 = client.clone();
         let mut self2 = self.clone();
         let _sub_thread = thread::spawn(move || loop {
             select! {
+                // A message from subscriber with socket_addr and topic_id.
+                // If the topic_id is in the hash_map, send the message to the subscriber.
                 recv(&client2.sub_retain_rx) -> msg => {
                     println!("3000 **************************************************");
                     dbg!(&msg);
                     match msg {
                         Ok((socket_addr, topic_id)) => {
-                            if let Some(retain) = self2.hash_map.get(&topic_id) {
+                            if let Some(retain) = self2.get(&topic_id) {
                                 let _result = Publish::send(
                                     retain.topic_id,
                                     retain.msg_id,
@@ -72,12 +79,14 @@ impl RetainCache {
                         }
                     }
                 }
+                // A message from subscriber with retain message.
+                // Insert the retain message into the hash_map.
                 recv(&client2.pub_retain_rx) -> retain => {
                     match retain {
                         Ok(retain) => {
                             println!("3001 **************************************************");
                             dbg!(&retain);
-                            self2.hash_map.insert(retain.topic_id, retain);
+                            self2.insert(retain);
                         }
                         Err(err) => {
                             error!("{}", err);
@@ -87,7 +96,7 @@ impl RetainCache {
             }
         });
     }
-    pub fn run(&mut self, client: MqttSnClient) {
+    pub fn run3(&mut self, client: MqttSnClient) {
         let client2 = client.clone();
         let mut self2 = self.clone();
         let _sub_thread = thread::spawn(move || loop {

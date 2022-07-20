@@ -96,7 +96,7 @@ pub struct MqttSnClient {
     pub sub_retain_rx: Receiver<(SocketAddr, TopicIdType)>,
 
     pub hub: Arc<Hub>,
-    pub retain_cache: RetainCache,
+    // pub retain_cache: RetainCache,
     //     pub db: Arc<TiKV>,
 }
 
@@ -132,7 +132,7 @@ impl MqttSnClient {
             Receiver<(SocketAddr, TopicIdType)>,
         ) = unbounded();
         let hub = Arc::new(Hub::new(Arc::new(ingress_tx.clone())));
-        let retain_cache = RetainCache::new();
+        // let retain_cache = RetainCache::new();
         // let db:Arc<TiKV> = Arc::new(TiKV::new());
         MqttSnClient {
             // remote_addr,
@@ -149,7 +149,7 @@ impl MqttSnClient {
             pub_retain_tx,
             pub_retain_rx,
             hub,
-            retain_cache,
+        //     retain_cache,
             // db,
         }
     }

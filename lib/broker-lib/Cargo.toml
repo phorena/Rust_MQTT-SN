@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tikv-client = "0.1.0"
+# tikv-client = "0.1.0"
 rust-fsm = { path="../fsm" }
 getset = { path="../getset" }
 # mqtt-sn-lib = { path="../mqtt-sn-lib"}

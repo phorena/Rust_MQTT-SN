@@ -93,7 +93,7 @@ async fn main() -> Result<(), Error> {
                 record.args()
             )
         })
-        .filter(None, log::LevelFilter::Trace)
+        .filter(None, log::LevelFilter::Warn)
         .init();
 
 
@@ -142,8 +142,8 @@ async fn main() -> Result<(), Error> {
 
     let client = MqttSnClient::new();
 
-        let mut retain_cache = RetainCache::new();
-        retain_cache.run2(client.clone());
+        let mut retain_cache = RetainCache::new("mongodb+srv://mongo-1001:JKLsWUuUnjdYbvem@cluster0.elom9.mongodb.net/?retryWrites=true&w=majority");
+        retain_cache.run(client.clone());
 
 
     let listener = Arc::new(listen(host, cfg).await?);
