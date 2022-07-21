@@ -1,9 +1,15 @@
+/// Cache the retained messages.
+/// If the retain flag is set, the message is cached.
+/// The cache is used to send retained messages when a client subscribes to the topic.
+/// The messages are also saved and retrieved from MongoDB.
+
 use bytes::Bytes;
 use crossbeam::channel::*;
 use hashbrown::HashMap;
 use log::*;
 use std::sync::Mutex;
 use std::thread;
+use std::sync::Arc;
 
 use crate::{
     broker_lib::MqttSnClient,
@@ -32,23 +38,71 @@ pub struct Retain {
 
 #[derive(Debug, Clone)]
 pub struct RetainCache {
-    hash_map: HashMap<TopicIdType, Retain>,
+    hash_map: Arc<Mutex<HashMap<TopicIdType, Retain>>>,
     db: RetainDb,
 }
 impl RetainCache {
     pub fn new(url: &str) -> Self {
         Self {
-            hash_map: HashMap::new(),
+            hash_map: Arc::new(Mutex::new(HashMap::new())),
             db: RetainDb::new(url),
         }
     }
     fn insert(&mut self, retain: Retain) {
-        self.hash_map.insert(retain.topic_id, retain.clone());
+        let mut hash_map = self.hash_map.lock().unwrap();
+        hash_map.insert(retain.topic_id, retain.clone());
         self.db.upsert(retain.qos, retain.topic_id,
-         "msg_id".to_string(), retain.msg_id.to_string(), &retain.payload[..]);
+         "msg_id".to_string(), retain.msg_id, &retain.payload[..]);
     }
-    fn get(&self, topic_id: &TopicIdType) -> Option<&Retain> {
-        self.hash_map.get(topic_id).clone()
+    fn get(&mut self, topic_id: &TopicIdType) -> Option<Retain> {
+        let mut hash_map = self.hash_map.lock().unwrap();
+        match hash_map.get(topic_id) {
+            Some(retain) => {
+                dbg!(&retain);
+                let retain2 = Retain {
+                    qos: retain.qos,
+                    topic_id: retain.topic_id,
+                    msg_id: retain.msg_id,
+                    payload: retain.payload.clone(),
+                };
+                dbg!(&retain2);
+                Some(retain2)
+            }
+            None => {
+                match self.db.get_with_topic_id(*topic_id){
+                    Ok(retain_doc) => {
+                        dbg!(&retain_doc);
+                        // let retain_doc2 = retain_doc.clone();
+                        // let msg = Bytes::from(&msg2[..]);
+                        // dbg!(msg);
+                        let msg = retain_doc.msg.clone().into_vec();
+                        dbg!(&msg);
+                        let msg = retain_doc.msg.as_slice();
+                        dbg!(&msg);
+                        let retain = Retain {
+                            qos: retain_doc.qos,
+                            topic_id: retain_doc.topic_id,
+                            msg_id: retain_doc.msg_id,
+                            payload: Bytes::copy_from_slice(&msg[..]),
+                            // payload: Bytes::from("hello"),
+                        };
+                        // let hash_map = &mut self.hash_map.clone();
+                        // let mut hash_map = self.hash_map.lock().unwrap();
+                        hash_map.insert(*topic_id, retain.clone());
+        dbg!((topic_id, retain.topic_id));
+        let result = hash_map.get(topic_id);
+        dbg!(&result);
+                        dbg!(&retain);
+                        dbg!(&hash_map);
+                        return Some(retain);
+                    },
+                    Err(e) => {
+                        error!("{}", e);
+                    }
+                }
+                None
+            }
+        }
     }
     pub fn run(&mut self, client: MqttSnClient) {
         let client2 = client.clone();
@@ -63,6 +117,7 @@ impl RetainCache {
                     match msg {
                         Ok((socket_addr, topic_id)) => {
                             if let Some(retain) = self2.get(&topic_id) {
+                                dbg!(&retain);
                                 let _result = Publish::send(
                                     retain.topic_id,
                                     retain.msg_id,
@@ -75,6 +130,7 @@ impl RetainCache {
                             }
                         }
                         Err(err) => {
+                            dbg!(&err);
                             error!("{}", err);
                         }
                     }
@@ -96,6 +152,7 @@ impl RetainCache {
             }
         });
     }
+    /*
     pub fn run3(&mut self, client: MqttSnClient) {
         let client2 = client.clone();
         let mut self2 = self.clone();
@@ -133,6 +190,7 @@ impl RetainCache {
             }
         });
     }
+    */
 }
 
 #[cfg(test)]

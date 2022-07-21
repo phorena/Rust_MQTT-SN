@@ -18,22 +18,19 @@ use crossbeam::channel::{unbounded, Receiver, Sender};
 use trace_var::trace_var;
 
 use bytes::{BufMut, BytesMut};
+use clap::{App, AppSettings, Arg};
+use env_logger::*;
+use std::io::Write;
 use std::sync::Arc;
 use util::conn::*;
 use webrtc_dtls::config::ExtendedMasterSecretType;
 use webrtc_dtls::Error;
 use webrtc_dtls::{config::Config, crypto::Certificate, listener::listen};
-use env_logger::*;
-use std::io::Write;
-use clap::{App, AppSettings, Arg};
 // use mongodb::{bson::doc, sync::Client};
-
 
 // use DTLS::dtls_client::DtlsClient;
 use broker_lib::{
-    broker_lib::MqttSnClient,
-    hub::Hub,
-    retain_cache::RetainCache,
+    broker_lib::MqttSnClient, hub::Hub, retain_cache::RetainCache,
 };
 // use BrokerLib::MqttSnClient;
 
@@ -64,7 +61,6 @@ fn mpmc() {
     */
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-
     // Get a handle to the cluster
     /*
     let client = Client::with_uri_str(
@@ -96,7 +92,6 @@ async fn main() -> Result<(), Error> {
         .filter(None, log::LevelFilter::Warn)
         .init();
 
-
     let mut app = App::new("DTLS Server")
         .version("0.1.0")
         .author("Rain Liu <yliu@webrtc.rs>")
@@ -127,7 +122,8 @@ async fn main() -> Result<(), Error> {
     let host = matches.value_of("host").unwrap().to_owned();
 
     // Generate a certificate and private key to secure the connection
-    let certificate = Certificate::generate_self_signed(vec!["localhost".to_owned()])?;
+    let certificate =
+        Certificate::generate_self_signed(vec!["localhost".to_owned()])?;
 
     let cfg = Config {
         certificates: vec![certificate],
@@ -142,9 +138,8 @@ async fn main() -> Result<(), Error> {
 
     let client = MqttSnClient::new();
 
-        let mut retain_cache = RetainCache::new("mongodb+srv://mongo-1001:JKLsWUuUnjdYbvem@cluster0.elom9.mongodb.net/?retryWrites=true&w=majority");
-        retain_cache.run(client.clone());
-
+    let mut retain_cache = RetainCache::new("mongodb+srv://mongo-1001:JKLsWUuUnjdYbvem@cluster0.elom9.mongodb.net/?retryWrites=true&w=majority");
+    retain_cache.run(client.clone());
 
     let listener = Arc::new(listen(host, cfg).await?);
     let listener2 = Arc::clone(&listener);
@@ -167,8 +162,8 @@ async fn main() -> Result<(), Error> {
     // This thread reads the channel for all subscribed topics.
     // The struct Publish is recv.
     // TODO return error for subscribe and publish function calls.
-        let _result = client_ingress.handle_ingress();
-        let _result = client_egress.handle_egress();
+    let _result = client_ingress.handle_ingress();
+    let _result = client_egress.handle_egress();
 
     let rx_thread2 = thread::spawn(move || loop {
         let _result = client_sub.subscribe_rx.recv();
