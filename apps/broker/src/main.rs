@@ -81,11 +81,11 @@ async fn main() -> Result<(), Error> {
         .format(|buf, record| {
             writeln!(
                 buf,
-                "{}:{} [{}] {} - {}",
+                "{} [{}] {}:{} - {}",
+                chrono::Local::now().format("%y-%m-%d %H:%M:%S.%6f"),
+                record.level(),
                 record.file().unwrap_or("unknown"),
                 record.line().unwrap_or(0),
-                record.level(),
-                chrono::Local::now().format("%H:%M:%S.%6f"),
                 record.args()
             )
         })
@@ -131,9 +131,9 @@ async fn main() -> Result<(), Error> {
         ..Default::default()
     };
 
-    println!("listening {}...\ntype 'exit' to shutdown gracefully", host);
+    // println!("listening {}...\ntype 'exit' to shutdown gracefully", host);
 
-    let remote_addr = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
+    // let remote_addr = "127.0.0.1:0".parse::<SocketAddr>().unwrap();
     let socket = UdpSocket::bind("0.0.0.0:60000").unwrap();
 
     let client = MqttSnClient::new();
@@ -170,13 +170,6 @@ async fn main() -> Result<(), Error> {
     });
 
     let publish_thread = thread::spawn(move || loop {
-        /*
-        let msg = format!("hi {:?}", i);
-        let msg2 = format!("hi {:?}", i + 1000);
-        client_main.publish(1, i, QOS_LEVEL_0, RETAIN_TRUE, msg.to_string());
-        client_main.publish(2, i, QOS_LEVEL_0, RETAIN_FALSE, msg2.to_string());
-        i += 1;
-        */
         thread::sleep(Duration::from_secs(2));
     });
     rx_thread2.join().expect("The sender thread has panicked");
@@ -185,16 +178,4 @@ async fn main() -> Result<(), Error> {
         .expect("The sender thread has panicked");
     // handle_ingress_thread.join().expect("The handle_ingress thread has panicked");
     Ok(())
-}
-
-fn init_logging() {
-    /*
-    TermLogger::init(
-        LevelFilter::Info,
-        Config::default(),
-        TerminalMode::Mixed,
-        ColorChoice::Auto,
-    )
-    .unwrap();
-    */
 }

@@ -1,10 +1,15 @@
-use mongodb::{options::UpdateOptions, bson::doc, sync::Client, sync::Collection, sync::Database};
+use crate::{flags::QoSConst, MsgIdType, TopicIdType};
+use log::*;
+use mongodb::{
+    bson::doc, options::UpdateOptions, sync::Client, sync::Collection,
+    sync::Database,
+};
 use serde::{Deserialize as Ser_Deserialize, Serialize as Ser_Serialize};
 use serde_bytes::{ByteBuf, Bytes};
+
 use crate::{
-    flags::QoSConst,
-    TopicIdType,
-    MsgIdType,
+    eformat,
+    function,
 };
 
 #[derive(Debug, Clone, Ser_Serialize, Ser_Deserialize)]
@@ -18,7 +23,13 @@ pub struct RetainDoc {
 }
 
 impl RetainDoc {
-    pub fn new(qos: QoSConst, topic_id: TopicIdType, topic_name: String, msg_id: MsgIdType, msg: ByteBuf) -> Self {
+    pub fn new(
+        qos: QoSConst,
+        topic_id: TopicIdType,
+        topic_name: String,
+        msg_id: MsgIdType,
+        msg: ByteBuf,
+    ) -> Self {
         Self {
             topic_id,
             qos,
@@ -38,15 +49,22 @@ pub struct RetainDb {
 }
 
 impl RetainDb {
-    pub fn new(url: &str) -> RetainDb {
-        let client = Client::with_uri_str(url).unwrap();
-        let database = client.database("MQTT-SN");
-        let collection = database.collection("retain4");
-        RetainDb {
-            client,
-            url: url.to_string(),
-            database,
-            collection,
+    pub fn new(url: &str) -> Option<RetainDb> {
+        match Client::with_uri_str(url) {
+            Ok(client) => {
+                let database = client.database("MQTT-SN");
+                let collection = database.collection("retain4");
+                Some(Self {
+                    client,
+                    url: url.to_string(),
+                    database,
+                    collection,
+                })
+            }
+            Err(why) => {
+                error!("{}", why);
+                None
+            }
         }
     }
     pub fn upsert(
@@ -57,27 +75,18 @@ impl RetainDb {
         msg_id: MsgIdType,
         msg: &[u8],
     ) {
-        /*
-        let retain_doc = RetainDoc {
-            qos,
-            topic_id: topic_id.clone(),
-            topic_name: topic_name.clone(),
-            msg_id: msg_id.clone(),
-            msg: ByteBuf::from(msg),
-        };
-        let result = self.collection.insert_one(retain_doc, None).unwrap();
-        */
-        let options = UpdateOptions::builder()
-            .upsert(true)
-            .build();
+        let options = UpdateOptions::builder().upsert(true).build();
         let result = self.collection.update_one(
             doc! {
                "topic_id": topic_id as u32,
             },
             doc! {
-            "$set": { "msg_id": msg_id as u32, "msg": std::str::from_utf8(msg).unwrap(), "qos": qos as u32, "topic_name": topic_name,} ,
-            // "$setOnInsert": { "qos": qos as u32, "topic_name": topic_name,} ,
-              // "$setOnInsert": retain_doc,
+                "$set": {
+                    "msg_id": msg_id as u32,
+                    "msg": std::str::from_utf8(msg).unwrap(),
+                    "qos": qos as u32,
+                    "topic_name": topic_name,
+                },
             },
             options,
         );
@@ -94,9 +103,7 @@ impl RetainDb {
         let msg: ByteBuf = ByteBuf::from(msg);
         // Update the document:
         // let msg = msg.to_string();
-        let options = UpdateOptions::builder()
-            .upsert(true)
-            .build();
+        let options = UpdateOptions::builder().upsert(true).build();
         let update_result = self.collection.update_one(
             doc! {
                "topic_id": topic_id as u32,
@@ -105,7 +112,7 @@ impl RetainDb {
                "$set": { "qos": qos as u32 },
                // "$setOnInsert": { "qos": qos, "topic_name": topic_name, "msg_id": msg_id },
             },
-            Some(options)
+            Some(options),
         );
         dbg!(&update_result);
         match update_result {
@@ -122,7 +129,10 @@ impl RetainDb {
             }
         }
     }
-    pub fn get_with_topic_name(&self, topic_name: &String) -> Result<ByteBuf, String> {
+    pub fn get_with_topic_name(
+        &self,
+        topic_name: &String,
+    ) -> Result<ByteBuf, String> {
         let filter = doc! { "topic_name": topic_name };
         match self.collection.find_one(filter, None) {
             Ok(Some(retain)) => {
@@ -138,7 +148,10 @@ impl RetainDb {
             )),
         }
     }
-    pub fn get_with_topic_id(&self, topic_id: TopicIdType) -> Result<RetainDoc, String> {
+    pub fn get_with_topic_id(
+        &self,
+        topic_id: TopicIdType,
+    ) -> Result<RetainDoc, String> {
         let filter = doc! { "topic_id": topic_id as u32 };
         match self.collection.find_one(filter, None) {
             Ok(Some(retain)) => {

@@ -1,32 +1,26 @@
 /// Cache the retained messages.
-/// If the retain flag is set, the message is cached.
+/// If the retain flag is set, cache the message in hashmap and save it to the database.
 /// The cache is used to send retained messages when a client subscribes to the topic.
 /// The messages are also saved and retrieved from MongoDB.
-
 use bytes::Bytes;
 use crossbeam::channel::*;
 use hashbrown::HashMap;
 use log::*;
+use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
-use std::sync::Arc;
 
 use crate::{
     broker_lib::MqttSnClient,
     flags::QoSConst,
     flags::*,
+    mongodb::*,
     publish::Publish,
     MsgIdType,
     // eformat,
     // function,
     TopicIdType,
-    mongodb::*,
 };
-
-lazy_static! {
-    pub static ref RETAIN_MAP: Mutex<HashMap<TopicIdType, Retain>> =
-        Mutex::new(HashMap::new());
-}
 
 #[derive(Debug, Clone)]
 pub struct Retain {
@@ -39,7 +33,7 @@ pub struct Retain {
 #[derive(Debug, Clone)]
 pub struct RetainCache {
     hash_map: Arc<Mutex<HashMap<TopicIdType, Retain>>>,
-    db: RetainDb,
+    db: Option<RetainDb>,
 }
 impl RetainCache {
     pub fn new(url: &str) -> Self {
@@ -51,53 +45,48 @@ impl RetainCache {
     fn insert(&mut self, retain: Retain) {
         let mut hash_map = self.hash_map.lock().unwrap();
         hash_map.insert(retain.topic_id, retain.clone());
-        self.db.upsert(retain.qos, retain.topic_id,
-         "msg_id".to_string(), retain.msg_id, &retain.payload[..]);
+        if let Some(db) = &self.db {
+            db.upsert(
+                retain.qos,
+                retain.topic_id,
+                "msg_id".to_string(),
+                retain.msg_id,
+                &retain.payload[..],
+            );
+        }
     }
     fn get(&mut self, topic_id: &TopicIdType) -> Option<Retain> {
         let mut hash_map = self.hash_map.lock().unwrap();
         match hash_map.get(topic_id) {
+            // in the cache, return the value.
             Some(retain) => {
                 dbg!(&retain);
-                let retain2 = Retain {
-                    qos: retain.qos,
-                    topic_id: retain.topic_id,
-                    msg_id: retain.msg_id,
-                    payload: retain.payload.clone(),
-                };
-                dbg!(&retain2);
-                Some(retain2)
+                Some(retain.clone())
             }
             None => {
-                match self.db.get_with_topic_id(*topic_id){
-                    Ok(retain_doc) => {
-                        dbg!(&retain_doc);
-                        // let retain_doc2 = retain_doc.clone();
-                        // let msg = Bytes::from(&msg2[..]);
-                        // dbg!(msg);
-                        let msg = retain_doc.msg.clone().into_vec();
-                        dbg!(&msg);
-                        let msg = retain_doc.msg.as_slice();
-                        dbg!(&msg);
-                        let retain = Retain {
-                            qos: retain_doc.qos,
-                            topic_id: retain_doc.topic_id,
-                            msg_id: retain_doc.msg_id,
-                            payload: Bytes::copy_from_slice(&msg[..]),
-                            // payload: Bytes::from("hello"),
-                        };
-                        // let hash_map = &mut self.hash_map.clone();
-                        // let mut hash_map = self.hash_map.lock().unwrap();
-                        hash_map.insert(*topic_id, retain.clone());
-        dbg!((topic_id, retain.topic_id));
-        let result = hash_map.get(topic_id);
-        dbg!(&result);
-                        dbg!(&retain);
-                        dbg!(&hash_map);
-                        return Some(retain);
-                    },
-                    Err(e) => {
-                        error!("{}", e);
+                // not in the cache, get from MongoDB.
+                if let Some(db) = &self.db {
+                    match db.get_with_topic_id(*topic_id) {
+                        Ok(retain_doc) => {
+                            dbg!(&retain_doc);
+                            // Convert the serde_bytes into slice.
+                            let msg = retain_doc.msg.as_slice();
+                            dbg!(&msg);
+                            let retain = Retain {
+                                qos: retain_doc.qos,
+                                topic_id: retain_doc.topic_id,
+                                msg_id: retain_doc.msg_id,
+                                // Convert slice into Bytes.
+                                payload: Bytes::copy_from_slice(&msg[..]),
+                            };
+                            // insert the value into the cache.
+                            hash_map.insert(*topic_id, retain.clone());
+                            return Some(retain);
+                        }
+                        Err(_) => {
+                            // Not in MongoDB, return None.
+                            ();
+                        }
                     }
                 }
                 None
@@ -109,10 +98,9 @@ impl RetainCache {
         let mut self2 = self.clone();
         let _sub_thread = thread::spawn(move || loop {
             select! {
-                // A message from subscriber with socket_addr and topic_id.
+                // A subscriber sent socket_addr and topic_id.
                 // If the topic_id is in the hash_map, send the message to the subscriber.
                 recv(&client2.sub_retain_rx) -> msg => {
-                    println!("3000 **************************************************");
                     dbg!(&msg);
                     match msg {
                         Ok((socket_addr, topic_id)) => {
@@ -135,12 +123,11 @@ impl RetainCache {
                         }
                     }
                 }
-                // A message from subscriber with retain message.
-                // Insert the retain message into the hash_map.
+                // A publisher sent retain message.
+                // Insert the retain message into the cache and db.
                 recv(&client2.pub_retain_rx) -> retain => {
                     match retain {
                         Ok(retain) => {
-                            println!("3001 **************************************************");
                             dbg!(&retain);
                             self2.insert(retain);
                         }
