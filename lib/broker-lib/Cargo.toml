@@ -71,6 +71,8 @@ util = { package = "webrtc-util", version = "0.5.0", default-features = false, f
 tokio = { version = "1.7.0", features = ["full", "tracing", "sync", "rt-multi-thread", "macros" ] }
 async-recursion = "0.3"
 serde_bytes = "0.11.6"
+influxdb2 = "0.1.0"
+futures = "0.3.21"
 [dependencies.mongodb]
 version = "2.2.0"
 features = ["sync"]

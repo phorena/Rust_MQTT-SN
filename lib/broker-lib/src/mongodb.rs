@@ -7,10 +7,7 @@ use mongodb::{
 use serde::{Deserialize as Ser_Deserialize, Serialize as Ser_Serialize};
 use serde_bytes::{ByteBuf, Bytes};
 
-use crate::{
-    eformat,
-    function,
-};
+use crate::{eformat, function};
 
 #[derive(Debug, Clone, Ser_Serialize, Ser_Deserialize)]
 pub struct RetainDoc {

@@ -45,6 +45,7 @@ pub mod search_gw;
 pub mod sub_ack;
 pub mod subscribe;
 // pub mod tikv;
+pub mod influxdb;
 pub mod mongodb;
 pub mod unsub_ack;
 pub mod unsubscribe;
