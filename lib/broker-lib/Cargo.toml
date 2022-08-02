@@ -44,8 +44,8 @@ backtrace = "0.3.64"
 #trace_caller = { version = "0.2.0", path = "../trace_caller" }
 #trace_caller_macro = { version = "0.1.0", path = "/mnt/OneTB/repos/trace_caller/trace_caller_macro" }
 #trace_caller = { version = "0.2.0", path = "/mnt/OneTB/repos/trace_caller" }
-trace_caller_macro = { version = "0.1.0", path = "../../../../trace_caller/trace_caller_macro" }
-trace_caller = { version = "0.2.0", path = "../../../../trace_caller" }
+trace_caller_macro = { version = "0.1.0", path = "../../../trace_caller/trace_caller_macro" }
+trace_caller = { version = "0.2.0", path = "../../../trace_caller" }
 
 uuid = { version = "0.8", features = ["serde", "v1", "v4"] }
 rand = "0.8.5"
